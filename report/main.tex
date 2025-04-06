@@ -1,0 +1,61 @@
+\documentclass{diploma}
+
+\usepackage{siunitx}
+
+\student{Бирюков Виктор Владимирович}
+\group{М8О-206М-23}
+\theme{---}
+
+\supervisor{---}
+\firstConsultant{---}
+\secondConsultant{---}
+\reviewer{---}
+
+\faculty{№ 8 <<Компьютерные науки и прикладная математика>>}
+\department{806}
+\speciality{---}
+\profile{---}
+
+\departmentFullName{№ 806}
+\headOfDepartment{Крылов Сергей Сергеевич}
+\date{\uline{\hspace{24pt}} мая \the\year\ года}
+
+\input{contents/glossary}
+\input{contents/terms}
+
+\addbibresource{main.bib}
+
+\graphicspath{ {./img/} }
+
+% Иллюстрации всегда по центру
+\makeatletter
+\g@addto@macro\@floatboxreset\centering
+\makeatother
+
+\begin{document}
+    \maketitle
+
+    % \includepdf[pages=-]{extra/task}
+    \setcounter{page}{2} % Устанавливает счётчик страниц
+
+    \include{contents/0-abstract}
+
+    \tableofcontents
+    \termsandabbreviations
+
+    \include{contents/1-introduction}
+
+    \include{contents/2-task}
+
+    \input{contents/3-theory}
+
+    \input{contents/4-results}
+    
+    \include{contents/5-conclusion}
+
+    \nocite{*}
+    \printbibliography
+
+    \appendix
+    \include{contents/6-appendix-src}
+\end{document}

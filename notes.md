@@ -1,0 +1,1 @@
+Генерация планарных графов [long version](https://igm.univ-mlv.fr/~fusy/Articles/Fusy08_planar_graphs.pdf) [short version](https://igm.univ-mlv.fr/~fusy/Articles/FusyAofa.pdf)
