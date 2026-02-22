@@ -1,6 +1,10 @@
-Генерация планарных графов [long version](https://igm.univ-mlv.fr/~fusy/Articles/Fusy08_planar_graphs.pdf) [short version](https://igm.univ-mlv.fr/~fusy/Articles/FusyAofa.pdf)
+Генерация планарных графов:
+- https://igm.univ-mlv.fr/~fusy/Articles/Fusy08_planar_graphs.pdf (long version)
+- https://igm.univ-mlv.fr/~fusy/Articles/FusyAofa.pdf (short version)
 
-Анимация в pdf https://tex.stackexchange.com/q/240243 https://tex.stackexchange.com/q/5396
+Анимация в pdf:
+- https://tex.stackexchange.com/q/240243
+- https://tex.stackexchange.com/q/5396
 
 python algorithms:
 - https://github.com/Kei18/pypibt
