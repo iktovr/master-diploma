@@ -34,6 +34,7 @@ cc_library(
     ],
     deps = [
         "@opencv//:imgproc",
+        "@opencv//:imgcodecs",
         ":agent"
     ]
 )
