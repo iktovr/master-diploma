@@ -1,11 +1,10 @@
 bazel_dep(name = "rules_cc", version = "0.2.17")
 bazel_dep(name = "opencv", version = "4.13.0.bcr.5")
+bazel_dep(name = "platforms", version = "1.0.0")
 
 bazel_dep(name = "hedron_compile_commands", dev_dependency = True)
 git_override(
     module_name = "hedron_compile_commands",
     remote = "https://github.com/hedronvision/bazel-compile-commands-extractor.git",
-    commit = "0e990032f3c5a866e72615cf67e5ce22186dcb97",
-    # Replace the commit hash (above) with the latest (https://github.com/hedronvision/bazel-compile-commands-extractor/commits/main).
-    # Even better, set up Renovate and let it do the work for you (see "Suggestion: Updates" in the README).
+    commit = "7fe1eab26d2b8eeb5e1c6a2f38bddb001e3f9696",
 )

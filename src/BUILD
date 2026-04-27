@@ -11,12 +11,40 @@ cc_library(
     ]
 )
 
+cc_library(
+    name="simulation",
+    srcs = [
+        "simulation.cpp"
+    ],
+    hdrs = [
+        "simulation.h"
+    ],
+    deps = [
+        ":agent"
+    ]
+)
+
+cc_library(
+    name="visualizer",
+    srcs = [
+        "visualizer.cpp"
+    ],
+    hdrs = [
+        "visualizer.h"
+    ],
+    deps = [
+        "@opencv//:imgproc",
+        ":agent"
+    ]
+)
+
 cc_binary(
     name = "main",
     srcs = [
         "main.cpp"
     ],
     deps = [
+        ":simulation",
         ":agent"
     ]
 )
