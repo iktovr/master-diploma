@@ -33,9 +33,10 @@ cc_library(
         "visualizer.h"
     ],
     deps = [
-        "@opencv//:imgproc",
+        "@opencv//:core",
         "@opencv//:imgcodecs",
-        ":agent"
+        "@opencv//:imgproc",
+        ":agent",
     ]
 )
 
@@ -45,7 +46,8 @@ cc_binary(
         "main.cpp"
     ],
     deps = [
+        ":agent",
         ":simulation",
-        ":agent"
+        ":visualizer",
     ]
 )

@@ -5,6 +5,7 @@
 #include <filesystem>
 #include <format>
 
+#include <opencv2/core/core.hpp>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/imgcodecs.hpp>
 
@@ -25,11 +26,13 @@ public:
     }
 
     void DrawAgent(const Agent& agent) {
+        const static cv::Scalar color(0, 0, 0);
 
+        cv::circle(img, ToPixels(agent.x, agent.y), ToPixels(0.1), color);
     }
 
     void SaveFrame(int frame) {
-        cv::imwrite(img, directory / std::format("frame_{:04}.png", frame));
+        cv::imwrite(directory / std::format("frame_{:04}.png", frame), img);
     }
 
 protected:
@@ -39,4 +42,12 @@ protected:
     double height;
     fs::path directory;
     cv::Mat img;
+
+    int ToPixels(double x) {
+        return static_cast<int>(x / height * img_height);
+    }
+
+    cv::Point ToPixels(double x, double y) {
+        return {static_cast<int>((x + height / 2) / height * img_height), static_cast<int>((y + width / 2) / width * img_width)};
+    }
 };

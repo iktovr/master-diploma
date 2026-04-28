@@ -1,22 +1,25 @@
 #include "agent.h"
 #include "simulation.h"
+#include "visualizer.h"
 
 #include <iostream>
 
 int main() {
     Simulation sim;
+    Visualizer vis(200, 200, 10, 10, "/home/iktovr/master-diploma/src/test");
 
     for (int i = 0; i < 10; ++i) {
         sim.AddAgent(Agent());
     }
 
-    int steps;
-    std::cin >> steps;
-    while (steps--) {
+    int steps = 10;
+    for (int i = 0; i < steps; ++i) {
         sim.Step(0.2);
+
+        vis.ClearFrame();
         for (const auto& agent: sim.agents) {
-            std::cout << agent.x << ' ' << agent.y << '\n';
+            vis.DrawAgent(agent);
         }
-        std::cout << '\n' << std::endl;
+        vis.SaveFrame(i);
     }
 }
