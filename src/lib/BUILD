@@ -1,5 +1,6 @@
 load("@rules_cc//cc:cc_library.bzl", "cc_library")
-load("@rules_cc//cc:cc_binary.bzl", "cc_binary")
+
+package(default_visibility = ["//visibility:public"])
 
 cc_library(
     name="agent",
@@ -37,17 +38,5 @@ cc_library(
         "@opencv//:imgcodecs",
         "@opencv//:imgproc",
         ":agent",
-    ]
-)
-
-cc_binary(
-    name = "main",
-    srcs = [
-        "main.cpp"
-    ],
-    deps = [
-        ":agent",
-        ":simulation",
-        ":visualizer",
     ]
 )

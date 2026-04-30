@@ -12,10 +12,15 @@ python algorithms:
 - https://github.com/FE-LAK/PyCCBS
 - https://github.com/AdamBignell/ICTS-vs-EPEA
 
+Библиотеки для c++:
+- логирование https://github.com/odygrd/quill
+- CLI https://github.com/CLIUtils/CLI11 https://github.com/p-ranav/argparse
+
 План написания программы:
 + визуализатор для агента
-- демка в которой агенты рандомно перемещаются
++ демка в которой агенты рандомно перемещаются
 - структура графа
+- диспатч
 - демка в которой агенты рандомно перемещаются по графу
 - А* по графу
 - написать оставшуюся часть программы

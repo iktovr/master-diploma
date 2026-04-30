@@ -1,18 +1,18 @@
-#include "agent.h"
-#include "simulation.h"
-#include "visualizer.h"
+#include "lib/agent.h"
+#include "lib/simulation.h"
+#include "lib/visualizer.h"
 
 #include <iostream>
 
 int main() {
     Simulation sim;
-    Visualizer vis(200, 200, 10, 10, "/home/iktovr/master-diploma/src/test");
+    Visualizer vis(500, 500, 10, 10, "/home/iktovr/master-diploma/src/demo/out");
 
     for (int i = 0; i < 10; ++i) {
         sim.AddAgent(Agent());
     }
 
-    int steps = 10;
+    int steps = 50;
     for (int i = 0; i < steps; ++i) {
         sim.Step(0.2);
 
