@@ -1,0 +1,15 @@
+{
+	"name": "devcontainer",
+	"build": {
+		"dockerfile": "Dockerfile"
+	},
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"BazelBuild.vscode-bazel",
+				"ms-vscode.cpptools-extension-pack",
+				"James-Yu.latex-workshop"
+			]
+		}
+	}
+}
