@@ -3,6 +3,7 @@
 #include "lib/visualizer.h"
 
 #include <iostream>
+#include <format>
 
 int main() {
     Simulation sim;

@@ -1,13 +1,14 @@
-load("@rules_cc//cc:cc_binary.bzl", "cc_binary")
+load("@rules_cc//cc:defs.bzl", "cc_binary")
 
 cc_binary(
-    name = "main",
+    name = "demo",
     srcs = [
-        "main.cpp"
+        "main.cpp",
     ],
     deps = [
         "//lib:agent",
+        "//lib:graph",
         "//lib:simulation",
         "//lib:visualizer",
-    ]
+    ],
 )

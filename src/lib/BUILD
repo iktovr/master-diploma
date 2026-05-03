@@ -1,42 +1,52 @@
-load("@rules_cc//cc:cc_library.bzl", "cc_library")
+load("@rules_cc//cc:defs.bzl", "cc_library")
 
 package(default_visibility = ["//visibility:public"])
 
 cc_library(
-    name="agent",
+    name = "agent",
     srcs = [
-        "agent.cpp"
+        "agent.cpp",
     ],
     hdrs = [
-        "agent.h"
-    ]
+        "agent.h",
+    ],
 )
 
 cc_library(
-    name="simulation",
+    name = "graph",
     srcs = [
-        "simulation.cpp"
+        "graph.cpp",
     ],
     hdrs = [
-        "simulation.h"
+        "graph.h",
     ],
-    deps = [
-        ":agent"
-    ]
 )
 
 cc_library(
-    name="visualizer",
+    name = "simulation",
     srcs = [
-        "visualizer.cpp"
+        "simulation.cpp",
     ],
     hdrs = [
-        "visualizer.h"
+        "simulation.h",
     ],
     deps = [
+        ":agent",
+    ],
+)
+
+cc_library(
+    name = "visualizer",
+    srcs = [
+        "visualizer.cpp",
+    ],
+    hdrs = [
+        "visualizer.h",
+    ],
+    deps = [
+        ":agent",
         "@opencv//:core",
         "@opencv//:imgcodecs",
         "@opencv//:imgproc",
-        ":agent",
-    ]
+    ],
 )
