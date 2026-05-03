@@ -7,7 +7,7 @@
 
 int main() {
     Simulation sim;
-    Visualizer vis(500, 500, 10, 10, "/home/iktovr/master-diploma/src/demo/out");
+    Visualizer vis(500, 500, 10, 10, "/workspaces/master_diploma/src/demo/out");
 
     for (int i = 0; i < 10; ++i) {
         sim.AddAgent(Agent());

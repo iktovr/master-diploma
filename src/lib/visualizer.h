@@ -10,6 +10,7 @@
 #include <opencv2/imgcodecs.hpp>
 
 #include "agent.h"
+#include "geometry.h"
 
 namespace fs = std::filesystem;
 
@@ -28,7 +29,7 @@ public:
     void DrawAgent(const Agent& agent) {
         const static cv::Scalar color(0, 0, 0);
 
-        cv::circle(img, ToPixels(agent.x, agent.y), ToPixels(0.1), color);
+        cv::circle(img, ToPixels(agent.pos), ToPixels(0.1), color);
     }
 
     void SaveFrame(int frame) {
@@ -43,11 +44,15 @@ protected:
     fs::path directory;
     cv::Mat img;
 
-    int ToPixels(double x) {
+    inline int ToPixels(double x) {
         return static_cast<int>(x / height * img_height);
     }
 
-    cv::Point ToPixels(double x, double y) {
+    inline cv::Point ToPixels(double x, double y) {
         return {static_cast<int>((x + height / 2) / height * img_height), static_cast<int>((y + width / 2) / width * img_width)};
+    }
+
+    inline cv::Point ToPixels(const Point& point) {
+        return ToPixels(point.x(), point.y());
     }
 };

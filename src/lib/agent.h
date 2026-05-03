@@ -1,5 +1,7 @@
 #pragma once
 
+#include "geometry.h"
+
 struct Agent {
     enum State {
         idle,
@@ -7,13 +9,12 @@ struct Agent {
         wait
     };
 
-    double x = 0;
-    double y = 0;
+    Point pos;
     State state = idle;
 
     Agent() = default;
 
-    Agent(double x, double y) : x(x), y(y) {}
+    Agent(double x, double y) : pos(x, y) {}
 
     void Move(double dt, double speed);
 };

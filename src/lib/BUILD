@@ -10,6 +10,9 @@ cc_library(
     hdrs = [
         "agent.h",
     ],
+    deps = [
+        ":geometry",
+    ],
 )
 
 cc_library(
@@ -19,6 +22,9 @@ cc_library(
     ],
     hdrs = [
         "graph.h",
+    ],
+    deps = [
+        ":geometry",
     ],
 )
 
@@ -45,8 +51,22 @@ cc_library(
     ],
     deps = [
         ":agent",
+        ":geometry",
         "@opencv//:core",
         "@opencv//:imgcodecs",
         "@opencv//:imgproc",
+    ],
+)
+
+cc_library(
+    name = "geometry",
+    srcs = [
+        "geometry.cpp",
+    ],
+    hdrs = [
+        "geometry.h",
+    ],
+    deps = [
+        "@boost.geometry",
     ],
 )

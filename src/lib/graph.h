@@ -4,12 +4,13 @@
 #include <unordered_map>
 #include <vector>
 
+#include "geometry.h"
+
 class Graph {
 public:
     struct Vertex {
         int id;
-        double x;
-        double y;
+        Point pos;
     };
 
     struct Edge {
@@ -19,7 +20,7 @@ public:
     Graph() = default;
 
     void AddVertex(double x, double y) {
-        vertices.emplace_back(vertex_id++, x, y);
+        vertices.emplace_back(vertex_id++, Point{x, y});
         edges.emplace_back();
     }
 
@@ -30,7 +31,7 @@ public:
     }
 
     inline double Distance(int u, int v) {
-        return std::sqrt(std::pow(vertices[u].x - vertices[v].x, 2) + std::pow(vertices[u].y - vertices[v].y, 2));
+        return bg::distance(vertices[u].pos, vertices[v].pos);
     }
 
     std::vector<int> Search(int u, int v);
