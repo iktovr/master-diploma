@@ -52,6 +52,7 @@ cc_library(
     deps = [
         ":agent",
         ":geometry",
+        ":graph",
         "@opencv//:core",
         "@opencv//:imgcodecs",
         "@opencv//:imgproc",

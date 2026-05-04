@@ -19,22 +19,23 @@ public:
 
     Graph() = default;
 
-    void AddVertex(double x, double y) {
+    void AddVertex(const double x, const double y) {
         vertices.emplace_back(vertex_id++, Point{x, y});
         edges.emplace_back();
     }
 
-    void AddEdge(int u, int v) {
+    void AddEdge(const int u, const int v) {
         double length = Distance(u, v);
         edges[u].emplace(v, Edge{length});
         edges[v].emplace(u, Edge{length});
     }
 
-    inline double Distance(int u, int v) {
+    inline double Distance(const int u, const int v) {
         return bg::distance(vertices[u].pos, vertices[v].pos);
     }
 
-    std::vector<int> Search(int u, int v);
+    std::vector<int> Search(const int u, const int v);
+    Linestring GetRoute(const int u, const int v);
 
 protected:
     int vertex_id = 0;

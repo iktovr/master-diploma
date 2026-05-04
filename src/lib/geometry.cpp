@@ -1,7 +1,8 @@
 #include "geometry.h"
 
+#include <boost/geometry.hpp>
+
 Point& operator+=(Point& a, const Point& b) {
-    a.x(a.x() + b.x());
-    a.y(a.y() + b.y());
+    bg::add_point(a, b);
     return a;
 }

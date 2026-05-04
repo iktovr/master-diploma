@@ -11,5 +11,5 @@ struct Simulation {
         agents.push_back(agent);
     }
 
-    void Step(double dt);
+    void Step(const double dt);
 };

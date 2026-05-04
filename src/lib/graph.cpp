@@ -16,7 +16,7 @@ struct VertexData {
     int prev;
 };
 
-std::vector<int> Graph::Search(int start, int finish) {
+std::vector<int> Graph::Search(const int start, const int finish) {
     std::unordered_map<int, VertexData> ctx;
     std::priority_queue<SearchState, std::vector<SearchState>, std::greater<SearchState>> heap;
 
@@ -57,4 +57,14 @@ std::vector<int> Graph::Search(int start, int finish) {
 
     std::reverse(res.begin(), res.end());
     return res;
+}
+
+Linestring Graph::GetRoute(const int u, const int v) {
+    const auto path = Search(u, v);
+    Linestring route;
+    route.reserve(path.size());
+    for (const auto i : path) {
+        route.push_back(vertices[i].pos);
+    }
+    return route;
 }
