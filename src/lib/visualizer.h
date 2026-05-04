@@ -1,9 +1,9 @@
 #pragma once
 
 #include <cassert>
-#include <string>
 #include <filesystem>
 #include <format>
+#include <string>
 
 #include <opencv2/core/core.hpp>
 #include <opencv2/imgproc.hpp>
@@ -29,13 +29,17 @@ public:
     }
 
     void DrawAgent(const Agent& agent) {
-        const static cv::Scalar color(0, 0, 0);
+        const static cv::Scalar edge_color(0, 0, 0);
+        const static cv::Scalar fill_color(255, 255, 255);
 
-        cv::circle(img, ToPixels(agent.pos), ToPixels(0.1), color);
+        cv::circle(img, ToPixels(agent.pos), ToPixels(0.1), fill_color, cv::FILLED);
+        cv::circle(img, ToPixels(agent.pos), ToPixels(0.1), edge_color);
     }
 
     void DrawGraph(const Graph& graph) {
         const static cv::Scalar color(0, 0, 0);
+        const static cv::Scalar base_color(0, 0, 255);
+        const static cv::Scalar delivery_color(0, 255, 0);
 
         for (int u = 0; u < static_cast<int>(graph.vertices.size()); ++u) {
             for (auto& [v, edge] : graph.edges[u]) {
@@ -43,6 +47,15 @@ public:
                     cv::line(img, ToPixels(graph.vertices[u].pos), ToPixels(graph.vertices[v].pos), color);
                 }
             }
+        }
+        for (const auto& v : graph.vertices) {
+            cv::Scalar vertex_color;
+            if (v.type == Graph::Vertex::base) {
+                vertex_color = base_color;
+            } else if (v.type == Graph::Vertex::delivery) {
+                vertex_color = delivery_color;
+            }
+            cv::circle(img, ToPixels(v.pos), 4, vertex_color, cv::FILLED);
         }
     }
 
@@ -59,15 +72,15 @@ protected:
     cv::Mat img;
     int frame = 0;
 
-    inline int ToPixels(const double x) {
+    inline int ToPixels(const double x) const {
         return static_cast<int>(x / height * img_height);
     }
 
-    inline cv::Point ToPixels(const double x, const double y) {
+    inline cv::Point ToPixels(const double x, const double y) const {
         return {static_cast<int>((x + height / 2) / height * img_height), static_cast<int>((-y + width / 2) / width * img_width)};
     }
 
-    inline cv::Point ToPixels(const Point& point) {
+    inline cv::Point ToPixels(const Point& point) const {
         return ToPixels(point.x(), point.y());
     }
 };

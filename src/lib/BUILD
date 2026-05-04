@@ -38,6 +38,7 @@ cc_library(
     ],
     deps = [
         ":agent",
+        ":dispatch",
     ],
 )
 
@@ -69,5 +70,19 @@ cc_library(
     ],
     deps = [
         "@boost.geometry",
+    ],
+)
+
+cc_library(
+    name = "dispatch",
+    srcs = [
+        "dispatch.cpp",
+    ],
+    hdrs = [
+        "dispatch.h",
+    ],
+    deps = [
+        ":agent",
+        ":graph",
     ],
 )

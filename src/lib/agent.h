@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cassert>
+#include <vector>
 
 #include "geometry.h"
 
@@ -33,12 +34,13 @@ struct Agent {
     };
 
     Point pos;
+    int base = 0;
     State state = idle;
     RouteFollower route_follower;
 
     Agent() = default;
 
-    Agent(const double x, const double y) : pos(x, y) {}
+    Agent(const double x, const double y, const int base = 0) : pos(x, y), base(base) {}
 
     void SetRoute(const Linestring& route) {
         route_follower.SetRoute(route);
@@ -47,3 +49,5 @@ struct Agent {
 
     void Move(const double dt, const double speed);
 };
+
+using Agents = std::vector<Agent>;
