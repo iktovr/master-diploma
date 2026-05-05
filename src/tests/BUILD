@@ -10,5 +10,8 @@ cc_test(
         "@googletest//:gtest",
         "@googletest//:gtest_main",
     ],
+    data = [
+        "data/graph.txt"
+    ],
     size = "small",
 )

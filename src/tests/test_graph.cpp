@@ -1,9 +1,25 @@
+#include "gmock/gmock.h"
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 
 #include "lib/graph.h"
 
 using ::testing::ElementsAre;
+
+TEST(TestGraph, LoadFromFile) {
+    Graph g1;
+    g1.AddVertex(-1, 0, Graph::Vertex::base);
+    g1.AddVertex(0, 1);
+    g1.AddVertex(1, 1, Graph::Vertex::delivery);
+    g1.AddEdge(0, 1);
+    g1.AddEdge(0, 2);
+    g1.AddEdge(1, 2);
+
+    Graph g2 = Graph::LoadFromFile("tests/data/graph.txt");
+
+    EXPECT_EQ(g1.vertices, g2.vertices);
+    EXPECT_EQ(g1.edges, g2.edges);
+}
 
 TEST(TestSearch, SimpleGraph) {
     Graph g;

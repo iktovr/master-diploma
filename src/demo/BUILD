@@ -10,5 +10,6 @@ cc_binary(
         "//lib:graph",
         "//lib:simulation",
         "//lib:visualizer",
+        "@cli11",
     ],
 )

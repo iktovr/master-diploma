@@ -2,11 +2,17 @@
 
 #include <algorithm>
 #include <cassert>
+#include <filesystem>
 #include <functional>
+#include <fstream>
 #include <queue>
+#include <sstream>
+#include <string>
 #include <unordered_map>
 #include <utility>
 #include <vector>
+
+namespace fs = std::filesystem;
 
 using SearchState = std::pair<double, int>;
 
@@ -67,4 +73,38 @@ Linestring Graph::GetRoute(const int u, const int v) const {
         route.push_back(vertices[i].pos);
     }
     return route;
+}
+
+Graph Graph::LoadFromFile(const fs::path path) {
+    assert(fs::exists(path) && fs::is_regular_file(path));
+    
+    std::ifstream file(path);
+    assert(file.is_open());
+    
+    Graph g;
+    std::string s;
+    while (std::getline(file, s) && !s.empty()) {
+        double x, y;
+        std::string type;
+        std::istringstream ss(s);
+        ss >> x >> y >> type;
+        auto t = Graph::Vertex::none;
+        if (type == "base") {
+            t = Graph::Vertex::base;
+        } else if (type == "delivery") {
+            t = Graph::Vertex::delivery;
+        }
+
+        g.AddVertex(x, y, t);
+    }
+
+    assert(file);
+    while (std::getline(file, s) && !s.empty()) {
+        int u, v;
+        std::istringstream ss(s);
+        ss >> u >> v;
+
+        g.AddEdge(u, v);
+    }
+    return g;
 }

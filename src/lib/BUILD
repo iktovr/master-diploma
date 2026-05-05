@@ -39,6 +39,8 @@ cc_library(
     deps = [
         ":agent",
         ":dispatch",
+        ":graph",
+        ":visualizer",
     ],
 )
 
