@@ -6,12 +6,20 @@
 #include "graph.h"
 
 struct Dispatch {
-    std::vector<int> delivery_points;
-    std::vector<int> current_order;
     const Graph& graph;
+    std::vector<int> delivery_points;
+    std::vector<int> base_points;
+    std::vector<int> current_order;
 
     Dispatch(const Graph& graph, const Agents& agents) : 
-        delivery_points(graph.GetVertices(Graph::Vertex::delivery)), current_order(agents.size(), -1), graph(graph) {}
+        graph(graph),
+        delivery_points(graph.GetVertices(Graph::Vertex::delivery)),
+        base_points(graph.GetVertices(Graph::Vertex::base)),
+        current_order(agents.size(), -1)
+    {
+    }
+
+    void AssignBasePoints(Agents& agents) const;
 
     void Step(Agents& agents);
 

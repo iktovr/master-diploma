@@ -43,8 +43,8 @@ public:
         const static cv::Scalar edge_color(0, 0, 0);
         const static cv::Scalar fill_color(255, 255, 255);
 
-        cv::circle(img, ToPixels(agent.pos), ToPixels(0.1), fill_color, cv::FILLED);
-        cv::circle(img, ToPixels(agent.pos), ToPixels(0.1), edge_color);
+        cv::circle(img, ToPixels(agent.pos), 8, fill_color, cv::FILLED);
+        cv::circle(img, ToPixels(agent.pos), 8, edge_color);
     }
 
     void DrawGraph(const Graph& graph) {
@@ -71,8 +71,6 @@ public:
     }
 
     void SaveFrame() {
-        cv::drawMarker(img, ToPixels(0, 0), {255, 0, 0});
-        cv::drawMarker(img, ToPixels(center), {255, 0, 0});
         cv::imwrite(directory / std::format("frame_{:04}.png", frame++), img);
     }
 

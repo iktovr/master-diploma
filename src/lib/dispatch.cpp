@@ -1,5 +1,6 @@
 #include "dispatch.h"
 
+#include <cmath>
 #include <random>
 #include <vector>
 
@@ -27,5 +28,13 @@ void Dispatch::Step(Agents& agents) {
 int Dispatch::NewOrder() const {
     static std::mt19937 gen;
     std::uniform_int_distribution<int> dist(0, delivery_points.size() - 1);
-    return dist(gen);
+    return delivery_points[dist(gen)];
+}
+
+void Dispatch::AssignBasePoints(Agents& agents) const {
+    for (size_t i = 0; i < agents.size(); ++i) {
+        size_t base = i % base_points.size();
+        agents[i].base = base_points[base];
+        agents[i].pos = graph.vertices[base_points[base]].pos;
+    }
 }

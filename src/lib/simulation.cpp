@@ -1,6 +1,8 @@
 #include "simulation.h"
 
+#include <chrono>
 #include <functional>
+#include <iostream>
 #include <queue>
 
 struct Event {
@@ -25,7 +27,7 @@ bool operator>(const Event& a, const Event& b) {
 void Simulation::Step(const double dt) {
     dispatch.Step(agents);
     for (auto& agent: agents) {
-        agent.Move(dt, 2.2);
+        agent.Move(dt, speed);
     }
 }
 
@@ -47,6 +49,8 @@ void Simulation::Simulate(const double duration, const double step, const double
         events.push(Event{0.0, vis_step, [this]() { Visualize(); }});
     }
 
+    auto start = std::chrono::high_resolution_clock::now();
+
     while (!events.empty()) {
         auto event = events.top();
         if (event.time > duration) {
@@ -55,4 +59,10 @@ void Simulation::Simulate(const double duration, const double step, const double
         events.pop();
         events.push(event.Evaluate());
     }
+
+    auto end = std::chrono::high_resolution_clock::now();
+    double real_duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() / 1e9;
+    std::cerr << "Simulation virtual duration: " << duration << '\n'
+        << "Simulation real duration: " << real_duration << '\n'
+        << "Simulation speed: " << duration / real_duration << " s(v)/s" << std::endl;
 }

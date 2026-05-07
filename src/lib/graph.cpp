@@ -89,9 +89,9 @@ Graph Graph::LoadFromFile(const fs::path path) {
         std::istringstream ss(s);
         ss >> x >> y >> type;
         auto t = Graph::Vertex::none;
-        if (type == "base") {
+        if (type == "b") {
             t = Graph::Vertex::base;
-        } else if (type == "delivery") {
+        } else if (type == "d") {
             t = Graph::Vertex::delivery;
         }
 
