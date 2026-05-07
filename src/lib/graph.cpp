@@ -77,10 +77,10 @@ Linestring Graph::GetRoute(const int u, const int v) const {
 
 Graph Graph::LoadFromFile(const fs::path path) {
     assert(fs::exists(path) && fs::is_regular_file(path));
-    
+
     std::ifstream file(path);
     assert(file.is_open());
-    
+
     Graph g;
     std::string s;
     while (std::getline(file, s) && !s.empty()) {
@@ -101,10 +101,15 @@ Graph Graph::LoadFromFile(const fs::path path) {
     assert(file);
     while (std::getline(file, s) && !s.empty()) {
         int u, v;
+        std::string attr;
+        bool narrow = false;
         std::istringstream ss(s);
-        ss >> u >> v;
+        ss >> u >> v >> attr;
+        if (attr == "n") {
+            narrow = true;
+        }
 
-        g.AddEdge(u, v);
+        g.AddEdge(u, v, narrow);
     }
     return g;
 }

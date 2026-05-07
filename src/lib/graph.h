@@ -26,6 +26,7 @@ public:
 
     struct Edge {
         double length;
+        bool narrow = false;
 
         bool operator==(const Edge& other) const = default;
     };
@@ -37,10 +38,10 @@ public:
         edges.emplace_back();
     }
 
-    void AddEdge(const int u, const int v) {
+    void AddEdge(const int u, const int v, const bool narrow = false) {
         double length = Distance(u, v);
-        edges[u].emplace(v, Edge{length});
-        edges[v].emplace(u, Edge{length});
+        edges[u].emplace(v, Edge{length, narrow});
+        edges[v].emplace(u, Edge{length, narrow});
     }
 
     inline double Distance(const int u, const int v) const {

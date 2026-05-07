@@ -7,6 +7,7 @@
 
 struct RouteFollower {
     Linestring route;
+    Linestring incoming_route;    
     double length;
     double x;
     Point pos;
@@ -14,6 +15,7 @@ struct RouteFollower {
     void SetRoute(const Linestring& new_route) {
         assert(!new_route.empty());
         route = new_route;
+        incoming_route = route;
         length = bg::length(route);
         x = 0;
         pos = route.front();
@@ -45,6 +47,14 @@ struct Agent {
     void SetRoute(const Linestring& route) {
         route_follower.SetRoute(route);
         state = move;
+    }
+
+    inline const Linestring& Route() const {
+        return route_follower.route;
+    }
+
+    inline const Linestring& IncomingRoute() const {
+        return route_follower.incoming_route;
     }
 
     void Move(const double dt, const double speed);

@@ -9,7 +9,11 @@ Point RouteFollower::Move(const double dx) {
     if (x > length) {
         x = length;
     }
+    if (incoming_route.size() > 2 && bg::distance(incoming_route[0], incoming_route[1]) < dx) {
+        incoming_route.erase(incoming_route.begin());
+    }
     bg::line_interpolate(route, x, pos);
+    incoming_route[0] = pos;
     return pos;
 }
 

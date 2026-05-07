@@ -45,28 +45,41 @@ public:
 
         cv::circle(img, ToPixels(agent.pos), 8, fill_color, cv::FILLED);
         cv::circle(img, ToPixels(agent.pos), 8, edge_color);
+
+        // if (agent.state != Agent::idle) {
+        //     const auto& route = agent.IncomingRoute();
+        //     for (size_t i = 0; i < route.size() - 1; ++i) {
+        //         cv::line(img, ToPixels(route[i]), ToPixels(route[i+1]), cv::Scalar{0, 0, 255}, 3);
+        //     }
+        // }
     }
 
     void DrawGraph(const Graph& graph) {
-        const static cv::Scalar color(0, 0, 0);
+        const static cv::Scalar edge_color(0, 0, 0);
+        const static cv::Scalar narrow_edge_color(255, 0, 0);
+        const static cv::Scalar vertex_color(0, 0, 0);
         const static cv::Scalar base_color(0, 0, 255);
         const static cv::Scalar delivery_color(0, 255, 0);
 
         for (int u = 0; u < static_cast<int>(graph.vertices.size()); ++u) {
             for (auto& [v, edge] : graph.edges[u]) {
-                if (v < u) {
-                    cv::line(img, ToPixels(graph.vertices[u].pos), ToPixels(graph.vertices[v].pos), color);
+                if (v > u) {
+                    continue;
                 }
+                if (edge.narrow) {
+                    cv::line(img, ToPixels(graph.vertices[u].pos), ToPixels(graph.vertices[v].pos), narrow_edge_color, 3);
+                }
+                cv::line(img, ToPixels(graph.vertices[u].pos), ToPixels(graph.vertices[v].pos), edge_color);
             }
         }
         for (const auto& v : graph.vertices) {
-            cv::Scalar vertex_color;
+            cv::Scalar color = vertex_color;
             if (v.type == Graph::Vertex::base) {
-                vertex_color = base_color;
+                color = base_color;
             } else if (v.type == Graph::Vertex::delivery) {
-                vertex_color = delivery_color;
+                color = delivery_color;
             }
-            cv::circle(img, ToPixels(v.pos), 4, vertex_color, cv::FILLED);
+            cv::circle(img, ToPixels(v.pos), 4, color, cv::FILLED);
         }
     }
 
