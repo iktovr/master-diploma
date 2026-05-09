@@ -3,6 +3,7 @@
 #include "agent.h"
 #include "dispatch.h"
 #include "graph.h"
+#include "semaphore.h"
 #include "visualizer.h"
 
 #include <optional>
@@ -21,10 +22,11 @@ struct Simulation {
     Agents agents;
     Graph graph;
     Dispatch dispatch;
+    SemaphoreManager semaphores;
     std::optional<Visualizer> vis;
 
     Simulation(const double speed_, const Agents& agents_, const Graph& graph_, const std::optional<Visualizer> vis_ = std::nullopt) :
-        speed(speed_), agents(agents_), graph(graph_), dispatch(graph, agents), vis(vis_) {
+        speed(speed_), agents(agents_), graph(graph_), dispatch(graph, agents), semaphores(graph), vis(vis_) {
         if (vis) {
             vis->DrawGraph(graph);
             vis->SavePersistentPart();
@@ -43,5 +45,5 @@ struct Simulation {
 
     void Simulate(const double duration, const double step, const double vis_step = -1);
     void Visualize();
-    void Step(const double dt);
+    void Step(const double t, const double dt);
 };

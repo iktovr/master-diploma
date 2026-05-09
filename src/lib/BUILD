@@ -40,6 +40,7 @@ cc_library(
         ":agent",
         ":dispatch",
         ":graph",
+        ":semaphore",
         ":visualizer",
     ],
 )
@@ -85,6 +86,21 @@ cc_library(
     ],
     deps = [
         ":agent",
+        ":graph",
+    ],
+)
+
+cc_library(
+    name = "semaphore",
+    srcs = [
+        "semaphore.cpp",
+    ],
+    hdrs = [
+        "semaphore.h",
+    ],
+    deps = [
+        ":agent",
+        ":geometry",
         ":graph",
     ],
 )

@@ -1,28 +1,175 @@
 \section{МЕТОДЫ ЦЕНТРАЛИЗОВАННОГО УПРАВЛЕНИЯ АВТОНОМНЫМИ АГЕНТАМИ}
 
-% это вероятно пойдет в предыдущую главу
-Важнейшей задачей управления автономными агентами является задача их 
-маршрутизации --- построения глобальных маршрутов для их перемещения.
+Рассмотрим различные методы планирования путей, а также методы вмешательств в перемещение автономных агентов, которые ...
 
+Для управления автономными агентами будем использовать методы планирования и методы вмешательства в реализация планирования (????)...
 
-\subsection{Постановка задачи многоагентного планирования}
+\subsection{Описание исходных данных}
+% исходные данные для по тех заданию без подробностей (расписать)
+Исходные данные для задачи планирования представляют из себя две сущности --- окружение, в котором 
+перемещаются агенты, и сами агенты. Так как в рамках данной задачи интерес представляет глобальное
+поведение агентов, окружение можно представить в виде взвешенного графа из $n$ вершин и $m$ ребер:
 
-В общем виде задача многоагентного планирования задается графом $G = (V, E, W)$, где $V$ --- множество вершин,
-$E$ --- множество ребер ($e = \left\{ v_i, v_j \right\}$),  $W : E \rightarrow \mathbb{R}$ --- функция,
-задающая вес ребра и множеством агентов $A = \left\{ 1, \ldots, n \right\}$.
-Граф может быть как ориентированным, так и нет, в данной работе исходные данные представляют из себя
-неориентированные планарные графы $W : E \rightarrow ||E||_2$ % (CHECK)
+\begin{equation}
+    G = (V, E, W),
+\label{e:graph}
+\end{equation}
 
-В каждый момент времени для агента $i$ определены начальная (стартовая) $s_i$ и конечная (целевая) $g_i$ вершины графа.
-Эти вершины могут совпадать, что позволяет агентам ожидать следующую цель.
-Множество агентов считается неизменным. Агенты перемещаются по графу с постоянной скоростью $v$.
+где $V$ --- множество вершин $\left\{ v_1, \ldots, v_n \right\}$,\par
+$E$ --- множество ребер ($e = \left\{ v_i, v_j \right\}$),\par
+$W : E \rightarrow \mathbb{R}$ --- функция, задающая вес ребра.
 
-Задача многоагентного планирования состоит в нахождении путей в графе между начальными и целевыми вершинами каждого из агентов,
-которые будут удовлетворять некоторым ограничениям, которые будут определены позднее.
+В таком графе ребрам могут соответствовать улицы, отдельные участки улиц, комнаты или просто некоторые 
+ограниченные части пространства.
 
-Метрики
+Другой частью исходных данных считаем множество из $k$ пронумерованных агентов:
 
-% \subsection{Multi-agent path finding}
+\begin{equation}
+    A = \left\{ 1, \ldots, k \right\}
+\label{e:agents}
+\end{equation}
 
-% \subsubsection{Conflict based search}
+% исходные данные MAPF (уточнить)
+В такой постановке исходные данные этой задачи очень похожи на исходные данные 
+задачи многоагентного планирования MAPF --- Multi Agent Path Finding \cite{mapf-definition}.
 
+Исходные данные классической задачи многоагентного планирования представляют из себя граф 
+$G = (E, V)$ и множество агентов $A$~(\ref{e:agents}). Для каждого агента $i \in A$ определены 
+начальная (стартовая) $s_i \in V$ и конечная (целевая) $g_i \in V$ вершины графа. Для классического 
+MAPF характерно использование дискретного времени, что выражается в использовании невзвешенного графа
+и допущениях о перемещении агентов, для которых любое действие (перемещение по ребру или ожидание) 
+занимает фиксированное время.
+
+Такая модель плохо подходит для описания реальных ситуаций, в которых разные действия могут иметь 
+разную продолжительность, агенты перемещаются с переменной скоростью или дискретизация пространства 
+приводит к чрезмерному увеличению размерности задачи.
+Поэтому для многоагентного планирования существует также формулировка \cite{ccbs}, в которой 
+используется взвешенный граф $G$~(\ref{e:graph}). Вес ребра отражает его длину и агенты перемещаются по 
+ребру в течении некоторого времени, которое определяется их скоростью.
+
+% итоговая исходные данные
+Таким образом в качестве исходных данных в работе будет использоваться взвешенный граф $G$~(\ref{e:graph}) 
+и множество агентов $A$~(\ref{e:agents}). Так как речь идет об определенных окружениях для агентов,
+предполагается, что графы представляют из себя неориентированные планарные графы вершины которых 
+расположены на двумерной плоскости $V \subset \mathbb{R}^2$, а ребра --- отрезки между 
+соответсвующими точками. В качестве веса ребра используется его длина:
+
+\begin{equation}
+\begin{split}
+    &W : E \rightarrow \mathbb{R}_{+} \\
+    &W(e) = ||e||_2,
+\end{split}
+\end{equation}
+
+где $e \in E$.
+
+\subsection{Методы многоагентного планирования}
+
+MAPF is an important type of multi-agent planning problem in which the task is to plan paths for multiple agents,
+where the key constraint is that the agents will be able to follow these paths concurrently without colliding with each
+other. MAPF has a range of relevant contemporary applications including automated warehouses, autonomous vehicles,
+and robotics.
+
+\subsubsection{Постановка задачи}
+
+% классическая постановка
+Постановка классической задачи MAPF выглядит следующим образом. Исходные данные описаны в предыдущем 
+разделе и представляют из себя граф и множество агентов. 
+
+Time is assumed to be discretized, and in every time step each
+agent is situated in one of the graph vertices and can perform
+a single action. An action in classical MAPF is a function
+a : V → V such that a(v) = v means that if an agent is
+at vertex v and performs a then it will be in vertex v in the
+next time step. Each agent has two types of actions: wait and
+move. A wait action means that the agent stays in its current
+vertex another time step. A move action means that the agent
+moves from its current vertex v to an adjacent vertex v in
+the graph
+
+For a sequence of actions π = (a1, . . . an) and an agent i,
+we denote by πi[x] the location of the agent after executing
+the first x actions in π, starting from the agent’s source s(i).
+Formally, πi[x] = ax(ax−1(· · · a1(s(i)))). A sequence of
+actions π is a single-agent plan for agent i iff executing this
+sequence of actions in s(i) results in being at t(i), that is, iff
+πi[|π|] = t(i). A solution is a set of k single-agent plans,
+one for each agent.
+
+The overarching goal of MAPF solvers is to find a solution,
+i.e., a single-agent plan for each agent, that can be executed
+without collisions. To achieve this, MAPF solvers use the
+notion of conflicts during planning, where a MAPF solution
+is called valid iff there is no conflict between any two
+single-agent plans. The definition of what constitutes a conflict
+depends on the environment, and correspondingly the
+literature on classical MAPF includes several different definitions
+of what constitutes a conflict between plans. We list
+common conflict definitions below. Let πi and πj be a pair
+of single-agent plans.
+• Vertex conflict. A vertex conflict between πi and πj occurs
+iff according to these plans the agents are planned to
+occupy the same vertex at the same time step. Formally,
+there is a vertex conflict between πi and πj iff there exists
+a time step x such that πi[x] = πj [x].
+• Edge conflict. An edge conflict between πi and πj occurs
+iff according to these plans the agents are planned to
+traverse the same edge at the same time step in the same
+direction. Formally, there is an edge conflict between πi
+and πj iff there exists a time step x such that πi[x] = πj [x]
+and πi[x + 1] = πj [x + 1].
+• Following conflict. A following conflict between πi and
+πj occurs iff one agent is planned to occupy a vertex that
+was occupied by another agent in the previous time step.
+Formally, there is a following conflict between πi and πj
+iff there exists a time step x such that πi[x + 1] = πj [x].
+• Cycle conflict. A cycle conflict between a set of singleagent
+plans πi, πi+1, . . . πj occurs iff in the same time
+step every agent moves to a vertex that was previously
+occupied by another agent, forming a “rotating cycle” pattern.
+Formally, a cycle conflict between a set of plans
+πi, πi+1, . . . πj occurs iff there exists a time step x in
+which πi(x + 1) = πi+1(x) and πi+1(x + 1) = πi+2(x)
+. . . and πj−1(x + 1) = πj(x) and πj(x + 1) = πi(x).
+• Swapping conflict. A swapping conflict between πi and
+πj occurs iff the agents are planned to swap locations in
+a single time step. Formally, there is a swapping conflict
+plans πi and πj will have a vertex conflict if there exists a
+time step t ≥ |πi| such that πj [t] = πi[|πi|].
+
+% уточнение для непрерывного времени
+Использование дискретного времени ограничивает применимость методов решения классической задачи. 
+Для возможности работы с непрерывным временем используется более сложная модель, в которой граф, 
+описывающий возможные положения агентов, является взвешенным. В таком случае различные действия 
+могут иметь различную продолжительность: время перемещение агента зависит от его скорости, время 
+ожидания неограниченно и так далее.
+
+В условиях непрерывного времени не имеет смысла разделение конфликтов на категории, так как конфликт 
+может произойти в любой момент времени между агентами, находящимися в процессе выполнения своих действий. 
+Вместо этого, например, может быть использовано определение конфликтов на основе пересечения 
+геометрических форм агентов \cite{ccbs}.
+
+% уточнение lifelong
+Другой особенностью классической (даже непрерывной) задачи является то, что она представляет из себя 
+только \enquote{одноразовый} вариант фактической проблемы во многих приложениях. Обычно после того,
+как агент достигает своего целевого местоположения, он не останавливается и не ждет там вечно. 
+Вместо этого ему назначается новое целевое местоположение, и от него требуется продолжать двигаться.
+Такой вариант называется продолжительным (lifelong) MAPF \cite{rhcr} и характеризуется постоянным
+назначением агентам новых целевых местоположений.
+
+\subsubsection{Поиск на основе ограничений}
+
+\subsubsection{Поиск на основе ограничений в непрерывном времени}
+
+% guided search???
+
+\subsection{Методы вмешательств?????}
+
+% оператор
+% семафоры
+...
+
+\subsection{Метрики}
+
+можно было бы использовать количество конфликтов, однако все рассматриваемые методы не допускают 
+возникновения конфликтом, что не позволяет использовать это как метрику

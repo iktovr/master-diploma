@@ -8,11 +8,11 @@
 struct Event {
     double time;
     double period;
-    std::function<void()> action;
+    std::function<void(double)> action;
 
     Event& Evaluate() {
+        action(time);
         time += period;
-        action();
         return *this;
     }
 };
@@ -24,7 +24,8 @@ bool operator>(const Event& a, const Event& b) {
     return a.period > b.period;
 }
 
-void Simulation::Step(const double dt) {
+void Simulation::Step(const double t, const double dt) {
+    semaphores.Step(t, agents);
     dispatch.Step(agents);
     for (auto& agent: agents) {
         agent.Move(dt, speed);
@@ -44,9 +45,9 @@ void Simulation::Visualize() {
 
 void Simulation::Simulate(const double duration, const double step, const double vis_step) {
     std::priority_queue<Event, std::vector<Event>, std::greater<Event>> events;
-    events.push(Event{0.0, step, [this, step](){ Step(step); }});
+    events.push(Event{0.0, step, [this, step](double t){ Step(t, step); }});
     if (vis && vis_step > 0) {
-        events.push(Event{0.0, vis_step, [this]() { Visualize(); }});
+        events.push(Event{0.0, vis_step, [this](double) { Visualize(); }});
     }
 
     auto start = std::chrono::high_resolution_clock::now();
