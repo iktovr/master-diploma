@@ -1,9 +1,11 @@
 FROM alpine:latest AS font-builder
 
 RUN apk --update add msttcorefonts-installer \
-  && update-ms-fonts 
+  && update-ms-fonts
 
 FROM mcr.microsoft.com/devcontainers/cpp:ubuntu
+
+ARG TARGETOS TARGETARCH
 
 COPY --from=font-builder /usr/share/fonts/truetype/msttcorefonts /usr/share/fonts/truetype/msttcorefonts
 
@@ -26,10 +28,10 @@ RUN chmod -R 644 /usr/share/fonts/truetype/msttcorefonts/* \
     ffmpeg \
   && echo ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true | debconf-set-selections \
   && fc-cache -f -v \
-  && wget https://github.com/bazelbuild/bazelisk/releases/download/v1.29.0/bazelisk-linux-amd64 \
-    https://github.com/bazelbuild/buildtools/releases/download/v8.5.1/buildifier-linux-amd64 \
-    https://github.com/bazelbuild/buildtools/releases/download/v8.5.1/buildozer-linux-amd64 \
-  && chmod 755 bazelisk-linux-amd64 buildifier-linux-amd64 buildozer-linux-amd64 \
-  && mv bazelisk-linux-amd64 /usr/bin/bazel \
-  && mv buildifier-linux-amd64 /usr/bin/buildifier \
-  && mv buildozer-linux-amd64 /usr/bin/buildozer
+  && wget "https://github.com/bazelbuild/bazelisk/releases/download/v1.29.0/bazelisk-${TARGETOS}-${TARGETARCH}" \
+    "https://github.com/bazelbuild/buildtools/releases/download/v8.5.1/buildifier-${TARGETOS}-${TARGETARCH}" \
+    "https://github.com/bazelbuild/buildtools/releases/download/v8.5.1/buildozer-${TARGETOS}-${TARGETARCH}" \
+  && chmod 755 "bazelisk-${TARGETOS}-${TARGETARCH}" "buildifier-${TARGETOS}-${TARGETARCH}" "buildozer-${TARGETOS}-${TARGETARCH}" \
+  && mv "bazelisk-${TARGETOS}-${TARGETARCH}" /usr/bin/bazel \
+  && mv "buildifier-${TARGETOS}-${TARGETARCH}" /usr/bin/buildifier \
+  && mv "buildozer-${TARGETOS}-${TARGETARCH}" /usr/bin/buildozer

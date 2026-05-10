@@ -33,54 +33,21 @@ public:
 
     Graph() = default;
 
-    void AddVertex(const double x, const double y, const Vertex::Type type = Vertex::none) {
-        vertices.emplace_back(vertex_id++, Point{x, y}, type);
-        edges.emplace_back();
-    }
+    void AddVertex(const double x, const double y, const Vertex::Type type = Vertex::none);
 
-    void AddEdge(const int u, const int v, const bool narrow = false) {
-        double length = Distance(u, v);
-        edges[u].emplace(v, Edge{length, narrow});
-        edges[v].emplace(u, Edge{length, narrow});
-    }
+    void AddEdge(const int u, const int v, const bool narrow = false);
 
     inline double Distance(const int u, const int v) const {
         return bg::distance(vertices[u].pos, vertices[v].pos);
     }
 
-    std::vector<int> GetVertices(const std::optional<Vertex::Type> type = std::nullopt) const {
-        std::vector<int> res;
-        for (const auto& v : vertices) {
-            if (!type || v.type == *type) {
-                res.push_back(v.id);
-            }
-        }
-        return res;
-    }
+    std::vector<int> GetVertices(const std::optional<Vertex::Type> type = std::nullopt) const;
 
-    double Width() const {
-        auto [min, max] = std::minmax_element(
-            vertices.begin(), vertices.end(),
-            [](const auto &u, const auto &v) { return u.pos.x() < v.pos.x(); });
-        return abs(min->pos.x()) + abs(max->pos.x());
-    }
+    double Width() const;
 
-    double Height() const {
-        auto [min, max] = std::minmax_element(
-            vertices.begin(), vertices.end(),
-            [](const auto &u, const auto &v) { return u.pos.y() < v.pos.y(); });
-        return abs(min->pos.y()) + abs(max->pos.y());
-    }
+    double Height() const;
 
-    Point Centroid() const {
-        auto [min_x, max_x] = std::minmax_element(
-            vertices.begin(), vertices.end(),
-            [](const auto &u, const auto &v) { return u.pos.x() < v.pos.x(); });
-        auto [min_y, max_y] = std::minmax_element(
-            vertices.begin(), vertices.end(),
-            [](const auto &u, const auto &v) { return u.pos.y() < v.pos.y(); });
-        return {(min_x->pos.x() + max_x->pos.x()) / 2, (min_y->pos.y() + max_y->pos.y()) / 2};
-    }
+    Point Centroid() const;
 
     static Graph LoadFromFile(const std::filesystem::path path);
 

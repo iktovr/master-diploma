@@ -2,16 +2,77 @@ load("@rules_cc//cc:defs.bzl", "cc_test")
 
 cc_test(
     name = "test_graph",
+    size = "small",
     srcs = [
         "test_graph.cpp",
+    ],
+    data = [
+        "data/graph.txt",
     ],
     deps = [
         "//lib:graph",
         "@googletest//:gtest",
         "@googletest//:gtest_main",
     ],
-    data = [
-        "data/graph.txt"
-    ],
+)
+
+cc_test(
+    name = "test_semaphore",
     size = "small",
+    srcs = [
+        "test_semaphore.cpp",
+    ],
+    deps = [
+        "//lib:agent",
+        "//lib:geometry",
+        "//lib:graph",
+        "//lib:semaphore",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "test_agent",
+    size = "small",
+    srcs = [
+        "test_agent.cpp",
+    ],
+    deps = [
+        "//lib:agent",
+        "//lib:geometry",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "test_dispatch",
+    size = "small",
+    srcs = [
+        "test_dispatch.cpp",
+    ],
+    deps = [
+        "//lib:agent",
+        "//lib:dispatch",
+        "//lib:geometry",
+        "//lib:graph",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "test_simulation",
+    size = "small",
+    srcs = [
+        "test_simulation.cpp",
+    ],
+    deps = [
+        "//lib:agent",
+        "//lib:graph",
+        "//lib:simulation",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
 )

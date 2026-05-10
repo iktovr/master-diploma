@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <cmath>
 #include <filesystem>
 #include <functional>
 #include <fstream>
@@ -13,6 +14,51 @@
 #include <vector>
 
 namespace fs = std::filesystem;
+
+void Graph::AddVertex(const double x, const double y, const Vertex::Type type) {
+    vertices.emplace_back(vertex_id++, Point{x, y}, type);
+    edges.emplace_back();
+}
+
+void Graph::AddEdge(const int u, const int v, const bool narrow) {
+    double length = Distance(u, v);
+    edges[u].emplace(v, Edge{length, narrow});
+    edges[v].emplace(u, Edge{length, narrow});
+}
+
+std::vector<int> Graph::GetVertices(const std::optional<Vertex::Type> type) const {
+    std::vector<int> res;
+    for (const auto& v : vertices) {
+        if (!type || v.type == *type) {
+            res.push_back(v.id);
+        }
+    }
+    return res;
+}
+
+double Graph::Width() const {
+    auto [min, max] = std::minmax_element(
+        vertices.begin(), vertices.end(),
+        [](const auto &u, const auto &v) { return u.pos.x() < v.pos.x(); });
+    return std::abs(min->pos.x()) + std::abs(max->pos.x());
+}
+
+double Graph::Height() const {
+    auto [min, max] = std::minmax_element(
+        vertices.begin(), vertices.end(),
+        [](const auto &u, const auto &v) { return u.pos.y() < v.pos.y(); });
+    return std::abs(min->pos.y()) + std::abs(max->pos.y());
+}
+
+Point Graph::Centroid() const {
+    auto [min_x, max_x] = std::minmax_element(
+        vertices.begin(), vertices.end(),
+        [](const auto &u, const auto &v) { return u.pos.x() < v.pos.x(); });
+    auto [min_y, max_y] = std::minmax_element(
+        vertices.begin(), vertices.end(),
+        [](const auto &u, const auto &v) { return u.pos.y() < v.pos.y(); });
+    return {(min_x->pos.x() + max_x->pos.x()) / 2, (min_y->pos.y() + max_y->pos.y()) / 2};
+}
 
 using SearchState = std::pair<double, int>;
 

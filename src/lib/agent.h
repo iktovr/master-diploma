@@ -7,19 +7,12 @@
 
 struct RouteFollower {
     Linestring route;
-    Linestring incoming_route;    
-    double length;
-    double x;
-    Point pos;
+    Linestring incoming_route;
+    double length = 0.0;
+    double x = 0.0;
+    Point pos{0.0, 0.0};
 
-    void SetRoute(const Linestring& new_route) {
-        assert(!new_route.empty());
-        route = new_route;
-        incoming_route = route;
-        length = bg::length(route);
-        x = 0;
-        pos = route.front();
-    }
+    void SetRoute(const Linestring& new_route);
 
     bool IsFinished() {
         return std::abs(length - x) < 1e-3;
@@ -35,7 +28,7 @@ struct Agent {
         wait
     };
 
-    Point pos;
+    Point pos{0.0, 0.0};
     int base = 0;
     State state = idle;
     RouteFollower route_follower;
@@ -44,10 +37,7 @@ struct Agent {
 
     Agent(const double x, const double y, const int base = 0) : pos(x, y), base(base) {}
 
-    void SetRoute(const Linestring& route) {
-        route_follower.SetRoute(route);
-        state = move;
-    }
+    void SetRoute(const Linestring& route);
 
     inline const Linestring& Route() const {
         return route_follower.route;

@@ -1,27 +1,128 @@
-#include "gmock/gmock.h"
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 
 #include "lib/graph.h"
 
 using ::testing::ElementsAre;
+using ::testing::UnorderedElementsAre;
 
-TEST(TestGraph, LoadFromFile) {
-    Graph g1;
-    g1.AddVertex(-1, 0, Graph::Vertex::base);
-    g1.AddVertex(0, 1);
-    g1.AddVertex(1, 1, Graph::Vertex::delivery);
-    g1.AddEdge(0, 1);
-    g1.AddEdge(0, 2);
-    g1.AddEdge(1, 2);
+// ---------------------------------------------------------------------------
+// Graph construction
+// ---------------------------------------------------------------------------
 
-    Graph g2 = Graph::LoadFromFile("tests/data/graph.txt");
+TEST(GraphConstruction, AddVerticesAndEdges) {
+    Graph g;
+    g.AddVertex(0.0, 0.0, Graph::Vertex::base);
+    g.AddVertex(3.0, 4.0, Graph::Vertex::delivery);
+    g.AddVertex(6.0, 0.0);
+    g.AddEdge(0, 1);
+    g.AddEdge(1, 2, /*narrow=*/true);
 
-    EXPECT_EQ(g1.vertices, g2.vertices);
-    EXPECT_EQ(g1.edges, g2.edges);
+    ASSERT_EQ(g.vertices.size(), 3u);
+    EXPECT_EQ(g.vertices[0].id, 0);
+    EXPECT_EQ(g.vertices[1].id, 1);
+    EXPECT_EQ(g.vertices[2].id, 2);
+    EXPECT_EQ(g.vertices[0].type, Graph::Vertex::base);
+    EXPECT_EQ(g.vertices[1].type, Graph::Vertex::delivery);
+    EXPECT_EQ(g.vertices[2].type, Graph::Vertex::none);
+
+    // Edge 0-1: wide, length == 5
+    ASSERT_TRUE(g.edges[0].count(1));
+    EXPECT_FALSE(g.edges[0].at(1).narrow);
+    EXPECT_DOUBLE_EQ(g.edges[0].at(1).length, 5.0);
+    EXPECT_DOUBLE_EQ(g.edges[1].at(0).length, 5.0);
+
+    // Edge 1-2: narrow, symmetric
+    ASSERT_TRUE(g.edges[1].count(2));
+    EXPECT_TRUE(g.edges[1].at(2).narrow);
+    EXPECT_TRUE(g.edges[2].at(1).narrow);
 }
 
-TEST(TestSearch, SimpleGraph) {
+// ---------------------------------------------------------------------------
+// Graph::Distance
+// ---------------------------------------------------------------------------
+
+TEST(GraphDistance, KnownDistances) {
+    Graph g;
+    g.AddVertex(0.0, 0.0);
+    g.AddVertex(3.0, 4.0);
+
+    EXPECT_DOUBLE_EQ(g.Distance(0, 1), 5.0);
+    EXPECT_DOUBLE_EQ(g.Distance(1, 0), 5.0);
+    EXPECT_DOUBLE_EQ(g.Distance(0, 0), 0.0);
+}
+
+// ---------------------------------------------------------------------------
+// Graph::GetVertices
+// ---------------------------------------------------------------------------
+
+TEST(GraphGetVertices, FilterByType) {
+    Graph g;
+    g.AddVertex(0.0, 0.0, Graph::Vertex::base);
+    g.AddVertex(1.0, 0.0);
+    g.AddVertex(2.0, 0.0, Graph::Vertex::delivery);
+    g.AddVertex(3.0, 0.0, Graph::Vertex::base);
+
+    EXPECT_THAT(g.GetVertices(),                        UnorderedElementsAre(0, 1, 2, 3));
+    EXPECT_THAT(g.GetVertices(Graph::Vertex::base),     UnorderedElementsAre(0, 3));
+    EXPECT_THAT(g.GetVertices(Graph::Vertex::delivery), UnorderedElementsAre(2));
+    EXPECT_THAT(g.GetVertices(Graph::Vertex::none),     UnorderedElementsAre(1));
+}
+
+// ---------------------------------------------------------------------------
+// Graph::Width / Height / Centroid
+// ---------------------------------------------------------------------------
+
+TEST(GraphGeometry, WidthHeightCentroid) {
+    Graph g;
+    g.AddVertex(-2.0, -1.0);
+    g.AddVertex(3.0, 4.0);
+
+    // Width  = |-2| + |3| = 5
+    // Height = |-1| + |4| = 5
+    // Centroid = ((-2+3)/2, (-1+4)/2) = (0.5, 1.5)
+    EXPECT_DOUBLE_EQ(g.Width(), 5.0);
+    EXPECT_DOUBLE_EQ(g.Height(), 5.0);
+    EXPECT_DOUBLE_EQ(g.Centroid().x(), 0.5);
+    EXPECT_DOUBLE_EQ(g.Centroid().y(), 1.5);
+}
+
+// ---------------------------------------------------------------------------
+// Graph::LoadFromFile
+// ---------------------------------------------------------------------------
+
+TEST(GraphLoadFromFile, LoadsVerticesEdgesAndNarrowFlag) {
+    Graph g = Graph::LoadFromFile("tests/data/graph.txt");
+
+    ASSERT_EQ(g.vertices.size(), 3u);
+    EXPECT_EQ(g.vertices[0].type, Graph::Vertex::base);
+    EXPECT_EQ(g.vertices[1].type, Graph::Vertex::none);
+    EXPECT_EQ(g.vertices[2].type, Graph::Vertex::delivery);
+
+    // Edge 0-1: narrow
+    ASSERT_TRUE(g.edges[0].contains(1));
+    EXPECT_TRUE(g.edges[0].at(1).narrow);
+    ASSERT_TRUE(g.edges[1].contains(0));
+    EXPECT_TRUE(g.edges[1].at(0).narrow);
+
+    // Edge 0-2: not narrow
+    ASSERT_TRUE(g.edges[0].contains(2));
+    EXPECT_FALSE(g.edges[0].at(2).narrow);
+    ASSERT_TRUE(g.edges[2].contains(0));
+    EXPECT_FALSE(g.edges[2].at(0).narrow);
+
+    // Edge 1-2: not narrow
+    ASSERT_TRUE(g.edges[1].contains(2));
+    EXPECT_FALSE(g.edges[1].at(2).narrow);
+    ASSERT_TRUE(g.edges[2].contains(1));
+    EXPECT_FALSE(g.edges[2].at(1).narrow);
+}
+
+// ---------------------------------------------------------------------------
+// Graph::Search
+// ---------------------------------------------------------------------------
+
+TEST(GraphSearch, SimpleGraph) {
     Graph g;
     g.AddVertex(-1, 0);
     g.AddVertex(0, 1);
@@ -41,7 +142,49 @@ TEST(TestSearch, SimpleGraph) {
     }
 }
 
-TEST(TestSearch, MediumGraph) {
+TEST(GraphSearch, SameSourceAndDestination) {
+    Graph g;
+    g.AddVertex(0.0, 0.0);
+    g.AddVertex(1.0, 0.0);
+    g.AddEdge(0, 1);
+
+    EXPECT_THAT(g.Search(0, 0), ElementsAre(0));
+    EXPECT_THAT(g.Search(1, 1), ElementsAre(1));
+}
+
+TEST(GraphSearch, PrefersShorterPath) {
+    // 0 --10-- 1
+    //  \      /
+    //   --2--    (vertex 2 at x=1, direct edge 0→2 length=1, edge 2→1 length=9)
+    Graph g;
+    g.AddVertex(0.0, 0.0);   // 0
+    g.AddVertex(10.0, 0.0);  // 1
+    g.AddVertex(1.0, 0.0);   // 2
+    g.AddEdge(0, 1);  // length 10
+    g.AddEdge(1, 2);  // length 9
+    g.AddEdge(0, 2);  // length 1
+
+    EXPECT_THAT(g.Search(0, 2), ElementsAre(0, 2));
+    EXPECT_THAT(g.Search(0, 1), ElementsAre(0, 1));
+    EXPECT_THAT(g.Search(2, 1), ElementsAre(2, 1));
+}
+
+TEST(GraphSearch, LinearChain) {
+    // 0 - 1 - 2 - 3 - 4
+    Graph g;
+    for (int i = 0; i < 5; ++i) {
+        g.AddVertex(static_cast<double>(i), 0.0);
+    }
+    for (int i = 0; i < 4; ++i) {
+        g.AddEdge(i, i + 1);
+    }
+
+    EXPECT_THAT(g.Search(0, 4), ElementsAre(0, 1, 2, 3, 4));
+    EXPECT_THAT(g.Search(4, 0), ElementsAre(4, 3, 2, 1, 0));
+    EXPECT_THAT(g.Search(1, 3), ElementsAre(1, 2, 3));
+}
+
+TEST(GraphSearch, MediumGraph) {
     Graph g;
     g.AddVertex(-1, 0);
     g.AddVertex(0, 1);
@@ -82,4 +225,37 @@ TEST(TestSearch, MediumGraph) {
     EXPECT_THAT(g.Search(3, 7), ElementsAre(3, 6, 7));
     EXPECT_THAT(g.Search(4, 7), ElementsAre(4, 3, 6, 7));
     EXPECT_THAT(g.Search(5, 7), ElementsAre(5, 4, 3, 6, 7));
+}
+
+// ---------------------------------------------------------------------------
+// Graph::GetRoute
+// ---------------------------------------------------------------------------
+
+TEST(GraphGetRoute, PositionsMatchSearchPath) {
+    Graph g;
+    g.AddVertex(0.0, 0.0);
+    g.AddVertex(1.0, 0.0);
+    g.AddVertex(2.0, 1.0);
+    g.AddEdge(0, 1);
+    g.AddEdge(1, 2);
+
+    auto path  = g.Search(0, 2);
+    auto route = g.GetRoute(0, 2);
+
+    ASSERT_EQ(route.size(), path.size());
+    for (size_t i = 0; i < path.size(); ++i) {
+        EXPECT_DOUBLE_EQ(route[i].x(), g.vertices[path[i]].pos.x());
+        EXPECT_DOUBLE_EQ(route[i].y(), g.vertices[path[i]].pos.y());
+    }
+}
+
+TEST(GraphGetRoute, SingleNodeRoute) {
+    Graph g;
+    g.AddVertex(5.0, 7.0);
+
+    auto route = g.GetRoute(0, 0);
+
+    ASSERT_EQ(route.size(), 1u);
+    EXPECT_DOUBLE_EQ(route[0].x(), 5.0);
+    EXPECT_DOUBLE_EQ(route[0].y(), 7.0);
 }
