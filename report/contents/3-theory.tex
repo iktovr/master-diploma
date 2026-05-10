@@ -1,8 +1,8 @@
 \section{МЕТОДЫ ЦЕНТРАЛИЗОВАННОГО УПРАВЛЕНИЯ АВТОНОМНЫМИ АГЕНТАМИ}
 
-Рассмотрим различные методы планирования путей, а также методы вмешательств в перемещение автономных агентов, которые ...
-
-Для управления автономными агентами будем использовать методы планирования и методы вмешательства в реализация планирования (????)...
+В данной главе будут рассмотрены различные методы планирования путей, а также методы 
+централизованного разрешения конфликтов, возникающих в ходе непосредственного следования агентами по 
+спланированным маршрутам.
 
 \subsection{Описание исходных данных}
 % исходные данные для по тех заданию без подробностей (расписать)
@@ -25,7 +25,7 @@ $W : E \rightarrow \mathbb{R}$ --- функция, задающая вес ре�
 Другой частью исходных данных считаем множество из $k$ пронумерованных агентов:
 
 \begin{equation}
-    A = \left\{ 1, \ldots, k \right\}
+    A = \left\{ 1, \ldots, k \right\}.ы
 \label{e:agents}
 \end{equation}
 
@@ -65,77 +65,66 @@ MAPF характерно использование дискретного вр
 
 \subsection{Методы многоагентного планирования}
 
-MAPF is an important type of multi-agent planning problem in which the task is to plan paths for multiple agents,
-where the key constraint is that the agents will be able to follow these paths concurrently without colliding with each
-other. MAPF has a range of relevant contemporary applications including automated warehouses, autonomous vehicles,
-and robotics.
+MAPF --- важный класс задач многоагентного планирования, в котором требуется построить маршруты для
+нескольких агентов с ключевым ограничением: агенты должны иметь возможность следовать по этим маршрутам
+одновременно, не сталкиваясь друг с другом. MAPF находит широкое применение в автоматизированных складах,
+автономных транспортных средствах и робототехнике.
 
 \subsubsection{Постановка задачи}
 
 % классическая постановка
-Постановка классической задачи MAPF выглядит следующим образом. Исходные данные описаны в предыдущем 
-разделе и представляют из себя граф и множество агентов. 
+Постановка классической задачи MAPF выглядит следующим образом. Исходные данные описаны в предыдущем
+разделе и представляют из себя граф и множество агентов. Предполагается, что время дискретно: на 
+каждом шаге каждый агент находится в одной из вершин графа и
+выполняет ровно одно действие. Действие в классической задаче MAPF --- это функция $a : V \to V$,
+где $a(v) = v'$ означает, что агент, находящийся в вершине $v$ и выполняющий действие $a$, окажется
+в вершине $v'$ на следующем шаге. Каждый агент может выполнять два типа действий: ожидание и
+перемещение. Ожидание означает, что агент остаётся в текущей вершине ещё один шаг, перемещение ---
+что агент переходит из текущей вершины $v$ в смежную вершину $v'$ графа.
 
-Time is assumed to be discretized, and in every time step each
-agent is situated in one of the graph vertices and can perform
-a single action. An action in classical MAPF is a function
-a : V → V such that a(v) = v means that if an agent is
-at vertex v and performs a then it will be in vertex v in the
-next time step. Each agent has two types of actions: wait and
-move. A wait action means that the agent stays in its current
-vertex another time step. A move action means that the agent
-moves from its current vertex v to an adjacent vertex v in
-the graph
+Для последовательности действий $\pi = (a_1, \ldots, a_n)$ и агента $i$ обозначим через $\pi_i[x]$
+положение агента после выполнения первых $x$ действий из $\pi$, начиная из стартовой вершины $s_i$:
 
-For a sequence of actions π = (a1, . . . an) and an agent i,
-we denote by πi[x] the location of the agent after executing
-the first x actions in π, starting from the agent’s source s(i).
-Formally, πi[x] = ax(ax−1(· · · a1(s(i)))). A sequence of
-actions π is a single-agent plan for agent i iff executing this
-sequence of actions in s(i) results in being at t(i), that is, iff
-πi[|π|] = t(i). A solution is a set of k single-agent plans,
-one for each agent.
+\begin{equation}
+    \pi_i[x] = a_x\!\left(a_{x-1}\!\left(\cdots a_1(s_i)\right)\right).
+\end{equation}
 
-The overarching goal of MAPF solvers is to find a solution,
-i.e., a single-agent plan for each agent, that can be executed
-without collisions. To achieve this, MAPF solvers use the
-notion of conflicts during planning, where a MAPF solution
-is called valid iff there is no conflict between any two
-single-agent plans. The definition of what constitutes a conflict
-depends on the environment, and correspondingly the
-literature on classical MAPF includes several different definitions
-of what constitutes a conflict between plans. We list
-common conflict definitions below. Let πi and πj be a pair
-of single-agent plans.
-• Vertex conflict. A vertex conflict between πi and πj occurs
-iff according to these plans the agents are planned to
-occupy the same vertex at the same time step. Formally,
-there is a vertex conflict between πi and πj iff there exists
-a time step x such that πi[x] = πj [x].
-• Edge conflict. An edge conflict between πi and πj occurs
-iff according to these plans the agents are planned to
-traverse the same edge at the same time step in the same
-direction. Formally, there is an edge conflict between πi
-and πj iff there exists a time step x such that πi[x] = πj [x]
-and πi[x + 1] = πj [x + 1].
-• Following conflict. A following conflict between πi and
-πj occurs iff one agent is planned to occupy a vertex that
-was occupied by another agent in the previous time step.
-Formally, there is a following conflict between πi and πj
-iff there exists a time step x such that πi[x + 1] = πj [x].
-• Cycle conflict. A cycle conflict between a set of singleagent
-plans πi, πi+1, . . . πj occurs iff in the same time
-step every agent moves to a vertex that was previously
-occupied by another agent, forming a “rotating cycle” pattern.
-Formally, a cycle conflict between a set of plans
-πi, πi+1, . . . πj occurs iff there exists a time step x in
-which πi(x + 1) = πi+1(x) and πi+1(x + 1) = πi+2(x)
-. . . and πj−1(x + 1) = πj(x) and πj(x + 1) = πi(x).
-• Swapping conflict. A swapping conflict between πi and
-πj occurs iff the agents are planned to swap locations in
-a single time step. Formally, there is a swapping conflict
-plans πi and πj will have a vertex conflict if there exists a
-time step t ≥ |πi| such that πj [t] = πi[|πi|].
+Последовательность действий $\pi$ является индивидуальным планом агента $i$ тогда и только тогда,
+когда выполнение этой последовательности из $s_i$ приводит агента в целевую вершину $g_i$, то есть
+$\pi_i[|\pi|] = g_i$. Решением задачи называется набор из $k$ индивидуальных планов --- по одному
+для каждого агента.
+
+Основная цель алгоритмов решения MAPF --- найти решение, 
+которое может быть выполнено без столкновений. Для этого в процессе планирования используется понятие
+конфликта: решение называется допустимым тогда и только тогда, когда между любыми двумя
+индивидуальными планами нет конфликтов. Определение конфликта зависит от модели окружения, обычно 
+выделяют несколько видов конфликтов ($\pi_i$ и $\pi_j$ --- пара
+индивидуальных планов) \cite{mapf-definition}:
+
+\begin{itemize}
+    \item \textbf{Конфликт в вершине} возникает между $\pi_i$ и $\pi_j$, 
+    когда согласно этим планам агенты оказываются в одной вершине в один и тот же момент
+    времени. То есть существует шаг $x$ такой, что $\pi_i[x] = \pi_j[x]$.
+
+    \item \textbf{Конфликт в ребре} возникает между $\pi_i$ и $\pi_j$, 
+    когда агенты проходят по одному и тому же ребру в одном направлении на одном и том же
+    шаге. То есть существует шаг $x$ такой, что $\pi_i[x] = \pi_j[x]$ и $\pi_i[x+1] = \pi_j[x+1]$.
+
+    \item \textbf{Конфликт следования} возникает между $\pi_i$ и $\pi_j$, 
+    когда один агент занимает вершину, которую другой агент покинул на предыдущем шаге.
+    То есть существует шаг $x$ такой, что $\pi_i[x+1] = \pi_j[x]$.
+
+    \item \textbf{Циклический конфликт} возникает между набором планов
+    $\pi_i, \pi_{i+1}, \ldots, \pi_j$, когда на одном и том же шаге
+    каждый агент перемещается в вершину, которую только что покинул другой агент. 
+    То есть существует шаг $x$ такой, что 
+    $\pi_i[x+1] = \pi_{i+1}[x]$, \; $\pi_{i+1}[x+1] = \pi_{i+2}[x]$, \; $\ldots$, \;
+    $\pi_{j-1}[x+1] = \pi_j[x]$, \; $\pi_j[x+1] = \pi_i[x]$.
+
+    \item \textbf{Конфликт обмена} возникает между $\pi_i$ и $\pi_j$, когда агенты меняются 
+    местами за один шаг. То есть существует шаг $x$ такой, что
+    $\pi_i[x] = \pi_j[x+1]$ и $\pi_j[x] = \pi_i[x+1]$.
+\end{itemize}
 
 % уточнение для непрерывного времени
 Использование дискретного времени ограничивает применимость методов решения классической задачи. 
@@ -163,13 +152,15 @@ time step t ≥ |πi| such that πj [t] = πi[|πi|].
 
 % guided search???
 
-\subsection{Методы вмешательств?????}
+\subsection{Методы разрешения конфликтов}
 
-% оператор
-% семафоры
+\subsubsection{Разрешение конфликтов путем удаленного управления}
+
+\subsubsection{Предотвращение конфликтов при помощи глобальных ограничений}ы
 ...
 
 \subsection{Метрики}
 
 можно было бы использовать количество конфликтов, однако все рассматриваемые методы не допускают 
 возникновения конфликтом, что не позволяет использовать это как метрику
+
