@@ -88,10 +88,10 @@ TEST(GraphGeometry, WidthHeightCentroid) {
 }
 
 // ---------------------------------------------------------------------------
-// Graph::LoadFromFile
+// Graph::LoadFrom*
 // ---------------------------------------------------------------------------
 
-TEST(GraphLoadFromFile, LoadsVerticesEdgesAndNarrowFlag) {
+TEST(GraphInput, LoadFromFile) {
     Graph g = Graph::LoadFromFile("tests/data/graph.txt");
 
     ASSERT_EQ(g.vertices.size(), 3u);
@@ -116,6 +116,38 @@ TEST(GraphLoadFromFile, LoadsVerticesEdgesAndNarrowFlag) {
     EXPECT_FALSE(g.edges[1].at(2).narrow);
     ASSERT_TRUE(g.edges[2].contains(1));
     EXPECT_FALSE(g.edges[2].at(1).narrow);
+}
+
+TEST(GraphInput, LoadFromGeoJsonFile) {
+    Graph g = Graph::LoadFromGeoJsonFile("tests/data/graph.geojson");
+
+    ASSERT_EQ(g.vertices.size(), 3u);
+    EXPECT_EQ(g.GetVertices(Graph::Vertex::base).size(), 1u);
+    EXPECT_EQ(g.GetVertices(Graph::Vertex::none).size(), 1u);
+    EXPECT_EQ(g.GetVertices(Graph::Vertex::delivery).size(), 1u);
+
+    // Find vertex ids by type
+    int base_id = g.GetVertices(Graph::Vertex::base)[0];
+    int none_id = g.GetVertices(Graph::Vertex::none)[0];
+    int deliv_id = g.GetVertices(Graph::Vertex::delivery)[0];
+
+    // Edge base-none
+    ASSERT_TRUE(g.edges[base_id].contains(none_id));
+    EXPECT_FALSE(g.edges[base_id].at(none_id).narrow);
+    ASSERT_TRUE(g.edges[none_id].contains(base_id));
+    EXPECT_FALSE(g.edges[none_id].at(base_id).narrow);
+
+    // Edge base-delivery
+    ASSERT_TRUE(g.edges[base_id].contains(deliv_id));
+    EXPECT_FALSE(g.edges[base_id].at(deliv_id).narrow);
+    ASSERT_TRUE(g.edges[deliv_id].contains(base_id));
+    EXPECT_FALSE(g.edges[deliv_id].at(base_id).narrow);
+
+    // Edge none-delivery
+    ASSERT_TRUE(g.edges[none_id].contains(deliv_id));
+    EXPECT_FALSE(g.edges[none_id].at(deliv_id).narrow);
+    ASSERT_TRUE(g.edges[deliv_id].contains(none_id));
+    EXPECT_FALSE(g.edges[deliv_id].at(none_id).narrow);
 }
 
 // ---------------------------------------------------------------------------

@@ -67,7 +67,9 @@ int main(int argc, char **argv) {
 
     CLI11_PARSE(app, argc, argv);
 
-    Graph g = Graph::LoadFromFile(graph_path);
+    Graph g = (graph_path.extension() == ".geojson")
+        ? Graph::LoadFromGeoJsonFile(graph_path)
+        : Graph::LoadFromFile(graph_path);
     std::optional<Visualizer> vis;
     if (!output_dir.empty()) {
         if (!fs::exists(output_dir)) {

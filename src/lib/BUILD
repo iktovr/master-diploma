@@ -25,6 +25,8 @@ cc_library(
     ],
     deps = [
         ":geometry",
+        "@nlohmann_json//:singleheader-json",
+        "@proj",
     ],
 )
 

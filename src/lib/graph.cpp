@@ -13,6 +13,9 @@
 #include <utility>
 #include <vector>
 
+#include <nlohmann/json.hpp>
+#include <proj.h>
+
 namespace fs = std::filesystem;
 
 void Graph::AddVertex(const double x, const double y, const Vertex::Type type) {
@@ -157,5 +160,166 @@ Graph Graph::LoadFromFile(const fs::path path) {
 
         g.AddEdge(u, v, narrow);
     }
+    return g;
+}
+
+namespace {
+
+// Coordinate key rounded to 1e-7 degrees (~1 cm precision at equator).
+struct LonLat {
+    long long lon7;
+    long long lat7;
+
+    bool operator==(const LonLat& o) const {
+        return lon7 == o.lon7 && lat7 == o.lat7;
+    }
+
+    static LonLat from(double lon, double lat) {
+        return {std::llround(lon * 1e7), std::llround(lat * 1e7)};
+    }
+
+    double lon() const { return lon7 * 1e-7; }
+    double lat() const { return lat7 * 1e-7; }
+};
+
+struct LonLatHash {
+    std::size_t operator()(const LonLat& p) const {
+        auto h1 = std::hash<long long>{}(p.lon7);
+        auto h2 = std::hash<long long>{}(p.lat7);
+        return h1 ^ (h2 * 2654435761ULL);
+    }
+};
+
+} // namespace
+
+Graph Graph::LoadFromGeoJsonFile(const fs::path path) {
+    assert(fs::exists(path) && fs::is_regular_file(path));
+
+    std::ifstream file(path);
+    assert(file.is_open());
+
+    using json = nlohmann::json;
+    const json root = json::parse(file);
+
+    struct PointInfo {
+        LonLat pos;
+        Vertex::Type type;
+    };
+    std::unordered_map<LonLat, Vertex::Type, LonLatHash> point_type_by_pos;
+
+    for (const auto& feature : root.at("features")) {
+        const auto& geom = feature.at("geometry");
+        if (geom.at("type").get<std::string>() != "Point") {
+            continue;
+        }
+        const auto& coords = geom.at("coordinates");
+        LonLat pos = LonLat::from(coords[0].get<double>(), coords[1].get<double>());
+
+        Vertex::Type vtype = Vertex::none;
+        const auto& props = feature.at("properties");
+        if (props.contains("type")) {
+            const auto t = props.at("type").get<std::string>();
+            if (t == "base_point") {
+                vtype = Vertex::base;
+            } else if (t == "delivery_point") {
+                vtype = Vertex::delivery;
+            }
+        }
+        point_type_by_pos[pos] = vtype;
+    }
+
+    std::vector<std::vector<LonLat>> lines;
+
+    for (const auto& feature : root.at("features")) {
+        const auto& geom = feature.at("geometry");
+        if (geom.at("type").get<std::string>() != "LineString") {
+            continue;
+        }
+        std::vector<LonLat> seg;
+        for (const auto& c : geom.at("coordinates")) {
+            seg.push_back(LonLat::from(c[0].get<double>(), c[1].get<double>()));
+        }
+        if (seg.size() >= 2) {
+            lines.push_back(std::move(seg));
+        }
+    }
+
+    std::unordered_map<LonLat, int, LonLatHash> coord_to_id;
+
+    auto ensure_vertex = [&](const LonLat& ll) {
+        if (!coord_to_id.count(ll)) {
+            coord_to_id[ll] = static_cast<int>(coord_to_id.size());
+        }
+    };
+
+    for (const auto& seg : lines) {
+        for (const auto& ll : seg) {
+            ensure_vertex(ll);
+        }
+    }
+    for (const auto& [pos, type] : point_type_by_pos) {
+        ensure_vertex(pos);
+    }
+
+    const int n = static_cast<int>(coord_to_id.size());
+    std::vector<LonLat> id_to_coord(n);
+    for (const auto& [ll, id] : coord_to_id) {
+        id_to_coord[id] = ll;
+    }
+
+    double sum_lon = 0.0;
+    for (const auto& ll : id_to_coord) {
+        sum_lon += ll.lon();
+    }
+    const double mean_lon = sum_lon / n;
+    const int utm_zone = static_cast<int>((mean_lon + 180.0) / 6.0) + 1;
+
+    const std::string proj_str =
+        "+proj=utm +zone=" + std::to_string(utm_zone) + " +datum=WGS84 +units=m +no_defs";
+
+    PJ_CONTEXT* ctx = proj_context_create();
+    PJ* P = proj_create(ctx, proj_str.c_str());
+    assert(P != nullptr);
+
+    std::vector<std::pair<double, double>> utm_coords(n);
+    double sum_x = 0.0, sum_y = 0.0;
+    for (int i = 0; i < n; ++i) {
+        const LonLat& ll = id_to_coord[i];
+        PJ_COORD c_in = proj_coord(
+            proj_torad(ll.lon()),
+            proj_torad(ll.lat()),
+            0.0, 0.0);
+        PJ_COORD c_out = proj_trans(P, PJ_FWD, c_in);
+        utm_coords[i] = {c_out.xy.x, c_out.xy.y};
+        sum_x += c_out.xy.x;
+        sum_y += c_out.xy.y;
+    }
+
+    proj_destroy(P);
+    proj_context_destroy(ctx);
+
+    const double ref_x = sum_x / n;
+    const double ref_y = sum_y / n;
+
+    Graph g;
+    for (int i = 0; i < n; ++i) {
+        Vertex::Type vtype = Vertex::none;
+        auto pit = point_type_by_pos.find(id_to_coord[i]);
+        if (pit != point_type_by_pos.end()) {
+            vtype = pit->second;
+        }
+        g.AddVertex(utm_coords[i].first - ref_x, utm_coords[i].second - ref_y, vtype);
+    }
+
+    for (const auto& seg : lines) {
+        for (std::size_t i = 0; i + 1 < seg.size(); ++i) {
+            int u = coord_to_id.at(seg[i]);
+            int v = coord_to_id.at(seg[i + 1]);
+            if (u != v && !g.edges[u].count(v)) {
+                g.AddEdge(u, v);
+            }
+        }
+    }
+
     return g;
 }

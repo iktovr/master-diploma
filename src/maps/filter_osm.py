@@ -45,9 +45,31 @@ DARK_STORE_NAME = "Яндекс.Лавка"
 # Building entrance tag values that mark delivery points.
 ENTRANCE_VALUES = frozenset(["yes", "main", "staircase", "home"])
 
+# Fraction of the connector's own length that may lie inside a building before
+# the connection is rejected.  A connector whose path is more than this
+# fraction inside any building is considered to go "through almost the full
+# building" and is skipped.  A connector that only clips a corner (small
+# inside-fraction) is still allowed.
+MAX_BUILDING_THROUGH_FRACTION = 0.5
+
+# Connectors shorter than this (metres) are never checked against buildings —
+# they are assumed to be legitimate short connections (e.g. entrance right
+# next to the footway).
+MIN_CONNECTOR_LENGTH_FOR_BUILDING_CHECK_M = 10.0
+
 # Maximum distance (metres) to connect a point node to the pedestrian network.
 MAX_CONNECT_DISTANCE_M = 20.0
 MIN_CONNECT_DISTANCE_M = 0.3
+
+# Maximum perpendicular deviation (metres) allowed when simplifying a polyline
+# segment via Ramer–Douglas–Peucker.  Segments that deviate more than this are
+# split rather than collapsed.
+MAX_SIMPLIFY_DEVIATION_M = 5.0
+
+# Minimum length (metres) for a segment to be kept.  Segments shorter than
+# this are collapsed during RDP and removed (with endpoint merging) after
+# simplification.
+MIN_SEGMENT_LENGTH_M = 0.25
 
 
 def _is_pedestrian_way(tags) -> bool:
@@ -86,6 +108,8 @@ class PedestrianHandler(osmium.SimpleHandler):
         self.way_features: list[dict] = []
         self.store_features: list[dict] = []
         self.entrance_features: list[dict] = []
+        # Closed polygons for every OSM building way (lon/lat rings).
+        self.building_polygons: list[list[list[float]]] = []
 
     def node(self, n):
         # Dark-store (Яндекс.Лавка) nodes → base_point
@@ -126,6 +150,16 @@ class PedestrianHandler(osmium.SimpleHandler):
             )
 
     def way(self, w):
+        # Collect building polygons for connector-crossing checks.
+        if w.tags.get("building"):
+            try:
+                coords = [[n.lon, n.lat] for n in w.nodes]
+            except osmium.InvalidLocationError:
+                coords = []
+            # A valid closed polygon needs at least 4 nodes (3 unique + repeat).
+            if len(coords) >= 4:
+                self.building_polygons.append(coords)
+
         if not _is_pedestrian_way(w.tags):
             return
 
@@ -212,6 +246,528 @@ def largest_connected_component(features: list[dict]) -> list[dict]:
 
 
 # ---------------------------------------------------------------------------
+# Planarization — split polylines at every interior touch / crossing
+# ---------------------------------------------------------------------------
+# After this step every pair of LineStrings either:
+#   • does not intersect at all, or
+#   • shares exactly one endpoint.
+# This is a prerequisite for the RDP simplification that follows, which
+# produces 2-point segments: without planarization a long straight OSM way
+# that is merely *touched* by another way in its interior would be collapsed
+# to a single segment that skips the junction node.
+
+
+def _seg_seg_intersection_t(
+    a: tuple, b: tuple, c: tuple, d: tuple
+) -> tuple[float, float] | None:
+    """Parametric intersection of segment *a*–*b* with segment *c*–*d*.
+
+    Works in any 2-D coordinate system (UTM metres here).
+
+    Returns (t, u) where
+        t ∈ [0, 1]  is the parameter along *a*–*b*
+        u ∈ [0, 1]  is the parameter along *c*–*d*
+    such that  a + t*(b-a) == c + u*(d-c).
+
+    Returns None when the segments are parallel / collinear or do not
+    intersect within [0, 1] × [0, 1].
+    """
+    ax, ay = a
+    bx, by = b
+    cx, cy = c
+    dx, dy = d
+
+    denom = (bx - ax) * (dy - cy) - (by - ay) * (dx - cx)
+    if abs(denom) < 1e-10:
+        return None  # parallel or collinear
+
+    t = ((cx - ax) * (dy - cy) - (cy - ay) * (dx - cx)) / denom
+    u = ((cx - ax) * (by - ay) - (cy - ay) * (bx - ax)) / denom
+
+    if -1e-9 <= t <= 1 + 1e-9 and -1e-9 <= u <= 1 + 1e-9:
+        return (max(0.0, min(1.0, t)), max(0.0, min(1.0, u)))
+    return None
+
+
+def planarize_ways(features: list[dict]) -> list[dict]:
+    """Split every polyline at every point where another polyline touches or
+    crosses it, so that the resulting set of LineStrings only meets at
+    endpoints.
+
+    Two kinds of junctions are handled:
+
+    A. **Vertex junction** — an interior vertex of way *i* is also an endpoint
+       of some other way *j*.  Way *i* must be split at that vertex so that
+       the junction becomes an endpoint of both resulting sub-polylines.
+       (This is the most common case in OSM: two ways share a node that is
+       interior to one of them.)
+
+    B. **T-junction** — a node of way *j* lies on a *segment* of way *i*
+       (not at an existing vertex).  Way *i* is split at the projection foot.
+
+    C. **X-crossing** — two segments from different ways properly cross.
+       Both ways are split at the crossing point.
+
+    All coordinate comparisons use the rounded key from ``_coord_key`` so that
+    near-duplicate coordinates (< 1 cm apart) are treated as identical.
+    """
+    if not features:
+        return features
+
+    in_count = len(features)
+
+    # Pre-project every way to UTM once.  We use the first coordinate of the
+    # *entire dataset* as the single projection origin so that all ways share
+    # the same metric space (avoids zone-boundary artefacts for small cities).
+    ref_lon = features[0]["geometry"]["coordinates"][0][0]
+    ref_lat = features[0]["geometry"]["coordinates"][0][1]
+    proj = _utm_proj(ref_lon, ref_lat)
+
+    # utm_coords[i] = list of (x, y) UTM tuples for way i
+    utm_coords: list[list[tuple[float, float]]] = [
+        [_to_utm(proj, c) for c in feat["geometry"]["coordinates"]]
+        for feat in features
+    ]
+
+    n = len(features)
+
+    # --- Build global endpoint key set ---
+    # Every coordinate that is the first or last node of any way.
+    all_endpoint_keys: set[tuple] = set()
+    for feat in features:
+        coords = feat["geometry"]["coordinates"]
+        all_endpoint_keys.add(_coord_key(coords[0]))
+        all_endpoint_keys.add(_coord_key(coords[-1]))
+
+    # split_vertex[i] = set of interior vertex indices of way i that must
+    # become split points (case A).
+    split_vertex: list[set[int]] = [set() for _ in range(n)]
+
+    # split_params[i][seg_idx] = list of t values ∈ (0, 1) for cases B & C.
+    split_params: list[list[list[float]]] = [
+        [[] for _ in range(len(pts) - 1)]
+        for pts in utm_coords
+    ]
+
+    # --- Case A: interior vertex of way i is an endpoint of some other way ---
+    for i in range(n):
+        coords_i = features[i]["geometry"]["coordinates"]
+        # Only interior vertices (indices 1 .. len-2).
+        for vi in range(1, len(coords_i) - 1):
+            if _coord_key(coords_i[vi]) in all_endpoint_keys:
+                split_vertex[i].add(vi)
+
+    # --- Cases B & C: segment-level intersections ---
+    for i in range(n):
+        pts_i = utm_coords[i]
+        coords_i = features[i]["geometry"]["coordinates"]
+        for j in range(n):
+            if i == j:
+                continue
+            pts_j = utm_coords[j]
+            coords_j = features[j]["geometry"]["coordinates"]
+
+            # --- B: node of way j sitting on a segment of way i ---
+            for node_lonlat in coords_j:
+                node_key = _coord_key(node_lonlat)
+                # Skip if it is already an endpoint of way i (no split needed).
+                if node_key == _coord_key(coords_i[0]) or node_key == _coord_key(coords_i[-1]):
+                    continue
+                # Skip if it is already an interior vertex of way i — handled
+                # by case A above.
+                node_utm = _to_utm(proj, node_lonlat)
+                nx_, ny_ = node_utm
+                for si in range(len(pts_i) - 1):
+                    # Skip segment if its start vertex is already a split point
+                    # (the node would be at t≈0 of the next segment).
+                    ax, ay = pts_i[si]
+                    bx, by = pts_i[si + 1]
+                    dx, dy = bx - ax, by - ay
+                    seg_len_sq = dx * dx + dy * dy
+                    if seg_len_sq < 1e-12:
+                        continue
+                    t = ((nx_ - ax) * dx + (ny_ - ay) * dy) / seg_len_sq
+                    if t <= 1e-9 or t >= 1 - 1e-9:
+                        continue
+                    # Perpendicular distance must be < 1 cm.
+                    foot_x = ax + t * dx
+                    foot_y = ay + t * dy
+                    dist = math.hypot(nx_ - foot_x, ny_ - foot_y)
+                    if dist < 0.01:
+                        split_params[i][si].append(t)
+
+            # --- C: proper crossing of segments ---
+            for si in range(len(pts_i) - 1):
+                a_utm = pts_i[si]
+                b_utm = pts_i[si + 1]
+                for sj in range(len(pts_j) - 1):
+                    c_utm = pts_j[sj]
+                    d_utm = pts_j[sj + 1]
+                    isect = _seg_seg_intersection_t(a_utm, b_utm, c_utm, d_utm)
+                    if isect is None:
+                        continue
+                    t_isect, _u_isect = isect
+                    if 1e-9 < t_isect < 1 - 1e-9:
+                        split_params[i][si].append(t_isect)
+
+    # Build output: for each way walk its vertices and emit a new sub-polyline
+    # every time we reach a split vertex (case A) or a parametric split point
+    # (cases B/C).
+    result: list[dict] = []
+    for i, feat in enumerate(features):
+        coords = feat["geometry"]["coordinates"]
+        props = feat["properties"]
+        pts = utm_coords[i]
+
+        # Collect parametric split points as (coord_idx_of_segment_start, t, lonlat).
+        param_splits: list[tuple[int, float, list]] = []
+        for si, ts in enumerate(split_params[i]):
+            for t in ts:
+                ax, ay = pts[si]
+                bx, by = pts[si + 1]
+                ix = ax + t * (bx - ax)
+                iy = ay + t * (by - ay)
+                lonlat = _from_utm(proj, (ix, iy))
+                param_splits.append((si, t, lonlat))
+        param_splits.sort(key=lambda x: (x[0], x[1]))
+
+        # Deduplicate parametric splits within 1 cm.
+        deduped_param: list[tuple[int, float, list]] = []
+        for sp in param_splits:
+            if deduped_param:
+                prev = deduped_param[-1]
+                ax, ay = pts[sp[0]]; bx, by = pts[sp[0] + 1]
+                ix = ax + sp[1] * (bx - ax); iy = ay + sp[1] * (by - ay)
+                pax, pay = pts[prev[0]]; pbx, pby = pts[prev[0] + 1]
+                pix = pax + prev[1] * (pbx - pax); piy = pay + prev[1] * (pby - pay)
+                if math.hypot(ix - pix, iy - piy) < 0.01:
+                    continue
+            deduped_param.append(sp)
+
+        # Convert parametric splits to a dict keyed by segment index for fast
+        # lookup during the walk.
+        param_by_seg: dict[int, list[tuple[float, list]]] = {}
+        for si, t, lonlat in deduped_param:
+            param_by_seg.setdefault(si, []).append((t, lonlat))
+
+        sv = split_vertex[i]
+        no_splits = not sv and not param_by_seg
+        if no_splits:
+            result.append(feat)
+            continue
+
+        # Walk the coordinate list.
+        current: list[list] = [coords[0]]
+
+        for vi in range(1, len(coords)):
+            # First emit any parametric split points on the segment (vi-1)→vi.
+            for t, lonlat in param_by_seg.get(vi - 1, []):
+                current.append(lonlat)
+                if len(current) >= 2:
+                    result.append({
+                        "type": "Feature",
+                        "geometry": {"type": "LineString", "coordinates": current},
+                        "properties": dict(props),
+                    })
+                current = [lonlat]
+
+            # Now add vertex vi itself.
+            current.append(coords[vi])
+
+            # If vi is a split vertex (and not the last vertex), close the
+            # current sub-polyline here and start a new one.
+            if vi in sv and vi < len(coords) - 1:
+                if len(current) >= 2:
+                    result.append({
+                        "type": "Feature",
+                        "geometry": {"type": "LineString", "coordinates": current},
+                        "properties": dict(props),
+                    })
+                current = [coords[vi]]
+
+        # Flush the last sub-polyline.
+        if len(current) >= 2:
+            result.append({
+                "type": "Feature",
+                "geometry": {"type": "LineString", "coordinates": current},
+                "properties": dict(props),
+            })
+
+    out_count = len(result)
+    log.info(
+        "Planarize ways: %d polylines → %d polylines after splitting at junctions.",
+        in_count,
+        out_count,
+    )
+    return result
+
+
+# ---------------------------------------------------------------------------
+# Polyline simplification — Ramer–Douglas–Peucker, output: 2-point segments
+# ---------------------------------------------------------------------------
+
+
+def _perp_distance_utm(p: tuple, a: tuple, b: tuple) -> float:
+    """Perpendicular distance from point *p* to the infinite line through *a*–*b*
+    in UTM (metric) space.  Returns 0 when *a* == *b*.
+    """
+    ax, ay = a
+    bx, by = b
+    px, py = p
+    dx, dy = bx - ax, by - ay
+    seg_len = math.hypot(dx, dy)
+    if seg_len == 0.0:
+        return math.hypot(px - ax, py - ay)
+    # Signed area of the triangle / base length = perpendicular height.
+    return abs(dx * (ay - py) - dy * (ax - px)) / seg_len
+
+
+def _rdp_split(
+    pts: list[tuple[float, float]],
+    tolerance_m: float,
+    min_length_m: float = MIN_SEGMENT_LENGTH_M,
+) -> list[tuple[tuple[float, float], tuple[float, float]]]:
+    """Recursively simplify a polyline using Ramer–Douglas–Peucker.
+
+    Returns a list of 2-point pairs (each pair is a straight segment) such
+    that every output segment deviates from the original geometry by at most
+    *tolerance_m* metres.  The input must have at least 2 points.
+
+    Segments whose chord length is less than *min_length_m* are dropped
+    entirely (not emitted) so that degenerate micro-segments are eliminated
+    before they reach the output.
+    """
+    if len(pts) == 2:
+        chord = math.hypot(pts[1][0] - pts[0][0], pts[1][1] - pts[0][1])
+        if chord < min_length_m:
+            return []  # too short — drop
+        return [(pts[0], pts[1])]
+
+    a, b = pts[0], pts[-1]
+
+    # If the chord itself is shorter than the minimum, drop the whole sub-polyline.
+    chord = math.hypot(b[0] - a[0], b[1] - a[1])
+    if chord < min_length_m:
+        return []
+
+    max_dist = 0.0
+    max_idx = 1
+    for i in range(1, len(pts) - 1):
+        d = _perp_distance_utm(pts[i], a, b)
+        if d > max_dist:
+            max_dist = d
+            max_idx = i
+
+    if max_dist <= tolerance_m:
+        # The whole polyline is within tolerance — collapse to one segment.
+        return [(a, b)]
+
+    # Split at the farthest point and recurse on both halves.
+    left = _rdp_split(pts[: max_idx + 1], tolerance_m, min_length_m)
+    right = _rdp_split(pts[max_idx:], tolerance_m, min_length_m)
+    return left + right
+
+
+def simplify_ways(
+    features: list[dict],
+    tolerance_m: float = MAX_SIMPLIFY_DEVIATION_M,
+) -> list[dict]:
+    """Simplify every LineString way so that each output feature has exactly
+    2 coordinates (a straight segment).
+
+    Polylines that are already straight (or nearly so within *tolerance_m*)
+    are collapsed to a single 2-point segment.  Polylines that bend more than
+    *tolerance_m* are split into multiple 2-point segments at the points of
+    maximum deviation (Ramer–Douglas–Peucker).
+
+    The total number of output features is always ≥ the number of input
+    features (splitting only, never merging across ways).
+
+    Args:
+        features:    List of GeoJSON LineString Feature dicts.
+        tolerance_m: Maximum allowed perpendicular deviation in metres.
+
+    Returns:
+        A new list of GeoJSON LineString Feature dicts, each with exactly
+        2 coordinates.
+    """
+    if not features:
+        return features
+
+    result: list[dict] = []
+    in_count = len(features)
+
+    for feat in features:
+        coords = feat["geometry"]["coordinates"]
+        props = feat["properties"]
+
+        if len(coords) < 2:
+            # Degenerate — skip.
+            continue
+
+        if len(coords) == 2:
+            # Already a 2-point segment — pass through unchanged.
+            result.append(feat)
+            continue
+
+        # Project to UTM using the first coordinate as origin.
+        proj = _utm_proj(coords[0][0], coords[0][1])
+        pts_utm = [_to_utm(proj, c) for c in coords]
+
+        # Map UTM point (by identity) back to the original lon/lat so that
+        # the polyline's own endpoints are never corrupted by the UTM
+        # round-trip (which can introduce ~1e-14 floating-point noise).
+        orig_lonlat: dict[int, list] = {
+            id(pts_utm[0]): coords[0],
+            id(pts_utm[-1]): coords[-1],
+        }
+
+        segments = _rdp_split(pts_utm, tolerance_m)
+
+        for a_utm, b_utm in segments:
+            a_lonlat = orig_lonlat.get(id(a_utm)) or _from_utm(proj, a_utm)
+            b_lonlat = orig_lonlat.get(id(b_utm)) or _from_utm(proj, b_utm)
+            result.append(
+                {
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "LineString",
+                        "coordinates": [a_lonlat, b_lonlat],
+                    },
+                    "properties": dict(props),
+                }
+            )
+
+    out_count = len(result)
+    log.info(
+        "Simplify ways: %d polylines → %d 2-point segments (×%.2f, tolerance=%.1f m).",
+        in_count,
+        out_count,
+        out_count / in_count if in_count else 1.0,
+        tolerance_m,
+    )
+    return result
+
+
+# ---------------------------------------------------------------------------
+# Short-segment removal — contract edges shorter than MIN_SEGMENT_LENGTH_M
+# ---------------------------------------------------------------------------
+
+
+def _lonlat_distance_m(a: list, b: list) -> float:
+    """Approximate great-circle distance in metres between two lon/lat points.
+
+    Uses a flat-Earth approximation valid for distances < ~10 km.
+    """
+    lat_m = 111_320.0  # metres per degree of latitude
+    lon_m = lat_m * math.cos(math.radians((a[1] + b[1]) / 2))
+    return math.hypot((b[0] - a[0]) * lon_m, (b[1] - a[1]) * lat_m)
+
+
+def remove_short_segments(
+    features: list[dict],
+    min_length_m: float = MIN_SEGMENT_LENGTH_M,
+) -> list[dict]:
+    """Remove 2-point LineString segments shorter than *min_length_m* metres
+    while preserving graph connectivity.
+
+    Each short segment is contracted: its two endpoints are merged into a
+    single representative point (the midpoint).  Every other segment that
+    referenced either of the two original endpoints is updated to use the
+    merged point instead.  This is repeated until no short segments remain.
+
+    The contraction order does not matter for correctness; we process
+    shortest-first to minimise geometric distortion.
+    """
+    if not features:
+        return features
+
+    # Work with mutable coordinate lists (None = segment has been removed).
+    coords_list: list[list[list] | None] = [
+        list(feat["geometry"]["coordinates"]) for feat in features
+    ]
+    props_list = [feat["properties"] for feat in features]
+
+    in_count = len(features)
+    removed = 0
+
+    changed = True
+    while changed:
+        changed = False
+
+        # Find the shortest segment below the threshold.
+        best_idx = -1
+        best_len = min_length_m  # only consider segments strictly shorter
+
+        for i, coords in enumerate(coords_list):
+            if coords is None:
+                continue
+            d = _lonlat_distance_m(coords[0], coords[1])
+            if d < best_len:
+                best_len = d
+                best_idx = i
+
+        if best_idx == -1:
+            break  # nothing left to remove
+
+        # Contract: merge the two endpoints into their midpoint.
+        seg = coords_list[best_idx]
+        assert seg is not None  # guaranteed by the search loop above
+        a = seg[0]
+        b = seg[1]
+        mid = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2]
+
+        a_key = _coord_key(a)
+        b_key = _coord_key(b)
+
+        # Update all other segments that reference either endpoint.
+        for i, coords in enumerate(coords_list):
+            if coords is None or i == best_idx:
+                continue
+            updated = False
+            new_coords = []
+            for pt in coords:
+                k = _coord_key(pt)
+                if k == a_key or k == b_key:
+                    new_coords.append(mid)
+                    updated = True
+                else:
+                    new_coords.append(pt)
+            if updated:
+                # Drop degenerate segments (both endpoints merged to same point).
+                if _coord_key(new_coords[0]) == _coord_key(new_coords[1]):
+                    coords_list[i] = None
+                    removed += 1
+                else:
+                    coords_list[i] = new_coords
+
+        # Remove the contracted segment.
+        coords_list[best_idx] = None
+        removed += 1
+        changed = True
+
+    result = [
+        {
+            "type": "Feature",
+            "geometry": {"type": "LineString", "coordinates": coords},
+            "properties": dict(props),
+        }
+        for coords, props in zip(coords_list, props_list)
+        if coords is not None
+    ]
+
+    out_count = len(result)
+    log.info(
+        "Remove short segments: %d → %d segments (removed %d shorter than %.2f m).",
+        in_count,
+        out_count,
+        removed,
+        min_length_m,
+    )
+    return result
+
+
+# ---------------------------------------------------------------------------
 # Geometry helpers — UTM projection for metric perpendicular calculations
 # ---------------------------------------------------------------------------
 
@@ -260,6 +816,12 @@ def _nearest_segment_projection(
     """Find the nearest **perpendicular** projection of *point* onto any segment
     of any way, computed in UTM metric space.
 
+    The returned foot coordinate is snapped to the nearest existing way-node
+    if that node is within ``MIN_SEGMENT_LENGTH_M`` metres of the raw foot.
+    This prevents creating split points that are nearly coincident with
+    existing nodes (which would produce degenerate sub-segments and
+    T-junction violations).
+
     Returns (foot_lonlat, way_index, seg_index, distance_m) or None if no
     valid perpendicular projection exists.
     """
@@ -267,7 +829,7 @@ def _nearest_segment_projection(
     p_xy = _to_utm(proj, point)
 
     best_dist = math.inf
-    best_foot_lonlat = None
+    best_foot_xy: tuple[float, float] | None = None
     best_way_idx = -1
     best_seg_idx = -1
 
@@ -280,13 +842,150 @@ def _nearest_segment_projection(
             dist = math.hypot(p_xy[0] - foot_xy[0], p_xy[1] - foot_xy[1])
             if dist < best_dist:
                 best_dist = dist
-                best_foot_lonlat = _from_utm(proj, foot_xy)
+                best_foot_xy = foot_xy
                 best_way_idx = wi
                 best_seg_idx = si
 
-    if best_foot_lonlat is None:
+    if best_foot_xy is None:
         return None
+
+    # Snap the foot to the nearest existing way-node if it is within
+    # MIN_SEGMENT_LENGTH_M.  This avoids creating near-zero-length sub-segments
+    # and T-junction violations caused by UTM round-trip float noise.
+    snapped_foot_lonlat: list | None = None
+    snap_threshold = MIN_SEGMENT_LENGTH_M
+    for feat in way_features:
+        for node_lonlat in feat["geometry"]["coordinates"]:
+            node_xy = _to_utm(proj, node_lonlat)
+            d = math.hypot(best_foot_xy[0] - node_xy[0], best_foot_xy[1] - node_xy[1])
+            if d < snap_threshold:
+                snap_threshold = d
+                snapped_foot_lonlat = node_lonlat
+
+    if snapped_foot_lonlat is not None:
+        best_foot_lonlat = snapped_foot_lonlat
+    else:
+        best_foot_lonlat = _from_utm(proj, best_foot_xy)
+
     return best_foot_lonlat, best_way_idx, best_seg_idx, best_dist
+
+
+# ---------------------------------------------------------------------------
+# Building-crossing check — reject connectors that traverse most of a building
+# ---------------------------------------------------------------------------
+
+
+def _segment_inside_length_utm(
+    a_xy: tuple[float, float],
+    b_xy: tuple[float, float],
+    ring_xy: list[tuple[float, float]],
+) -> float:
+    """Return the total length (metres, UTM) of the segment *a*–*b* that lies
+    **inside** the closed polygon defined by *ring_xy* (a list of UTM (x, y)
+    tuples forming a closed ring, i.e. first == last).
+
+    Algorithm
+    ---------
+    1. Collect all t ∈ (0, 1) where the segment crosses a polygon edge.
+    2. Sort the t values and evaluate the midpoint of each sub-interval.
+    3. Use a ray-casting point-in-polygon test to decide whether each
+       midpoint is inside the polygon.
+    4. Sum the lengths of the inside sub-intervals.
+    """
+    ax, ay = a_xy
+    bx, by = b_xy
+    seg_len = math.hypot(bx - ax, by - ay)
+    if seg_len < 1e-9:
+        return 0.0
+
+    # Collect crossing t-values with polygon edges.
+    t_values: list[float] = [0.0, 1.0]
+    n = len(ring_xy)
+    for k in range(n - 1):
+        cx, cy = ring_xy[k]
+        dx, dy = ring_xy[k + 1]
+        isect = _seg_seg_intersection_t(a_xy, b_xy, (cx, cy), (dx, dy))
+        if isect is not None:
+            t, _u = isect
+            if 1e-9 < t < 1 - 1e-9:
+                t_values.append(t)
+
+    t_values = sorted(set(t_values))
+
+    # Ray-casting PIP test (horizontal ray, UTM space).
+    def _inside(px: float, py: float) -> bool:
+        inside = False
+        for k in range(n - 1):
+            xi, yi = ring_xy[k]
+            xj, yj = ring_xy[k + 1]
+            if ((yi > py) != (yj > py)) and (px < (xj - xi) * (py - yi) / (yj - yi + 1e-15) + xi):
+                inside = not inside
+        return inside
+
+    total = 0.0
+    for idx in range(len(t_values) - 1):
+        t_mid = (t_values[idx] + t_values[idx + 1]) / 2.0
+        mx = ax + t_mid * (bx - ax)
+        my = ay + t_mid * (by - ay)
+        if _inside(mx, my):
+            total += (t_values[idx + 1] - t_values[idx]) * seg_len
+
+    return total
+
+
+def _connector_blocked_by_building(
+    pt_lonlat: list,
+    foot_lonlat: list,
+    building_polygons: list[list[list[float]]],
+    max_through_fraction: float = MAX_BUILDING_THROUGH_FRACTION,
+    min_connector_len_m: float = MIN_CONNECTOR_LENGTH_FOR_BUILDING_CHECK_M,
+) -> bool:
+    """Return True if the connector segment *pt_lonlat* → *foot_lonlat* passes
+    through *almost the full length* of any building polygon.
+
+    Short connectors (< *min_connector_len_m* metres) are never blocked —
+    they are assumed to be legitimate short connections (entrance right next
+    to the footway).
+
+    For longer connectors, "almost the full length" means the portion of the
+    connector that lies inside the building exceeds *max_through_fraction* ×
+    the connector's own length.  A connector that only clips a corner of a
+    building (small inside-fraction relative to the connector length) returns
+    False.
+    """
+    if not building_polygons:
+        return False
+
+    proj = _utm_proj(pt_lonlat[0], pt_lonlat[1])
+    a_xy = _to_utm(proj, pt_lonlat)
+    b_xy = _to_utm(proj, foot_lonlat)
+
+    connector_len = math.hypot(b_xy[0] - a_xy[0], b_xy[1] - a_xy[1])
+
+    # Short connectors are always allowed — no building check needed.
+    if connector_len < min_connector_len_m:
+        return False
+
+    for ring_lonlat in building_polygons:
+        # Convert ring to UTM.
+        ring_xy: list[tuple[float, float]] = [_to_utm(proj, c) for c in ring_lonlat]
+        # Ensure the ring is closed.
+        if ring_xy[0] != ring_xy[-1]:
+            ring_xy.append(ring_xy[0])
+
+        # Skip degenerate buildings.
+        xs = [p[0] for p in ring_xy]
+        ys = [p[1] for p in ring_xy]
+        if math.hypot(max(xs) - min(xs), max(ys) - min(ys)) < 1e-3:
+            continue
+
+        inside_len = _segment_inside_length_utm(a_xy, b_xy, ring_xy)
+        # Reject if the connector spends more than max_through_fraction of its
+        # own length inside this building.
+        if inside_len / connector_len > max_through_fraction:
+            return True
+
+    return False
 
 
 # ---------------------------------------------------------------------------
@@ -300,6 +999,7 @@ def connect_points_to_network(
     point_type: str,
     max_distance_m: float = MAX_CONNECT_DISTANCE_M,
     min_distance_m: float = MIN_CONNECT_DISTANCE_M,
+    building_polygons: list[list[list[float]]] | None = None,
 ) -> tuple[list[dict], list[dict], list[dict]]:
     """Connect each point node to the nearest segment of the pedestrian network.
 
@@ -336,14 +1036,14 @@ def connect_points_to_network(
         osm_id = point["properties"].get("osm_id", "?")
 
         if dist > max_distance_m or dist < min_distance_m:
-            log.warning(
+            log.debug(
                 "%s osm_id=%s: nearest segment is %.1f m away, skipping.",
                 point_type, osm_id, dist,
             )
             skipped_points.append(point)
             continue
 
-        log.info(
+        log.debug(
             "%s osm_id=%s: projecting [%.6f, %.6f] → foot [%.6f, %.6f] (%.1f m)",
             point_type, osm_id,
             pt_coord[0], pt_coord[1],
@@ -351,10 +1051,75 @@ def connect_points_to_network(
             dist,
         )
 
-        # Split the target way at the foot point.
+        # Check if the foot is too close to either endpoint of the segment.
+        # If so, snap to that endpoint to avoid creating a degenerate
+        # near-zero-length sub-segment after the split.
         original = way_features[wi]
         coords = original["geometry"]["coordinates"]
         props = original["properties"]
+
+        proj_check = _utm_proj(foot[0], foot[1])
+        foot_utm = _to_utm(proj_check, foot)
+        seg_a_utm = _to_utm(proj_check, coords[si])
+        seg_b_utm = _to_utm(proj_check, coords[si + 1])
+        dist_to_a = math.hypot(foot_utm[0] - seg_a_utm[0], foot_utm[1] - seg_a_utm[1])
+        dist_to_b = math.hypot(foot_utm[0] - seg_b_utm[0], foot_utm[1] - seg_b_utm[1])
+
+        if dist_to_a < min_distance_m:
+            # Snap foot to the start of the segment — no split needed.
+            foot = coords[si]
+        elif dist_to_b < min_distance_m:
+            # Snap foot to the end of the segment — no split needed.
+            foot = coords[si + 1]
+
+        # Re-check connector length after possible snap.
+        proj_conn = _utm_proj(pt_coord[0], pt_coord[1])
+        pt_utm = _to_utm(proj_conn, pt_coord)
+        foot_utm2 = _to_utm(proj_conn, foot)
+        conn_len = math.hypot(pt_utm[0] - foot_utm2[0], pt_utm[1] - foot_utm2[1])
+        if conn_len < min_distance_m:
+            log.debug(
+                "%s osm_id=%s: connector length %.3f m < %.3f m after snap, skipping.",
+                point_type, osm_id, conn_len, min_distance_m,
+            )
+            skipped_points.append(point)
+            continue
+
+        # For delivery_point: reject the connector if it passes through almost
+        # the full extent of any building polygon (i.e. it goes through the
+        # building rather than just clipping a corner).
+        if point_type == "delivery_point" and building_polygons:
+            if _connector_blocked_by_building(pt_coord, foot, building_polygons):
+                log.debug(
+                    "%s osm_id=%s: connector blocked — passes through most of a building, skipping.",
+                    point_type, osm_id,
+                )
+                skipped_points.append(point)
+                continue
+
+        # Only split if the foot is strictly interior to the segment
+        # (not snapped to an existing endpoint).
+        foot_key = _coord_key(foot)
+        seg_a_key = _coord_key(coords[si])
+        seg_b_key = _coord_key(coords[si + 1])
+
+        if foot_key == seg_a_key or foot_key == seg_b_key:
+            # Foot is at an existing node — no split, just add connector.
+            connected_points.append(point)
+            connectors.append(
+                {
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "LineString",
+                        "coordinates": [pt_coord, foot],
+                    },
+                    "properties": {
+                        "osm_type": "connector",
+                        "point_osm_id": osm_id,
+                    },
+                }
+            )
+            continue
 
         part_a_coords = coords[: si + 1] + [foot]
         part_b_coords = [foot] + coords[si + 1 :]
@@ -383,13 +1148,175 @@ def connect_points_to_network(
                 },
                 "properties": {
                     "osm_type": "connector",
-                    "point_type": point_type,
                     "point_osm_id": osm_id,
                 },
             }
         )
 
     return connected_points, skipped_points, connectors
+
+
+# ---------------------------------------------------------------------------
+# Validation — sanity-check the final GeoJSON feature collection
+# ---------------------------------------------------------------------------
+
+
+def validate_geojson(features: list[dict], min_length_m: float = MIN_SEGMENT_LENGTH_M) -> bool:
+    """Validate the final feature collection against five invariants.
+
+    Checks (applied to LineString features unless noted):
+
+    1. **2-point segments** — every LineString has exactly 2 coordinates.
+    2. **Minimum length** — every segment is at least *min_length_m* metres long.
+    3. **No interior touches / crossings** — no endpoint of any segment lies
+       strictly inside another segment (T-junctions or X-crossings).
+    4. **Graph connectivity** — the graph formed by ALL LineString segments is
+       connected (ways + connectors together).
+    5. **Point-on-endpoint** — every Point feature (base_point / delivery_point)
+       has its coordinate equal to an endpoint of some LineString.
+
+    Returns True if all checks pass, False otherwise.  All failures are logged
+    at ERROR level so they appear in the normal log stream.
+    """
+    ok = True
+
+    line_features = [f for f in features if f["geometry"]["type"] == "LineString"]
+    point_features = [f for f in features if f["geometry"]["type"] == "Point"]
+
+    # --- 1. Every LineString has exactly 2 coordinates ---
+    bad_2pt = [
+        i for i, f in enumerate(line_features)
+        if len(f["geometry"]["coordinates"]) != 2
+    ]
+    if bad_2pt:
+        log.error(
+            "VALIDATION FAIL [2-point]: %d segment(s) have != 2 coordinates: indices %s",
+            len(bad_2pt), bad_2pt[:10],
+        )
+        ok = False
+    else:
+        log.info(
+            "VALIDATION OK  [2-point]: all %d segments have exactly 2 coordinates.",
+            len(line_features),
+        )
+
+    # --- 2. Minimum length ---
+    def _dist_m(a: list, b: list) -> float:
+        lat_m = 111_320.0
+        lon_m = lat_m * math.cos(math.radians((a[1] + b[1]) / 2))
+        return math.hypot((b[0] - a[0]) * lon_m, (b[1] - a[1]) * lat_m)
+
+    two_pt = [f for f in line_features if len(f["geometry"]["coordinates"]) == 2]
+
+    short_segs = [
+        (i, _dist_m(f["geometry"]["coordinates"][0], f["geometry"]["coordinates"][1]))
+        for i, f in enumerate(two_pt)
+        if _dist_m(f["geometry"]["coordinates"][0], f["geometry"]["coordinates"][1]) < min_length_m
+    ]
+    if short_segs:
+        log.error(
+            "VALIDATION FAIL [min-length]: %d segment(s) shorter than %.2f m: %s",
+            len(short_segs), min_length_m,
+            [(i, f"{d:.3f}m") for i, d in short_segs[:5]],
+        )
+        ok = False
+    else:
+        log.info(
+            "VALIDATION OK  [min-length]: all segments >= %.2f m.", min_length_m
+        )
+
+    # --- 3. No interior touches / crossings ---
+    def _point_on_seg(p: tuple, a: tuple, b: tuple, tol: float = 1e-7) -> bool:
+        ax, ay = a; bx, by = b; px, py = p
+        dx, dy = bx - ax, by - ay
+        seg_len_sq = dx * dx + dy * dy
+        if seg_len_sq < 1e-20:
+            return False
+        t = ((px - ax) * dx + (py - ay) * dy) / seg_len_sq
+        if t <= 1e-9 or t >= 1 - 1e-9:
+            return False
+        foot_x = ax + t * dx
+        foot_y = ay + t * dy
+        return math.hypot(px - foot_x, py - foot_y) < tol
+
+    endpoints: set[tuple] = set()
+    for f in two_pt:
+        endpoints.add(tuple(f["geometry"]["coordinates"][0]))
+        endpoints.add(tuple(f["geometry"]["coordinates"][1]))
+
+    interior_violations = 0
+    for fi in two_pt:
+        a = tuple(fi["geometry"]["coordinates"][0])
+        b = tuple(fi["geometry"]["coordinates"][1])
+        for ep in endpoints:
+            if ep == a or ep == b:
+                continue
+            if _point_on_seg(ep, a, b):
+                interior_violations += 1
+                if interior_violations <= 3:
+                    log.error(
+                        "VALIDATION FAIL [no-interior-touch]: endpoint %s lies inside segment %s→%s",
+                        ep, a, b,
+                    )
+
+    if interior_violations:
+        log.error(
+            "VALIDATION FAIL [no-interior-touch]: %d interior touch/crossing violation(s).",
+            interior_violations,
+        )
+        ok = False
+    else:
+        log.info("VALIDATION OK  [no-interior-touch]: no interior touches or crossings.")
+
+    # --- 4. Graph connectivity — ALL LineString segments (ways + connectors) ---
+    if two_pt:
+        G = nx.Graph()
+        for f in two_pt:
+            a_key = _coord_key(f["geometry"]["coordinates"][0])
+            b_key = _coord_key(f["geometry"]["coordinates"][1])
+            G.add_edge(a_key, b_key)
+        n_comp = nx.number_connected_components(G)
+        if n_comp != 1:
+            log.error(
+                "VALIDATION FAIL [connectivity]: LineString graph has %d connected component(s) (expected 1).",
+                n_comp,
+            )
+            ok = False
+        else:
+            log.info(
+                "VALIDATION OK  [connectivity]: graph is connected (%d nodes, %d edges).",
+                G.number_of_nodes(), G.number_of_edges(),
+            )
+    else:
+        log.warning("VALIDATION SKIP [connectivity]: no LineString features found.")
+
+    # --- 5. Every Point feature lies on an endpoint of some LineString ---
+    if point_features:
+        orphan_points = [
+            f for f in point_features
+            if tuple(f["geometry"]["coordinates"]) not in endpoints
+        ]
+        if orphan_points:
+            log.error(
+                "VALIDATION FAIL [point-on-endpoint]: %d point feature(s) not on any LineString endpoint: osm_ids=%s",
+                len(orphan_points),
+                [f["properties"].get("osm_id") for f in orphan_points[:5]],
+            )
+            ok = False
+        else:
+            log.info(
+                "VALIDATION OK  [point-on-endpoint]: all %d point features lie on a LineString endpoint.",
+                len(point_features),
+            )
+    else:
+        log.info("VALIDATION SKIP [point-on-endpoint]: no point features.")
+
+    if ok:
+        log.info("VALIDATION PASSED — all checks OK.")
+    else:
+        log.error("VALIDATION FAILED — see errors above.")
+
+    return ok
 
 
 # ---------------------------------------------------------------------------
@@ -432,9 +1359,15 @@ def main(argv=None):
     log.info("Collected %d pedestrian way features.", len(handler.way_features))
     log.info("Collected %d dark store nodes.", len(handler.store_features))
     log.info("Collected %d building entrance nodes.", len(handler.entrance_features))
+    log.info("Collected %d building polygons.", len(handler.building_polygons))
 
-    # Work on a mutable copy — connect_points_to_network splits ways in place.
+    # Keep only the largest connected component, planarize (split at every
+    # interior junction / crossing), then simplify every polyline to a set of
+    # 2-point straight segments (Ramer–Douglas–Peucker).
     way_features = largest_connected_component(handler.way_features)
+    way_features = planarize_ways(way_features)
+    way_features = simplify_ways(way_features)
+    way_features = remove_short_segments(way_features)
 
     connected_stores, skipped_stores, store_connectors = connect_points_to_network(
         way_features, handler.store_features, "base_point",
@@ -444,6 +1377,7 @@ def main(argv=None):
 
     connected_entrances, skipped_entrances, entrance_connectors = connect_points_to_network(
         way_features, handler.entrance_features, "delivery_point",
+        building_polygons=handler.building_polygons,
     )
     if skipped_entrances:
         log.warning(
@@ -474,6 +1408,8 @@ def main(argv=None):
         len(connected_stores), len(store_connectors),
         len(connected_entrances), len(entrance_connectors),
     )
+
+    validate_geojson(all_features)
 
 
 if __name__ == "__main__":

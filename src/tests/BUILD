@@ -8,6 +8,7 @@ cc_test(
     ],
     data = [
         "data/graph.txt",
+        "data/graph.geojson",
     ],
     deps = [
         "//lib:graph",

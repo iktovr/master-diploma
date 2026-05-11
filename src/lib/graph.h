@@ -51,6 +51,8 @@ public:
 
     static Graph LoadFromFile(const std::filesystem::path path);
 
+    static Graph LoadFromGeoJsonFile(const std::filesystem::path path);
+
     std::vector<int> Search(const int u, const int v) const;
     Linestring GetRoute(const int u, const int v) const;
 

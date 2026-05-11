@@ -2,7 +2,6 @@
 
 #include <cassert>
 #include <filesystem>
-#include <format>
 
 Visualizer::Visualizer(const double width_, const double height_, const Point& center_, const int max_dimension_in_pixels_, const std::string directory_)
     : width(width_), height(height_), center(center_), directory(directory_) {
