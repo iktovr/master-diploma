@@ -1,10 +1,10 @@
 load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
 
-# filter_osm uses the system python3 with packages installed via apt.
-# The wrapper script forwards all CLI arguments to filter_osm.py.
+# process_map uses the system python3 with packages installed via apt.
+# The wrapper script forwards all CLI arguments to process_map.py.
 sh_binary(
-    name = "filter_osm",
-    srcs = ["filter_osm_wrapper.sh"],
-    data = ["filter_osm.py"],
+    name = "process_map",
+    srcs = ["process_map_wrapper.sh"],
+    data = ["process_map.py"],
     visibility = ["//visibility:public"],
 )

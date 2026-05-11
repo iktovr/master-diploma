@@ -1,7 +1,19 @@
 """Filter pedestrian infrastructure from an OSM file and export as GeoJSON.
 
 Usage:
-    bazel run //maps:filter_osm -- --input city.osm --output pedestrian.geojson
+    # From a local OSM file:
+    bazel run //maps:process_map -- --input city.osm --output pedestrian.geojson
+
+    # Download OSM data via Overpass API for a polygon area:
+    bazel run //maps:process_map -- --location area.geojson --output pedestrian.geojson
+
+    # Local file filtered to a polygon:
+    bazel run //maps:process_map -- --input city.osm --location area.geojson --output pedestrian.geojson
+
+The --location file must be a GeoJSON file containing a single Polygon feature.
+When --input is omitted and --location is provided, OSM data is automatically
+downloaded from the Overpass API (https://overpass-api.de) for the polygon's
+bounding box.
 """
 
 import argparse
@@ -9,6 +21,9 @@ import json
 import logging
 import math
 import os
+import tempfile
+import urllib.parse
+import urllib.request
 from pathlib import Path
 
 import networkx as nx
@@ -1320,6 +1335,173 @@ def validate_geojson(features: list[dict], min_length_m: float = MIN_SEGMENT_LEN
 
 
 # ---------------------------------------------------------------------------
+# Location polygon helpers
+# ---------------------------------------------------------------------------
+
+
+def load_location_polygon(path: Path) -> list[list[float]]:
+    """Load a GeoJSON file and return the exterior ring of the first Polygon.
+
+    The file may be a GeoJSON ``Feature`` with a ``Polygon`` geometry, a bare
+    ``Polygon`` geometry object, or a ``FeatureCollection`` whose first feature
+    has a ``Polygon`` geometry.
+
+    Returns a list of ``[lon, lat]`` pairs representing the exterior ring
+    (``coordinates[0]`` of the polygon).
+
+    Raises ``ValueError`` if no Polygon geometry can be found.
+    """
+    with open(path, encoding="utf-8") as fh:
+        data = json.load(fh)
+
+    geom = None
+    if data.get("type") == "Polygon":
+        geom = data
+    elif data.get("type") == "Feature":
+        geom = data.get("geometry")
+    elif data.get("type") == "FeatureCollection":
+        features = data.get("features", [])
+        if features:
+            geom = features[0].get("geometry")
+
+    if geom is None or geom.get("type") != "Polygon":
+        raise ValueError(
+            f"Expected a GeoJSON Polygon (or Feature/FeatureCollection containing one) "
+            f"in {path}, got: {geom.get('type') if geom else 'nothing'}"
+        )
+
+    ring: list[list[float]] = geom["coordinates"][0]
+    log.info(
+        "Loaded location polygon from %s (%d vertices, bbox %.6f,%.6f – %.6f,%.6f).",
+        path,
+        len(ring),
+        min(c[0] for c in ring),
+        min(c[1] for c in ring),
+        max(c[0] for c in ring),
+        max(c[1] for c in ring),
+    )
+    return ring
+
+
+def download_osm_for_polygon(ring: list[list[float]]) -> Path:
+    """Download OSM data for the bounding box of *ring* via the Overpass API.
+
+    Sends a POST request to ``https://overpass-api.de/api/interpreter`` with
+    an Overpass QL query that fetches all nodes, ways and relations inside the
+    bounding box derived from *ring*.  The response XML is written to a
+    temporary file whose path is returned.
+
+    The caller is responsible for deleting the file when it is no longer needed.
+    """
+    lons = [c[0] for c in ring]
+    lats = [c[1] for c in ring]
+    min_lon, max_lon = min(lons), max(lons)
+    min_lat, max_lat = min(lats), max(lats)
+
+    bbox = f"{min_lat},{min_lon},{max_lat},{max_lon}"
+    query = (
+        f"[out:xml][timeout:180];\n"
+        f"(\n"
+        f"  node({bbox});\n"
+        f"  way({bbox});\n"
+        f"  relation({bbox});\n"
+        f");\n"
+        f"out body;\n"
+        f">;\n"
+        f"out skel qt;\n"
+    )
+
+    overpass_url = "https://overpass-api.de/api/interpreter"
+    log.info(
+        "Downloading OSM data from Overpass API for bbox %.6f,%.6f – %.6f,%.6f …",
+        min_lon, min_lat, max_lon, max_lat,
+    )
+
+    data = urllib.parse.urlencode({"data": query}).encode()
+    req = urllib.request.Request(overpass_url, data=data, method="POST")
+    req.add_header("Content-Type", "application/x-www-form-urlencoded")
+    req.add_header("User-Agent", "process_map/1.0 (pedestrian-infrastructure-filter; https://github.com/iktovr/master-diploma)")
+
+    with urllib.request.urlopen(req, timeout=200) as resp:
+        xml_bytes = resp.read()
+
+    log.info("Downloaded %.1f KB of OSM data.", len(xml_bytes) / 1024)
+
+    tmp = tempfile.NamedTemporaryFile(suffix=".osm", delete=False)
+    tmp.write(xml_bytes)
+    tmp.close()
+    return Path(tmp.name)
+
+
+# ---------------------------------------------------------------------------
+# Polygon containment filter
+# ---------------------------------------------------------------------------
+
+
+def _point_in_polygon(lon: float, lat: float, ring: list[list[float]]) -> bool:
+    """Ray-casting point-in-polygon test in lon/lat space.
+
+    *ring* is a list of ``[lon, lat]`` pairs forming a closed polygon ring
+    (first point == last point is not required but accepted).
+
+    Returns ``True`` if the point ``(lon, lat)`` is strictly inside the ring.
+    """
+    inside = False
+    n = len(ring)
+    j = n - 1
+    for i in range(n):
+        xi, yi = ring[i][0], ring[i][1]
+        xj, yj = ring[j][0], ring[j][1]
+        if ((yi > lat) != (yj > lat)) and (
+            lon < (xj - xi) * (lat - yi) / (yj - yi + 1e-15) + xi
+        ):
+            inside = not inside
+        j = i
+    return inside
+
+
+def filter_features_by_polygon(
+    way_features: list[dict],
+    store_features: list[dict],
+    entrance_features: list[dict],
+    building_polygons: list[list[list[float]]],
+    ring: list[list[float]],
+) -> tuple[list[dict], list[dict], list[dict], list[list[list[float]]]]:
+    """Keep only features whose geometry lies entirely inside *ring*.
+
+    Rules:
+    - **LineString ways**: kept only if *every* coordinate is inside the polygon.
+    - **Point features** (stores, entrances): kept only if the point is inside.
+    - **Building polygons**: kept only if *every* vertex is inside the polygon.
+
+    Returns filtered ``(way_features, store_features, entrance_features,
+    building_polygons)``.
+    """
+    def _all_coords_inside(coords: list[list[float]]) -> bool:
+        return all(_point_in_polygon(c[0], c[1], ring) for c in coords)
+
+    filtered_ways = [f for f in way_features if _all_coords_inside(f["geometry"]["coordinates"])]
+    filtered_stores = [
+        f for f in store_features
+        if _point_in_polygon(f["geometry"]["coordinates"][0], f["geometry"]["coordinates"][1], ring)
+    ]
+    filtered_entrances = [
+        f for f in entrance_features
+        if _point_in_polygon(f["geometry"]["coordinates"][0], f["geometry"]["coordinates"][1], ring)
+    ]
+    filtered_buildings = [bp for bp in building_polygons if _all_coords_inside(bp)]
+
+    log.info(
+        "Polygon filter: ways %d→%d, stores %d→%d, entrances %d→%d, buildings %d→%d.",
+        len(way_features), len(filtered_ways),
+        len(store_features), len(filtered_stores),
+        len(entrance_features), len(filtered_entrances),
+        len(building_polygons), len(filtered_buildings),
+    )
+    return filtered_ways, filtered_stores, filtered_entrances, filtered_buildings
+
+
+# ---------------------------------------------------------------------------
 # Entry point
 # ---------------------------------------------------------------------------
 
@@ -1331,9 +1513,14 @@ def parse_args(argv=None):
     parser.add_argument(
         "-i",
         "--input",
-        required=True,
+        required=False,
+        default=None,
         metavar="FILE",
-        help="Input OSM file (.osm, .osm.pbf, .osm.bz2, …)",
+        help=(
+            "Input OSM file (.osm, .osm.pbf, .osm.bz2, …). "
+            "Optional when --location is provided; OSM data will be downloaded "
+            "automatically via the Overpass API in that case."
+        ),
     )
     parser.add_argument(
         "-o",
@@ -1342,74 +1529,140 @@ def parse_args(argv=None):
         metavar="FILE",
         help="Output GeoJSON file",
     )
+    parser.add_argument(
+        "-l",
+        "--location",
+        required=False,
+        default=None,
+        metavar="FILE",
+        help=(
+            "GeoJSON file containing a single Polygon. "
+            "Only map features whose geometry lies entirely inside this polygon "
+            "are kept. When --input is omitted, OSM data for the polygon's "
+            "bounding box is downloaded automatically via the Overpass API."
+        ),
+    )
     return parser.parse_args(argv)
 
 
 def main(argv=None):
     args = parse_args(argv)
-    input_path = Path(args.input)
-    output_path = Path(args.output)
-    if not input_path.is_absolute():
-        input_path = (Path(os.getenv("BUILD_WORKING_DIRECTORY", "./")) / input_path).resolve()
-    if not output_path.is_absolute():
-        output_path = (Path(os.getenv("BUILD_WORKING_DIRECTORY", "./")) / output_path).resolve()
 
-    handler = PedestrianHandler()
-    handler.apply_file(input_path, locations=True)
-    log.info("Collected %d pedestrian way features.", len(handler.way_features))
-    log.info("Collected %d dark store nodes.", len(handler.store_features))
-    log.info("Collected %d building entrance nodes.", len(handler.entrance_features))
-    log.info("Collected %d building polygons.", len(handler.building_polygons))
+    # Resolve working directory for relative paths (Bazel sets BUILD_WORKING_DIRECTORY).
+    work_dir = Path(os.getenv("BUILD_WORKING_DIRECTORY", "./"))
 
-    # Keep only the largest connected component, planarize (split at every
-    # interior junction / crossing), then simplify every polyline to a set of
-    # 2-point straight segments (Ramer–Douglas–Peucker).
-    way_features = largest_connected_component(handler.way_features)
-    way_features = planarize_ways(way_features)
-    way_features = simplify_ways(way_features)
-    way_features = remove_short_segments(way_features)
+    def _resolve(p: str) -> Path:
+        path = Path(p)
+        if not path.is_absolute():
+            path = (work_dir / path).resolve()
+        return path
 
-    connected_stores, skipped_stores, store_connectors = connect_points_to_network(
-        way_features, handler.store_features, "base_point",
-    )
-    if skipped_stores:
-        log.warning("%d store node(s) could not be connected and were excluded.", len(skipped_stores))
+    output_path = _resolve(args.output)
 
-    connected_entrances, skipped_entrances, entrance_connectors = connect_points_to_network(
-        way_features, handler.entrance_features, "delivery_point",
-        building_polygons=handler.building_polygons,
-    )
-    if skipped_entrances:
-        log.warning(
-            "%d entrance node(s) could not be connected and were excluded.", len(skipped_entrances)
+    # Validate argument combination.
+    if not args.input and not args.location:
+        import sys
+        print(
+            "error: at least one of --input or --location must be provided.\n"
+            "  Use --input to specify a local OSM file.\n"
+            "  Use --location to provide a polygon GeoJSON; OSM data will be\n"
+            "  downloaded automatically when --input is omitted.",
+            file=sys.stderr,
+        )
+        sys.exit(2)
+
+    # Load location polygon (if provided).
+    location_ring: list[list[float]] | None = None
+    if args.location:
+        location_path = _resolve(args.location)
+        location_ring = load_location_polygon(location_path)
+
+    # Resolve or download the input OSM file.
+    tmp_osm_path: Path | None = None
+    if args.input:
+        input_path = _resolve(args.input)
+    else:
+        # --location is guaranteed to be set here (validated above).
+        assert location_ring is not None
+        tmp_osm_path = download_osm_for_polygon(location_ring)
+        input_path = tmp_osm_path
+
+    try:
+        handler = PedestrianHandler()
+        handler.apply_file(str(input_path), locations=True)
+        log.info("Collected %d pedestrian way features.", len(handler.way_features))
+        log.info("Collected %d dark store nodes.", len(handler.store_features))
+        log.info("Collected %d building entrance nodes.", len(handler.entrance_features))
+        log.info("Collected %d building polygons.", len(handler.building_polygons))
+
+        # Apply polygon filter before any further processing.
+        way_features = handler.way_features
+        store_features = handler.store_features
+        entrance_features = handler.entrance_features
+        building_polygons = handler.building_polygons
+
+        if location_ring is not None:
+            way_features, store_features, entrance_features, building_polygons = (
+                filter_features_by_polygon(
+                    way_features, store_features, entrance_features,
+                    building_polygons, location_ring,
+                )
+            )
+
+        # Keep only the largest connected component, planarize (split at every
+        # interior junction / crossing), then simplify every polyline to a set of
+        # 2-point straight segments (Ramer–Douglas–Peucker).
+        way_features = largest_connected_component(way_features)
+        way_features = planarize_ways(way_features)
+        way_features = simplify_ways(way_features)
+        way_features = remove_short_segments(way_features)
+
+        connected_stores, skipped_stores, store_connectors = connect_points_to_network(
+            way_features, store_features, "base_point",
+        )
+        if skipped_stores:
+            log.warning("%d store node(s) could not be connected and were excluded.", len(skipped_stores))
+
+        connected_entrances, skipped_entrances, entrance_connectors = connect_points_to_network(
+            way_features, entrance_features, "delivery_point",
+            building_polygons=building_polygons,
+        )
+        if skipped_entrances:
+            log.warning(
+                "%d entrance node(s) could not be connected and were excluded.", len(skipped_entrances)
+            )
+
+        all_features = (
+            way_features
+            + connected_stores
+            + store_connectors
+            + connected_entrances
+            + entrance_connectors
         )
 
-    all_features = (
-        way_features
-        + connected_stores
-        + store_connectors
-        + connected_entrances
-        + entrance_connectors
-    )
+        feature_collection = {
+            "type": "FeatureCollection",
+            "features": all_features,
+        }
 
-    feature_collection = {
-        "type": "FeatureCollection",
-        "features": all_features,
-    }
+        with open(output_path, "w", encoding="utf-8") as fh:
+            json.dump(feature_collection, fh, ensure_ascii=False, indent=2)
 
-    with open(output_path, "w", encoding="utf-8") as fh:
-        json.dump(feature_collection, fh, ensure_ascii=False, indent=2)
+        log.info(
+            "Written %d features to %s "
+            "(%d ways, %d stores, %d store connectors, %d entrances, %d entrance connectors)",
+            len(all_features), args.output,
+            len(way_features),
+            len(connected_stores), len(store_connectors),
+            len(connected_entrances), len(entrance_connectors),
+        )
 
-    log.info(
-        "Written %d features to %s "
-        "(%d ways, %d stores, %d store connectors, %d entrances, %d entrance connectors)",
-        len(all_features), args.output,
-        len(way_features),
-        len(connected_stores), len(store_connectors),
-        len(connected_entrances), len(entrance_connectors),
-    )
+        validate_geojson(all_features)
 
-    validate_geojson(all_features)
+    finally:
+        if tmp_osm_path is not None and tmp_osm_path.exists():
+            tmp_osm_path.unlink()
+            log.info("Removed temporary OSM file %s.", tmp_osm_path)
 
 
 if __name__ == "__main__":
