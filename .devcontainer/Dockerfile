@@ -26,6 +26,9 @@ RUN chmod -R 644 /usr/share/fonts/truetype/msttcorefonts/* \
     texlive-fonts-recommended \
     fontconfig \
     ffmpeg \
+    python3-pyosmium \
+    python3-networkx \
+    python3-pyproj \
   && echo ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true | debconf-set-selections \
   && fc-cache -f -v \
   && wget "https://github.com/bazelbuild/bazelisk/releases/download/v1.29.0/bazelisk-${TARGETOS}-${TARGETARCH}" \

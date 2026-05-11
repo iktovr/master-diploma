@@ -3,6 +3,7 @@ bazel_dep(name = "opencv", version = "4.13.0.bcr.5")
 bazel_dep(name = "googletest", version = "1.17.0.bcr.2")
 bazel_dep(name = "boost.geometry", version = "1.90.0.bcr.1")
 bazel_dep(name = "cli11", version = "2.6.2")
+bazel_dep(name = "rules_shell", version = "0.6.1")
 
 bazel_dep(name = "hedron_compile_commands", dev_dependency = True)
 git_override(
