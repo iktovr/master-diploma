@@ -89,6 +89,20 @@ MAX_SIMPLIFY_DEVIATION_M = 5.0
 # simplification.
 MIN_SEGMENT_LENGTH_M = 0.25
 
+# Barrier tag values to extract as obstacle line segments.
+BARRIER_VALUES = frozenset(["wall", "fence", "kerb"])
+
+# A passage is considered narrow when the clearance to the nearest
+# building edge or barrier is below this threshold (metres).
+NARROW_WIDTH_M = 3.0
+
+# Narrow runs shorter than this are ignored (noise / measurement artefact).
+NARROW_MIN_LENGTH_M = 1.0
+
+# Narrow runs longer than this are also ignored (the whole corridor is
+# narrow — not a bottleneck worth tagging).
+NARROW_MAX_LENGTH_M = 50.0
+
 
 def _is_pedestrian_way(tags) -> bool:
     highway = tags.get("highway")
@@ -128,6 +142,8 @@ class PedestrianHandler(osmium.SimpleHandler):
         self.entrance_features: list[dict] = []
         # Closed polygons for every OSM building way (lon/lat rings).
         self.building_polygons: list[list[list[float]]] = []
+        # Open polylines for every OSM barrier way (wall/fence/kerb).
+        self.barrier_ways: list[list[list[float]]] = []
 
     def node(self, n):
         # Dark-store (Яндекс.Лавка) nodes → base_point
@@ -178,6 +194,17 @@ class PedestrianHandler(osmium.SimpleHandler):
             if len(coords) >= 4:
                 self.building_polygons.append(coords)
 
+        # Collect barrier polylines (walls, fences, kerbs) for narrow-passage
+        # detection. A barrier way may be open or closed; we treat it as a
+        # polyline either way.
+        if w.tags.get("barrier") in BARRIER_VALUES:
+            try:
+                coords = [[n.lon, n.lat] for n in w.nodes]
+            except osmium.InvalidLocationError:
+                coords = []
+            if len(coords) >= 2:
+                self.barrier_ways.append(coords)
+
         if not _is_pedestrian_way(w.tags):
             return
 
@@ -200,6 +227,7 @@ class PedestrianHandler(osmium.SimpleHandler):
                 "properties": {
                     "osm_id": w.id,
                     "osm_type": "way",
+                    "narrow": "no",
                     **_tags_to_dict(w.tags),
                 },
             }
@@ -349,13 +377,14 @@ def planarize_ways(features: list[dict]) -> list[dict]:
 
     n = len(features)
 
-    # --- Build global endpoint key set ---
-    # Every coordinate that is the first or last node of any way.
-    all_endpoint_keys: set[tuple] = set()
-    for feat in features:
-        coords = feat["geometry"]["coordinates"]
-        all_endpoint_keys.add(_coord_key(coords[0]))
-        all_endpoint_keys.add(_coord_key(coords[-1]))
+    # --- Build global vertex-ownership map ---
+    # For each coord_key, collect the set of way indices that have a vertex
+    # at that key (anywhere — endpoint or interior).  A shared vertex is one
+    # that appears in 2+ different ways.
+    vertex_owners: dict[tuple, set[int]] = {}
+    for i, feat in enumerate(features):
+        for c in feat["geometry"]["coordinates"]:
+            vertex_owners.setdefault(_coord_key(c), set()).add(i)
 
     # split_vertex[i] = set of interior vertex indices of way i that must
     # become split points (case A).
@@ -367,12 +396,20 @@ def planarize_ways(features: list[dict]) -> list[dict]:
         for pts in utm_coords
     ]
 
-    # --- Case A: interior vertex of way i is an endpoint of some other way ---
+    # --- Case A: interior vertex of way i is also a vertex of some OTHER way ---
+    # This handles both:
+    #   • shared interior vertex (vertex interior to both ways) — formerly
+    #     missed: such a vertex was not an endpoint of any way, so the old
+    #     check failed, RDP later straightened it away, and the resulting
+    #     chords could cross.
+    #   • interior vertex that is an endpoint of another way (original case A).
     for i in range(n):
         coords_i = features[i]["geometry"]["coordinates"]
         # Only interior vertices (indices 1 .. len-2).
         for vi in range(1, len(coords_i) - 1):
-            if _coord_key(coords_i[vi]) in all_endpoint_keys:
+            owners = vertex_owners.get(_coord_key(coords_i[vi]), ())
+            # Shared with any way other than i?
+            if any(o != i for o in owners):
                 split_vertex[i].add(vi)
 
     # --- Cases B & C: segment-level intersections ---
@@ -1007,6 +1044,298 @@ def _connector_blocked_by_building(
 
 
 # ---------------------------------------------------------------------------
+# Narrow-passage detection — tag pedestrian ways that pass through tight
+# spots between buildings / barriers (walls, fences, kerbs)
+# ---------------------------------------------------------------------------
+
+
+def _point_to_segment_distance_utm(
+    p_xy: tuple[float, float],
+    a_xy: tuple[float, float],
+    b_xy: tuple[float, float],
+) -> float:
+    """Perpendicular distance from point *p* to segment *a*–*b* in UTM metres.
+
+    If the perpendicular foot falls outside the segment, returns the distance
+    to the nearer endpoint.
+    """
+    ax, ay = a_xy
+    bx, by = b_xy
+    px, py = p_xy
+    dx, dy = bx - ax, by - ay
+    seg_len_sq = dx * dx + dy * dy
+    if seg_len_sq < 1e-20:
+        return math.hypot(px - ax, py - ay)
+    t = ((px - ax) * dx + (py - ay) * dy) / seg_len_sq
+    t = max(0.0, min(1.0, t))
+    foot_x = ax + t * dx
+    foot_y = ay + t * dy
+    return math.hypot(px - foot_x, py - foot_y)
+
+
+def _min_clearance_to_obstacles(
+    p_xy: tuple[float, float],
+    building_edges_xy: list[tuple[tuple[float, float], tuple[float, float]]],
+    barrier_segs_xy: list[tuple[tuple[float, float], tuple[float, float]]],
+    cap: float,
+) -> float:
+    """Return the minimum distance from *p_xy* to any obstacle edge.
+
+    Obstacles are building polygon edges and barrier polyline segments.
+    The search is short-circuited once a distance below *cap* is observed
+    further reduced — this is a simple optimisation; the function still has
+    to scan every edge in the worst case, but in practice obstacles are
+    sparse and most points are far from all of them.
+    """
+    best = cap
+    px, py = p_xy
+    for a_xy, b_xy in building_edges_xy:
+        # Cheap bbox reject — skip far edges quickly.
+        ax, ay = a_xy
+        bx, by = b_xy
+        if min(ax, bx) - best > px or px > max(ax, bx) + best:
+            if min(ay, by) - best > py or py > max(ay, by) + best:
+                continue
+        d = _point_to_segment_distance_utm(p_xy, a_xy, b_xy)
+        if d < best:
+            best = d
+    for a_xy, b_xy in barrier_segs_xy:
+        ax, ay = a_xy
+        bx, by = b_xy
+        if min(ax, bx) - best > px or px > max(ax, bx) + best:
+            if min(ay, by) - best > py or py > max(ay, by) + best:
+                continue
+        d = _point_to_segment_distance_utm(p_xy, a_xy, b_xy)
+        if d < best:
+            best = d
+    return best
+
+
+def tag_narrow_way_segments(
+    way_features: list[dict],
+    building_polygons: list[list[list[float]]],
+    barrier_ways: list[list[list[float]]],
+    narrow_width_m: float = NARROW_WIDTH_M,
+    narrow_min_m: float = NARROW_MIN_LENGTH_M,
+    narrow_max_m: float = NARROW_MAX_LENGTH_M,
+) -> list[dict]:
+    """Tag pedestrian ways that pass through narrow spots with ``narrow=yes``.
+
+    For each pedestrian way we measure the clearance at every node to the
+    nearest obstacle (building polygon edge or barrier polyline segment).
+    Consecutive nodes whose clearance is below *narrow_width_m* form a
+    *narrow run*.  The run's arc-length must satisfy
+    ``narrow_min_m <= length <= narrow_max_m`` to qualify; otherwise it is
+    ignored (too-short = noise; too-long = the whole corridor is narrow and
+    not a meaningful bottleneck).
+
+    A way that contains at least one qualifying narrow run is tagged with
+    ``properties["narrow"] = "yes"``.  Because the tag is set on the
+    original (multi-node) way feature **before** planarization and
+    simplification, it propagates automatically to every derived 2-point
+    segment via ``dict(props)`` in the downstream passes.
+
+    The way geometries themselves are not modified — only the ``properties``
+    dict is updated in place.  Returns the same list (for chaining).
+    """
+    if not way_features:
+        return way_features
+    if not building_polygons and not barrier_ways:
+        log.info("Narrow detection: no buildings or barriers — skipping.")
+        return way_features
+
+    # Use a single UTM projection origin for the whole dataset.
+    ref_lon = way_features[0]["geometry"]["coordinates"][0][0]
+    ref_lat = way_features[0]["geometry"]["coordinates"][0][1]
+    proj = _utm_proj(ref_lon, ref_lat)
+
+    # Pre-project building polygon edges to UTM (one edge per polygon side).
+    building_edges_xy: list[tuple[tuple[float, float], tuple[float, float]]] = []
+    for ring in building_polygons:
+        ring_xy = [_to_utm(proj, c) for c in ring]
+        for k in range(len(ring_xy) - 1):
+            building_edges_xy.append((ring_xy[k], ring_xy[k + 1]))
+
+    # Pre-project barrier polyline segments to UTM.
+    barrier_segs_xy: list[tuple[tuple[float, float], tuple[float, float]]] = []
+    for bw in barrier_ways:
+        bw_xy = [_to_utm(proj, c) for c in bw]
+        for k in range(len(bw_xy) - 1):
+            barrier_segs_xy.append((bw_xy[k], bw_xy[k + 1]))
+
+    log.info(
+        "Narrow detection: %d building edges, %d barrier segments, "
+        "threshold=%.2f m, min_run=%.2f m, max_run=%.2f m.",
+        len(building_edges_xy), len(barrier_segs_xy),
+        narrow_width_m, narrow_min_m, narrow_max_m,
+    )
+
+    # The clearance cap used for the per-node distance search: any clearance
+    # >= narrow_width_m is irrelevant (we only care whether it is below the
+    # threshold), so we can early-out at narrow_width_m.  We add a tiny
+    # margin so that points exactly at the threshold are treated as "wide".
+    cap = narrow_width_m
+
+    ways_tagged = 0
+    runs_total = 0
+    runs_kept = 0
+
+    for feat in way_features:
+        coords = feat["geometry"]["coordinates"]
+        if len(coords) < 2:
+            continue
+
+        pts_xy = [_to_utm(proj, c) for c in coords]
+        # Clearance at each node (capped at narrow_width_m for speed).
+        clearances = [
+            _min_clearance_to_obstacles(p, building_edges_xy, barrier_segs_xy, cap)
+            for p in pts_xy
+        ]
+
+        # Walk node-by-node, tracking runs of consecutive narrow nodes.
+        # A "narrow run" is a maximal contiguous index range [i0, i1] where
+        # every clearance[i] < narrow_width_m.  Its arc-length is the sum of
+        # the segment lengths between consecutive nodes in [i0, i1].
+        has_qualifying_run = False
+        i = 0
+        n = len(pts_xy)
+        while i < n:
+            if clearances[i] < narrow_width_m:
+                j = i
+                while j + 1 < n and clearances[j + 1] < narrow_width_m:
+                    j += 1
+                # Arc-length of the run i..j.
+                run_len = 0.0
+                for k in range(i, j):
+                    ax, ay = pts_xy[k]
+                    bx, by = pts_xy[k + 1]
+                    run_len += math.hypot(bx - ax, by - ay)
+                runs_total += 1
+                if narrow_min_m <= run_len <= narrow_max_m:
+                    has_qualifying_run = True
+                    runs_kept += 1
+                i = j + 1
+            else:
+                i += 1
+
+        if has_qualifying_run:
+            feat["properties"]["narrow"] = "yes"
+            ways_tagged += 1
+
+    log.info(
+        "Narrow detection: %d way(s) tagged narrow; %d run(s) found, %d kept "
+        "(others outside [%.1f, %.1f] m).",
+        ways_tagged, runs_total, runs_kept, narrow_min_m, narrow_max_m,
+    )
+    return way_features
+
+
+def thin_narrow_segments(features: list[dict]) -> list[dict]:
+    """Thin out clusters of touching ``narrow=yes`` segments.
+
+    After [`tag_narrow_way_segments`](src/maps/process_map.py:1) and the
+    planarize/simplify passes there may be long chains or clusters where
+    many short 2-point segments are all tagged ``narrow=yes`` and touch
+    each other at endpoints.  For downstream routing / visualisation we
+    only want *isolated* narrow segments: between any two segments that
+    keep the ``narrow`` tag, at least one non-narrow segment must lie in
+    between.
+
+    Algorithm
+    ---------
+    1. Build the touch-graph of narrow segments: two narrow segments are
+       neighbours iff they share an endpoint (``_coord_key``).
+    2. Repeatedly remove the shortest segment that still has at least one
+       narrow neighbour — i.e. unmark it (delete its ``narrow`` property).
+       Removing the shortest first keeps the longest, most "obvious"
+       narrow spots tagged.
+    3. Stop when no narrow segment touches any other narrow segment.
+
+    The original feature list is returned with ``properties["narrow"]``
+    removed from the unmarked features.  Geometry is not modified.
+    """
+    if not features:
+        return features
+
+    # Index of every narrow segment in the input list.
+    narrow_idx: list[int] = [
+        i for i, f in enumerate(features)
+        if f["properties"].get("narrow") == "yes"
+        and f["geometry"]["type"] == "LineString"
+        and len(f["geometry"]["coordinates"]) == 2
+    ]
+
+    if len(narrow_idx) < 2:
+        return features
+
+    # Pre-compute endpoint keys and lengths for narrow segments.
+    endpoint_keys: dict[int, tuple[tuple, tuple]] = {}
+    lengths: dict[int, float] = {}
+    for i in narrow_idx:
+        coords = features[i]["geometry"]["coordinates"]
+        a_key = _coord_key(coords[0])
+        b_key = _coord_key(coords[1])
+        endpoint_keys[i] = (a_key, b_key)
+        lengths[i] = _lonlat_distance_m(coords[0], coords[1])
+
+    # endpoint -> set of narrow segment indices touching that endpoint.
+    by_endpoint: dict[tuple, set[int]] = {}
+    for i in narrow_idx:
+        a_key, b_key = endpoint_keys[i]
+        by_endpoint.setdefault(a_key, set()).add(i)
+        by_endpoint.setdefault(b_key, set()).add(i)
+
+    # narrow_neighbours[i] = set of narrow segments j != i that share an endpoint with i.
+    narrow_neighbours: dict[int, set[int]] = {i: set() for i in narrow_idx}
+    for ep, members in by_endpoint.items():
+        if len(members) < 2:
+            continue
+        members_list = list(members)
+        for a in members_list:
+            for b in members_list:
+                if a != b:
+                    narrow_neighbours[a].add(b)
+
+    # Greedy removal: at each step pick the shortest narrow segment that
+    # still has at least one narrow neighbour and unmark it.
+    #
+    # We use a simple priority list: scan for the minimum each iteration.
+    # The narrow set is typically small (a few hundred at most) so an
+    # O(k^2) scan is fine here.
+    active: set[int] = set(narrow_idx)
+    unmarked = 0
+
+    while True:
+        # Find shortest segment in `active` that still has an active neighbour.
+        worst_idx = -1
+        worst_len = math.inf
+        for i in active:
+            if narrow_neighbours[i] & active:
+                if lengths[i] < worst_len:
+                    worst_len = lengths[i]
+                    worst_idx = i
+
+        if worst_idx == -1:
+            break  # no two active narrow segments touch — done
+
+        # Unmark the shortest conflicting segment.
+        active.discard(worst_idx)
+        # Remove the ``narrow`` property from the feature.
+        props = features[worst_idx]["properties"]
+        if "narrow" in props:
+            props["narrow"] = "no"
+        unmarked += 1
+
+    kept = len(active)
+    log.info(
+        "Thin narrow segments: %d narrow → %d isolated narrow (unmarked %d "
+        "touching segments, shortest-first).",
+        len(narrow_idx), kept, unmarked,
+    )
+    return features
+
+
+# ---------------------------------------------------------------------------
 # Connect point nodes to the nearest edge, splitting it at the projection
 # ---------------------------------------------------------------------------
 
@@ -1243,7 +1572,12 @@ def validate_geojson(features: list[dict], min_length_m: float = MIN_SEGMENT_LEN
             "VALIDATION OK  [min-length]: all segments >= %.2f m.", min_length_m
         )
 
-    # --- 3. No interior touches / crossings ---
+    # --- 3. No interior touches / X-crossings ---
+    # Two failure modes are checked:
+    #   (a) T-junction: an endpoint of one segment lies strictly inside
+    #       another segment.
+    #   (b) X-crossing: two segments cross each other strictly in their
+    #       interiors (neither share an endpoint at the crossing point).
     def _point_on_seg(p: tuple, a: tuple, b: tuple, tol: float = 1e-7) -> bool:
         ax, ay = a; bx, by = b; px, py = p
         dx, dy = bx - ax, by - ay
@@ -1263,6 +1597,7 @@ def validate_geojson(features: list[dict], min_length_m: float = MIN_SEGMENT_LEN
         endpoints.add(tuple(f["geometry"]["coordinates"][1]))
 
     interior_violations = 0
+    # (a) T-junctions
     for fi in two_pt:
         a = tuple(fi["geometry"]["coordinates"][0])
         b = tuple(fi["geometry"]["coordinates"][1])
@@ -1277,9 +1612,45 @@ def validate_geojson(features: list[dict], min_length_m: float = MIN_SEGMENT_LEN
                         ep, a, b,
                     )
 
+    # (b) X-crossings — two segments crossing strictly in their interiors.
+    # Uses ``_seg_seg_intersection_t`` which returns the parametric (t, u) of
+    # the intersection on segments AB and CD respectively.  We flag the pair
+    # when both parameters are strictly inside (0, 1) — that excludes shared
+    # endpoints, which are legal.
+    crossing_violations = 0
+    coords_two_pt = [
+        (tuple(f["geometry"]["coordinates"][0]),
+         tuple(f["geometry"]["coordinates"][1]),
+         f["properties"].get("osm_id"))
+        for f in two_pt
+    ]
+    m = len(coords_two_pt)
+    for i in range(m):
+        a, b, oid_i = coords_two_pt[i]
+        for j in range(i + 1, m):
+            c, d, oid_j = coords_two_pt[j]
+            # Skip if the two segments share an endpoint — that's legal.
+            if a == c or a == d or b == c or b == d:
+                continue
+            isect = _seg_seg_intersection_t(a, b, c, d)
+            if isect is None:
+                continue
+            t, u = isect
+            # Strictly interior on BOTH segments.
+            if 1e-9 < t < 1 - 1e-9 and 1e-9 < u < 1 - 1e-9:
+                crossing_violations += 1
+                interior_violations += 1
+                if crossing_violations <= 3:
+                    log.error(
+                        "VALIDATION FAIL [no-interior-touch]: segments cross "
+                        "(osm_id %s: %s→%s) × (osm_id %s: %s→%s) at t=%.3f, u=%.3f",
+                        oid_i, a, b, oid_j, c, d, t, u,
+                    )
+
     if interior_violations:
         log.error(
-            "VALIDATION FAIL [no-interior-touch]: %d interior touch/crossing violation(s).",
+            "VALIDATION FAIL [no-interior-touch]: %d violation(s) total "
+            "(T-junctions + X-crossings).",
             interior_violations,
         )
         ok = False
@@ -1329,12 +1700,92 @@ def validate_geojson(features: list[dict], min_length_m: float = MIN_SEGMENT_LEN
     else:
         log.info("VALIDATION SKIP [point-on-endpoint]: no point features.")
 
+    # --- 6. Narrow segments are isolated (no two share an endpoint) ---
+    narrow_segs = [
+        f for f in two_pt
+        if f["properties"].get("narrow") == "yes"
+    ]
+    if narrow_segs:
+        ep_to_narrow: dict[tuple, list[int]] = {}
+        for idx, f in enumerate(narrow_segs):
+            a_key = _coord_key(f["geometry"]["coordinates"][0])
+            b_key = _coord_key(f["geometry"]["coordinates"][1])
+            ep_to_narrow.setdefault(a_key, []).append(idx)
+            ep_to_narrow.setdefault(b_key, []).append(idx)
+        bad_endpoints = [
+            (k, ids) for k, ids in ep_to_narrow.items() if len(ids) >= 2
+        ]
+        if bad_endpoints:
+            log.error(
+                "VALIDATION FAIL [narrow-isolated]: %d endpoint(s) shared by "
+                "2+ narrow segments; first few: %s",
+                len(bad_endpoints),
+                [(k, ids) for k, ids in bad_endpoints[:3]],
+            )
+            ok = False
+        else:
+            log.info(
+                "VALIDATION OK  [narrow-isolated]: all %d narrow segments are "
+                "isolated (no shared endpoints).",
+                len(narrow_segs),
+            )
+    else:
+        log.info("VALIDATION SKIP [narrow-isolated]: no narrow segments.")
+
     if ok:
         log.info("VALIDATION PASSED — all checks OK.")
     else:
         log.error("VALIDATION FAILED — see errors above.")
 
     return ok
+
+
+# ---------------------------------------------------------------------------
+# Feature colouring — sets the ``stroke`` property used by GeoJSON viewers
+# ---------------------------------------------------------------------------
+
+# Colour palette in #rrggbb hex format (recognised by geojson.io,
+# Mapbox simplestyle-spec, etc.).
+COLOR_NARROW = "#ff8800"        # orange — narrow pedestrian segments
+COLOR_BASE_POINT = "#ff0000"    # red    — base points (dark stores)
+COLOR_DELIVERY_POINT = "#3388ff"  # green  — building-entrance delivery points
+
+
+def colorize_features(features: list[dict]) -> list[dict]:
+    """Set the ``stroke`` (and, for Points, ``marker-color``) property on
+    every feature according to its type / tags:
+
+    - ``narrow=yes`` LineStrings → orange
+    - ``base_point`` Points       → red
+    - ``delivery_point`` Points   → green
+    - connector LineStrings       → grey
+    - other LineStrings           → blue
+
+    Points additionally receive ``marker-color`` so simplestyle-aware
+    viewers render the marker in the same colour.
+
+    The features list is modified in place and also returned for chaining.
+    """
+    for feat in features:
+        props = feat["properties"]
+        geom_type = feat["geometry"]["type"]
+
+        if geom_type == "Point":
+            ptype = props.get("type")
+            color = None
+            if ptype == "base_point":
+                color = COLOR_BASE_POINT
+            elif ptype == "delivery_point":
+                color = COLOR_DELIVERY_POINT
+            if color is not None:
+                props["marker-color"] = color
+        elif geom_type == "LineString":
+            color = None
+            if props.get("narrow") == "yes":
+                color = COLOR_NARROW
+            if color is not None:
+                props["stroke"] = color
+    return features
 
 
 # ---------------------------------------------------------------------------
@@ -1512,17 +1963,22 @@ def filter_features_by_polygon(
     store_features: list[dict],
     entrance_features: list[dict],
     building_polygons: list[list[list[float]]],
+    barrier_ways: list[list[list[float]]],
     ring: list[list[float]],
-) -> tuple[list[dict], list[dict], list[dict], list[list[list[float]]]]:
+) -> tuple[
+    list[dict], list[dict], list[dict],
+    list[list[list[float]]], list[list[list[float]]],
+]:
     """Keep only features whose geometry lies entirely inside *ring*.
 
     Rules:
     - **LineString ways**: kept only if *every* coordinate is inside the polygon.
     - **Point features** (stores, entrances): kept only if the point is inside.
     - **Building polygons**: kept only if *every* vertex is inside the polygon.
+    - **Barrier ways**: kept only if *every* vertex is inside the polygon.
 
     Returns filtered ``(way_features, store_features, entrance_features,
-    building_polygons)``.
+    building_polygons, barrier_ways)``.
     """
     def _all_coords_inside(coords: list[list[float]]) -> bool:
         return all(_point_in_polygon(c[0], c[1], ring) for c in coords)
@@ -1537,15 +1993,21 @@ def filter_features_by_polygon(
         if _point_in_polygon(f["geometry"]["coordinates"][0], f["geometry"]["coordinates"][1], ring)
     ]
     filtered_buildings = [bp for bp in building_polygons if _all_coords_inside(bp)]
+    filtered_barriers = [bw for bw in barrier_ways if _all_coords_inside(bw)]
 
     log.info(
-        "Polygon filter: ways %d→%d, stores %d→%d, entrances %d→%d, buildings %d→%d.",
+        "Polygon filter: ways %d→%d, stores %d→%d, entrances %d→%d, "
+        "buildings %d→%d, barriers %d→%d.",
         len(way_features), len(filtered_ways),
         len(store_features), len(filtered_stores),
         len(entrance_features), len(filtered_entrances),
         len(building_polygons), len(filtered_buildings),
+        len(barrier_ways), len(filtered_barriers),
     )
-    return filtered_ways, filtered_stores, filtered_entrances, filtered_buildings
+    return (
+        filtered_ways, filtered_stores, filtered_entrances,
+        filtered_buildings, filtered_barriers,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -1653,19 +2115,22 @@ def main(argv=None):
         log.info("Collected %d dark store nodes.", len(handler.store_features))
         log.info("Collected %d building entrance nodes.", len(handler.entrance_features))
         log.info("Collected %d building polygons.", len(handler.building_polygons))
+        log.info("Collected %d barrier ways.", len(handler.barrier_ways))
 
         # Apply polygon filter before any further processing.
         way_features = handler.way_features
         store_features = handler.store_features
         entrance_features = handler.entrance_features
         building_polygons = handler.building_polygons
+        barrier_ways = handler.barrier_ways
 
         if location_ring is not None:
-            way_features, store_features, entrance_features, building_polygons = (
-                filter_features_by_polygon(
-                    way_features, store_features, entrance_features,
-                    building_polygons, location_ring,
-                )
+            (
+                way_features, store_features, entrance_features,
+                building_polygons, barrier_ways,
+            ) = filter_features_by_polygon(
+                way_features, store_features, entrance_features,
+                building_polygons, barrier_ways, location_ring,
             )
 
         # Load and merge extra base points from --basepoints file (if provided).
@@ -1694,6 +2159,14 @@ def main(argv=None):
                 osm_count, len(extra_store_features), len(store_features),
             )
 
+        # Tag narrow passages on the original (multi-node) ways before any
+        # splitting.  The ``narrow=yes`` tag propagates to every derived
+        # 2-point segment through the planarize/simplify passes (both copy
+        # properties via ``dict(props)``).
+        way_features = tag_narrow_way_segments(
+            way_features, building_polygons, barrier_ways,
+        )
+
         # Keep only the largest connected component, planarize (split at every
         # interior junction / crossing), then simplify every polyline to a set of
         # 2-point straight segments (Ramer–Douglas–Peucker).
@@ -1717,6 +2190,23 @@ def main(argv=None):
                 "%d entrance node(s) could not be connected and were excluded.", len(skipped_entrances)
             )
 
+        # Thin out chains of touching narrow segments so that no two
+        # ``narrow=yes`` segments share an endpoint — between any pair of
+        # narrow segments at least one non-narrow segment must remain.
+        # This runs AFTER point connection because connect_points_to_network
+        # splits ways and the resulting halves inherit ``narrow`` from their
+        # parent, potentially creating new narrow-narrow touches.
+        way_features = thin_narrow_segments(way_features)
+
+        narrow_count = sum(
+            1 for f in way_features if f["properties"].get("narrow") == "yes"
+        )
+        log.info(
+            "Final narrow segments: %d / %d (%.1f%%).",
+            narrow_count, len(way_features),
+            100.0 * narrow_count / len(way_features) if way_features else 0.0,
+        )
+
         all_features = (
             way_features
             + connected_stores
@@ -1724,6 +2214,9 @@ def main(argv=None):
             + connected_entrances
             + entrance_connectors
         )
+
+        # Assign per-feature colours (stroke / marker-color) for visualisation.
+        colorize_features(all_features)
 
         feature_collection = {
             "type": "FeatureCollection",

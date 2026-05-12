@@ -143,11 +143,11 @@ TEST(GraphInput, LoadFromGeoJsonFile) {
     ASSERT_TRUE(g.edges[deliv_id].contains(base_id));
     EXPECT_FALSE(g.edges[deliv_id].at(base_id).narrow);
 
-    // Edge none-delivery
+    // Edge none-delivery: narrow
     ASSERT_TRUE(g.edges[none_id].contains(deliv_id));
-    EXPECT_FALSE(g.edges[none_id].at(deliv_id).narrow);
+    EXPECT_TRUE(g.edges[none_id].at(deliv_id).narrow);
     ASSERT_TRUE(g.edges[deliv_id].contains(none_id));
-    EXPECT_FALSE(g.edges[deliv_id].at(none_id).narrow);
+    EXPECT_TRUE(g.edges[deliv_id].at(none_id).narrow);
 }
 
 // ---------------------------------------------------------------------------

@@ -52,7 +52,8 @@
       "properties": {
         "osm_id": 102,
         "osm_type": "way",
-        "highway": "footway"
+        "highway": "footway",
+        "narrow": "yes"
       }
     },
     {

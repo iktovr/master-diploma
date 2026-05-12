@@ -81,7 +81,7 @@ int main(int argc, char **argv) {
                 }
             }
         }
-        vis.emplace(g.Width() + 0.5, g.Height() + 0.5, g.Centroid(), max_frame_size, output_dir);
+        vis.emplace(g.Width() * 1.05, g.Height() * 1.05, g.Centroid(), max_frame_size, output_dir);
     }
 
     Agents agents(agents_count, Agent(0, 0, 0));
