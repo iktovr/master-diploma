@@ -10,6 +10,9 @@ Usage:
     # Local file filtered to a polygon:
     bazel run //maps:process_map -- --input city.osm --location area.geojson --output pedestrian.geojson
 
+    # With extra base points from a GeoJSON file:
+    bazel run //maps:process_map -- --input city.osm --basepoints stores.geojson --output pedestrian.geojson
+
 The --location file must be a GeoJSON file containing a single Polygon feature.
 When --input is omitted and --location is provided, OSM data is automatically
 downloaded from the Overpass API (https://overpass-api.de) for the polygon's
@@ -1383,6 +1386,50 @@ def load_location_polygon(path: Path) -> list[list[float]]:
     return ring
 
 
+def load_basepoints_geojson(path: Path) -> list[dict]:
+    """Load Point features from a GeoJSON file to use as extra base points.
+
+    Accepts a GeoJSON FeatureCollection of Point features, a single Feature
+    with a Point geometry, or a bare Point geometry object.
+
+    Each loaded point is returned as a GeoJSON Feature dict with
+    ``properties.type`` set to ``"base_point"``.  Any existing properties on
+    the feature are preserved; ``type`` is only added when absent.
+
+    Raises ``ValueError`` if the file contains no Point features.
+    """
+    with open(path, encoding="utf-8") as fh:
+        data = json.load(fh)
+
+    if data.get("type") == "FeatureCollection":
+        raw_features = data.get("features", [])
+    elif data.get("type") == "Feature":
+        raw_features = [data]
+    elif data.get("type") == "Point":
+        raw_features = [{"type": "Feature", "geometry": data, "properties": {}}]
+    else:
+        raw_features = []
+
+    features: list[dict] = []
+    for feat in raw_features:
+        geom = feat.get("geometry") or {}
+        if geom.get("type") != "Point":
+            continue
+        props = dict(feat.get("properties") or {})
+        props.setdefault("type", "base_point")
+        features.append({
+            "type": "Feature",
+            "geometry": geom,
+            "properties": props,
+        })
+
+    if not features:
+        raise ValueError(f"No Point features found in {path}")
+
+    log.info("Loaded %d extra base point(s) from %s.", len(features), path)
+    return features
+
+
 def download_osm_for_polygon(ring: list[list[float]]) -> Path:
     """Download OSM data for the bounding box of *ring* via the Overpass API.
 
@@ -1542,6 +1589,18 @@ def parse_args(argv=None):
             "bounding box is downloaded automatically via the Overpass API."
         ),
     )
+    parser.add_argument(
+        "-b",
+        "--basepoints",
+        required=False,
+        default=None,
+        metavar="FILE",
+        help=(
+            "GeoJSON file containing Point features to use as additional base "
+            "points (dark stores). These are merged with any base points found "
+            "in the OSM data before connecting them to the pedestrian network."
+        ),
+    )
     return parser.parse_args(argv)
 
 
@@ -1607,6 +1666,32 @@ def main(argv=None):
                     way_features, store_features, entrance_features,
                     building_polygons, location_ring,
                 )
+            )
+
+        # Load and merge extra base points from --basepoints file (if provided).
+        if args.basepoints:
+            extra_bp_path = _resolve(args.basepoints)
+            extra_store_features = load_basepoints_geojson(extra_bp_path)
+            # Apply polygon filter to extra points if a location polygon is active.
+            if location_ring is not None:
+                before = len(extra_store_features)
+                extra_store_features = [
+                    f for f in extra_store_features
+                    if _point_in_polygon(
+                        f["geometry"]["coordinates"][0],
+                        f["geometry"]["coordinates"][1],
+                        location_ring,
+                    )
+                ]
+                log.info(
+                    "Polygon filter: extra base points %d→%d.",
+                    before, len(extra_store_features),
+                )
+            osm_count = len(store_features)
+            store_features = store_features + extra_store_features
+            log.info(
+                "Total base points after merging: %d (OSM) + %d (file) = %d.",
+                osm_count, len(extra_store_features), len(store_features),
             )
 
         # Keep only the largest connected component, planarize (split at every
