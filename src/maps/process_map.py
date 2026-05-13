@@ -1504,6 +1504,231 @@ def connect_points_to_network(
 
 
 # ---------------------------------------------------------------------------
+# Final cleanup — eliminate remaining T-junctions / near-touch X-crossings
+# ---------------------------------------------------------------------------
+
+
+def fix_interior_violations(
+    features: list[dict],
+    tol_m: float = 0.5,
+    min_len_m: float = MIN_SEGMENT_LENGTH_M,
+    max_iterations: int = 20,
+) -> list[dict]:
+    """Eliminate T-junctions and near-touch X-crossings remaining after the
+    main pipeline.
+
+    Operates on 2-point LineString features (ways + connectors).  For each
+    segment, finds any foreign endpoint that lies on it (within *tol_m*
+    perpendicular distance, strictly between the segment's endpoints):
+
+    - If the foreign endpoint is closer than *min_len_m* to one of the
+      segment's own endpoints, it is **snapped** to that endpoint.  All
+      LineString and Point features referencing the snapped lon/lat are
+      updated so the merged node is a single shared coordinate.  This
+      prevents creating sub-segments shorter than *min_len_m*.
+
+    - Otherwise, the segment is **split** at the foreign endpoint's exact
+      coordinate, producing two new 2-point segments that both have the
+      foreign coordinate as an endpoint.  Properties are inherited.
+
+    The procedure iterates until no further violations are detected or
+    *max_iterations* is reached.  Degenerate segments (both endpoints
+    coincident after snapping) are removed.
+
+    All near-touch X-crossings observed in practice degenerate into
+    T-junctions (one segment's endpoint sits ~ε metres off the other
+    segment's line), so this single mechanism resolves both validator
+    failure modes.
+    """
+    def _line_indices() -> list[int]:
+        return [
+            i for i, f in enumerate(features)
+            if f is not None
+            and f["geometry"]["type"] == "LineString"
+            and len(f["geometry"]["coordinates"]) == 2
+        ]
+
+    lidxs = _line_indices()
+    if not lidxs:
+        return features
+
+    ref_lon, ref_lat = features[lidxs[0]]["geometry"]["coordinates"][0]
+    proj = _utm_proj(ref_lon, ref_lat)
+
+    total_snaps = 0
+    total_splits = 0
+
+    for _ in range(max_iterations):
+        lidxs = _line_indices()
+        if not lidxs:
+            break
+
+        # Collect endpoint lon/lat tuples and their UTM coords.
+        endpoints: set[tuple] = set()
+        for i in lidxs:
+            coords = features[i]["geometry"]["coordinates"]
+            endpoints.add(tuple(coords[0]))
+            endpoints.add(tuple(coords[1]))
+        ep_utm: dict[tuple, tuple[float, float]] = {
+            ep: _to_utm(proj, list(ep)) for ep in endpoints
+        }
+
+        # Pass 1: collect snap pairs.  An endpoint ep is snapped to one of
+        # segment AB's own endpoints when ep is within tol_m perpendicular
+        # of AB and within min_len_m of A or B along AB.
+        snap_pairs: dict[tuple, tuple] = {}
+
+        for i in lidxs:
+            coords = features[i]["geometry"]["coordinates"]
+            ta, tb = tuple(coords[0]), tuple(coords[1])
+            a_xy = ep_utm[ta]; b_xy = ep_utm[tb]
+            dx, dy = b_xy[0] - a_xy[0], b_xy[1] - a_xy[1]
+            seg_len_sq = dx * dx + dy * dy
+            if seg_len_sq < 1e-12:
+                continue
+            seg_len = math.sqrt(seg_len_sq)
+
+            for ep in endpoints:
+                if ep == ta or ep == tb or ep in snap_pairs:
+                    continue
+                ep_xy = ep_utm[ep]
+                t = ((ep_xy[0] - a_xy[0]) * dx + (ep_xy[1] - a_xy[1]) * dy) / seg_len_sq
+                if t <= 0 or t >= 1:
+                    continue
+                foot_x = a_xy[0] + t * dx
+                foot_y = a_xy[1] + t * dy
+                if math.hypot(ep_xy[0] - foot_x, ep_xy[1] - foot_y) > tol_m:
+                    continue
+                if t * seg_len < min_len_m:
+                    snap_pairs[ep] = ta
+                elif (1 - t) * seg_len < min_len_m:
+                    snap_pairs[ep] = tb
+
+        if snap_pairs:
+            # Resolve chains: a -> b, b -> c  becomes  a -> c.
+            def _resolve(ep: tuple) -> tuple:
+                seen = {ep}
+                while ep in snap_pairs and snap_pairs[ep] != ep:
+                    ep = snap_pairs[ep]
+                    if ep in seen:
+                        break
+                    seen.add(ep)
+                return ep
+
+            for k in list(snap_pairs.keys()):
+                snap_pairs[k] = _resolve(k)
+
+            # Apply snaps to every feature (LineString + Point).
+            for f in features:
+                if f is None:
+                    continue
+                geom = f["geometry"]
+                if geom["type"] == "LineString":
+                    new_coords = []
+                    for c in geom["coordinates"]:
+                        tc = tuple(c)
+                        new_coords.append(
+                            list(snap_pairs[tc]) if tc in snap_pairs else c
+                        )
+                    if len(new_coords) == 2 and tuple(new_coords[0]) == tuple(new_coords[1]):
+                        # Degenerate after snap — drop the feature.
+                        f.clear()
+                        f["__deleted__"] = True
+                    else:
+                        geom["coordinates"] = new_coords
+                elif geom["type"] == "Point":
+                    tc = tuple(geom["coordinates"])
+                    if tc in snap_pairs:
+                        geom["coordinates"] = list(snap_pairs[tc])
+
+            # Materialise deletions.
+            for idx in range(len(features)):
+                if features[idx] is not None and features[idx].get("__deleted__"):
+                    features[idx] = None
+
+            total_snaps += len(snap_pairs)
+            # Re-iterate after a snap pass before considering splits.
+            continue
+
+        # Pass 2: collect split actions.  Foreign endpoints strictly inside
+        # AB (with both sides >= min_len_m) trigger a split at the
+        # foreign endpoint's exact lon/lat.
+        split_actions: list[tuple[int, list[tuple[float, list]]]] = []
+
+        for i in lidxs:
+            coords = features[i]["geometry"]["coordinates"]
+            ta, tb = tuple(coords[0]), tuple(coords[1])
+            a_xy = ep_utm[ta]; b_xy = ep_utm[tb]
+            dx, dy = b_xy[0] - a_xy[0], b_xy[1] - a_xy[1]
+            seg_len_sq = dx * dx + dy * dy
+            if seg_len_sq < 1e-12:
+                continue
+            seg_len = math.sqrt(seg_len_sq)
+
+            this_splits: list[tuple[float, list]] = []
+            for ep in endpoints:
+                if ep == ta or ep == tb:
+                    continue
+                ep_xy = ep_utm[ep]
+                t = ((ep_xy[0] - a_xy[0]) * dx + (ep_xy[1] - a_xy[1]) * dy) / seg_len_sq
+                if t <= 0 or t >= 1:
+                    continue
+                foot_x = a_xy[0] + t * dx
+                foot_y = a_xy[1] + t * dy
+                if math.hypot(ep_xy[0] - foot_x, ep_xy[1] - foot_y) > tol_m:
+                    continue
+                # Skip too-close cases (would create short sub-segment); these
+                # weren't snapped above only because the perpendicular distance
+                # exceeded tol_m on the previous pass — extremely rare; safer
+                # to leave them than to create a short segment.
+                if t * seg_len < min_len_m or (1 - t) * seg_len < min_len_m:
+                    continue
+                this_splits.append((t, list(ep)))
+
+            if this_splits:
+                this_splits.sort(key=lambda x: x[0])
+                # Deduplicate split points within min_len_m of each other.
+                deduped: list[tuple[float, list]] = []
+                for tval, lonlat in this_splits:
+                    if deduped:
+                        prev_t = deduped[-1][0]
+                        if abs(tval - prev_t) * seg_len < min_len_m:
+                            continue
+                    deduped.append((tval, lonlat))
+                split_actions.append((i, deduped))
+
+        if not split_actions:
+            break
+
+        for i, sp in split_actions:
+            if features[i] is None:
+                continue
+            coords = features[i]["geometry"]["coordinates"]
+            a, b = list(coords[0]), list(coords[1])
+            props = features[i]["properties"]
+            pts = [a] + [s[1] for s in sp] + [b]
+            features[i]["geometry"]["coordinates"] = [pts[0], pts[1]]
+            total_splits += 1
+            for k in range(1, len(pts) - 1):
+                features.append({
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "LineString",
+                        "coordinates": [pts[k], pts[k + 1]],
+                    },
+                    "properties": dict(props),
+                })
+                total_splits += 1
+
+    features = [f for f in features if f is not None]
+    log.info(
+        "Fix interior violations: %d snap(s), %d split(s).",
+        total_snaps, total_splits,
+    )
+    return features
+
+
+# ---------------------------------------------------------------------------
 # Validation — sanity-check the final GeoJSON feature collection
 # ---------------------------------------------------------------------------
 
@@ -2190,29 +2415,40 @@ def main(argv=None):
                 "%d entrance node(s) could not be connected and were excluded.", len(skipped_entrances)
             )
 
-        # Thin out chains of touching narrow segments so that no two
-        # ``narrow=yes`` segments share an endpoint — between any pair of
-        # narrow segments at least one non-narrow segment must remain.
-        # This runs AFTER point connection because connect_points_to_network
-        # splits ways and the resulting halves inherit ``narrow`` from their
-        # parent, potentially creating new narrow-narrow touches.
-        way_features = thin_narrow_segments(way_features)
-
-        narrow_count = sum(
-            1 for f in way_features if f["properties"].get("narrow") == "yes"
-        )
-        log.info(
-            "Final narrow segments: %d / %d (%.1f%%).",
-            narrow_count, len(way_features),
-            100.0 * narrow_count / len(way_features) if way_features else 0.0,
-        )
-
         all_features = (
             way_features
             + connected_stores
             + store_connectors
             + connected_entrances
             + entrance_connectors
+        )
+
+        # Resolve any remaining T-junctions / near-touch X-crossings introduced
+        # by simplify_ways, remove_short_segments, and connect_points_to_network
+        # (these passes modify geometry after planarize_ways).
+        all_features = fix_interior_violations(all_features)
+
+        # Thin out chains of touching narrow segments so that no two
+        # ``narrow=yes`` segments share an endpoint — between any pair of
+        # narrow segments at least one non-narrow segment must remain.
+        # This runs AFTER point connection and fix_interior_violations,
+        # because both can split ways and the resulting halves inherit
+        # ``narrow`` from their parent, potentially creating new
+        # narrow-narrow touches.
+        all_features = thin_narrow_segments(all_features)
+
+        narrow_count = sum(
+            1 for f in all_features
+            if f["geometry"]["type"] == "LineString"
+            and f["properties"].get("narrow") == "yes"
+        )
+        total_lines = sum(
+            1 for f in all_features if f["geometry"]["type"] == "LineString"
+        )
+        log.info(
+            "Final narrow segments: %d / %d (%.1f%%).",
+            narrow_count, total_lines,
+            100.0 * narrow_count / total_lines if total_lines else 0.0,
         )
 
         # Assign per-feature colours (stroke / marker-color) for visualisation.
