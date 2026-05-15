@@ -4339,32 +4339,6 @@
             55.74122722222142
           ],
           [
-            37.57769327106061,
-            55.741192704212644
-          ]
-        ]
-      },
-      "properties": {
-        "osm_id": 159978486,
-        "osm_type": "way",
-        "narrow": "yes",
-        "footway": "sidewalk",
-        "highway": "footway",
-        "lit": "yes",
-        "surface": "asphalt",
-        "stroke": "#ff8800"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "LineString",
-        "coordinates": [
-          [
-            37.57769327106061,
-            55.741192704212644
-          ],
-          [
             37.577909261069664,
             55.741158200590284
           ]
@@ -4438,32 +4412,6 @@
           [
             37.5782931,
             55.7405727
-          ],
-          [
-            37.57784260501592,
-            55.73968630399381
-          ]
-        ]
-      },
-      "properties": {
-        "osm_id": 159978486,
-        "osm_type": "way",
-        "narrow": "yes",
-        "footway": "sidewalk",
-        "highway": "footway",
-        "lit": "yes",
-        "surface": "asphalt",
-        "stroke": "#ff8800"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "LineString",
-        "coordinates": [
-          [
-            37.57784260501592,
-            55.73968630399381
           ],
           [
             37.57776956462859,
@@ -4474,11 +4422,12 @@
       "properties": {
         "osm_id": 159978486,
         "osm_type": "way",
-        "narrow": "no",
+        "narrow": "yes",
         "footway": "sidewalk",
         "highway": "footway",
         "lit": "yes",
-        "surface": "asphalt"
+        "surface": "asphalt",
+        "stroke": "#ff8800"
       }
     },
     {
@@ -5467,30 +5416,6 @@
             55.7400634601059
           ],
           [
-            37.58452987669887,
-            55.740249294679245
-          ]
-        ]
-      },
-      "properties": {
-        "osm_id": 277851257,
-        "osm_type": "way",
-        "narrow": "no",
-        "highway": "footway",
-        "lit": "yes",
-        "surface": "paving_stones"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "LineString",
-        "coordinates": [
-          [
-            37.58452987669887,
-            55.740249294679245
-          ],
-          [
             37.5844995,
             55.7403161
           ]
@@ -5537,30 +5462,6 @@
           [
             37.58446919166263,
             55.74041746327815
-          ],
-          [
-            37.58442072587615,
-            55.74057955123118
-          ]
-        ]
-      },
-      "properties": {
-        "osm_id": 277851257,
-        "osm_type": "way",
-        "narrow": "no",
-        "highway": "footway",
-        "lit": "yes",
-        "surface": "paving_stones"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "LineString",
-        "coordinates": [
-          [
-            37.58442072587615,
-            55.74057955123118
           ],
           [
             37.58438115191715,
@@ -6500,6 +6401,31 @@
           [
             37.5927488,
             55.7335357
+          ],
+          [
+            37.59260392992996,
+            55.73327050257122
+          ]
+        ]
+      },
+      "properties": {
+        "osm_id": 282985492,
+        "osm_type": "way",
+        "narrow": "no",
+        "footway": "sidewalk",
+        "highway": "footway",
+        "lit": "yes",
+        "surface": "paving_stones"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            37.59260392992996,
+            55.73327050257122
           ],
           [
             37.5923261,
@@ -10435,57 +10361,7 @@
             55.7318458
           ],
           [
-            37.58399716771061,
-            55.73125075361396
-          ]
-        ]
-      },
-      "properties": {
-        "osm_id": 317862253,
-        "osm_type": "way",
-        "narrow": "no",
-        "footway": "sidewalk",
-        "highway": "footway",
-        "lit": "yes",
-        "surface": "asphalt"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "LineString",
-        "coordinates": [
-          [
-            37.58399716771061,
-            55.73125075361396
-          ],
-          [
-            37.58401728840742,
-            55.731184992587345
-          ]
-        ]
-      },
-      "properties": {
-        "osm_id": 317862253,
-        "osm_type": "way",
-        "narrow": "no",
-        "footway": "sidewalk",
-        "highway": "footway",
-        "lit": "yes",
-        "surface": "asphalt"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "LineString",
-        "coordinates": [
-          [
-            37.58401728840742,
-            55.731184992587345
-          ],
-          [
-            37.584028522167785,
+            37.58402852216778,
             55.73114827687882
           ]
         ]
@@ -10506,11 +10382,11 @@
         "type": "LineString",
         "coordinates": [
           [
-            37.584028522167785,
+            37.58402852216778,
             55.73114827687882
           ],
           [
-            37.58414291790015,
+            37.584142917900145,
             55.73077438902961
           ]
         ]
@@ -10531,7 +10407,7 @@
         "type": "LineString",
         "coordinates": [
           [
-            37.58414291790015,
+            37.584142917900145,
             55.73077438902961
           ],
           [
@@ -11009,6 +10885,31 @@
           [
             37.5860413,
             55.7344046
+          ],
+          [
+            37.58353589600663,
+            55.73612371559744
+          ]
+        ]
+      },
+      "properties": {
+        "osm_id": 317902561,
+        "osm_type": "way",
+        "narrow": "no",
+        "footway": "sidewalk",
+        "highway": "footway",
+        "lit": "yes",
+        "surface": "paving_stones"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            37.58353589600663,
+            55.73612371559744
           ],
           [
             37.5834903,
@@ -13356,29 +13257,6 @@
             55.7336063
           ],
           [
-            37.58495185032816,
-            55.733630847460496
-          ]
-        ]
-      },
-      "properties": {
-        "osm_id": 360024532,
-        "osm_type": "way",
-        "narrow": "no",
-        "highway": "footway",
-        "surface": "fine_gravel"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "LineString",
-        "coordinates": [
-          [
-            37.58495185032816,
-            55.733630847460496
-          ],
-          [
             37.58520834633245,
             55.73371172421049
           ]
@@ -13387,9 +13265,10 @@
       "properties": {
         "osm_id": 360024532,
         "osm_type": "way",
-        "narrow": "no",
+        "narrow": "yes",
         "highway": "footway",
-        "surface": "fine_gravel"
+        "surface": "fine_gravel",
+        "stroke": "#ff8800"
       }
     },
     {
@@ -13410,10 +13289,9 @@
       "properties": {
         "osm_id": 360024532,
         "osm_type": "way",
-        "narrow": "yes",
+        "narrow": "no",
         "highway": "footway",
-        "surface": "fine_gravel",
-        "stroke": "#ff8800"
+        "surface": "fine_gravel"
       }
     },
     {
@@ -13887,30 +13765,6 @@
             55.7314652
           ],
           [
-            37.58136079237531,
-            55.73145810572516
-          ]
-        ]
-      },
-      "properties": {
-        "osm_id": 360025597,
-        "osm_type": "way",
-        "narrow": "no",
-        "highway": "footway",
-        "lit": "yes",
-        "surface": "fine_gravel"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "LineString",
-        "coordinates": [
-          [
-            37.58136079237531,
-            55.73145810572516
-          ],
-          [
             37.58114665432669,
             55.73142003869538
           ]
@@ -13933,30 +13787,6 @@
           [
             37.58114665432669,
             55.73142003869538
-          ],
-          [
-            37.5809309485643,
-            55.73138169252399
-          ]
-        ]
-      },
-      "properties": {
-        "osm_id": 360025597,
-        "osm_type": "way",
-        "narrow": "no",
-        "highway": "footway",
-        "lit": "yes",
-        "surface": "fine_gravel"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "LineString",
-        "coordinates": [
-          [
-            37.5809309485643,
-            55.73138169252399
           ],
           [
             37.5808303,
@@ -14801,6 +14631,31 @@
             55.7323978
           ],
           [
+            37.589789038263206,
+            55.732075317588965
+          ]
+        ]
+      },
+      "properties": {
+        "osm_id": 361031310,
+        "osm_type": "way",
+        "narrow": "no",
+        "footway": "sidewalk",
+        "highway": "footway",
+        "lit": "yes",
+        "surface": "asphalt"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            37.589789038263206,
+            55.732075317588965
+          ],
+          [
             37.5901954,
             55.7318875
           ]
@@ -15095,30 +14950,6 @@
           [
             37.5900174,
             55.7315597
-          ],
-          [
-            37.59008088840927,
-            55.731563972122494
-          ]
-        ]
-      },
-      "properties": {
-        "osm_id": 365987650,
-        "osm_type": "way",
-        "narrow": "no",
-        "check_date:surface": "2024-07-02",
-        "highway": "footway",
-        "surface": "asphalt"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "LineString",
-        "coordinates": [
-          [
-            37.59008088840927,
-            55.731563972122494
           ],
           [
             37.5902745,
@@ -15733,31 +15564,6 @@
           [
             37.5868159,
             55.7340255
-          ],
-          [
-            37.5857374649824,
-            55.73477217401843
-          ]
-        ]
-      },
-      "properties": {
-        "osm_id": 369122222,
-        "osm_type": "way",
-        "narrow": "no",
-        "footway": "sidewalk",
-        "highway": "footway",
-        "lit": "yes",
-        "surface": "paving_stones"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "LineString",
-        "coordinates": [
-          [
-            37.5857374649824,
-            55.73477217401843
           ],
           [
             37.5856382,
@@ -16403,54 +16209,6 @@
           [
             37.5898859,
             55.7340447
-          ],
-          [
-            37.58898994674315,
-            55.734607320802006
-          ]
-        ]
-      },
-      "properties": {
-        "osm_id": 371363544,
-        "osm_type": "way",
-        "narrow": "no",
-        "highway": "footway",
-        "lit": "yes",
-        "surface": "asphalt"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "LineString",
-        "coordinates": [
-          [
-            37.58898994674315,
-            55.734607320802006
-          ],
-          [
-            37.58869181709232,
-            55.734794528546864
-          ]
-        ]
-      },
-      "properties": {
-        "osm_id": 371363544,
-        "osm_type": "way",
-        "narrow": "no",
-        "highway": "footway",
-        "lit": "yes",
-        "surface": "asphalt"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "LineString",
-        "coordinates": [
-          [
-            37.58869181709232,
-            55.734794528546864
           ],
           [
             37.5885092,
@@ -18159,31 +17917,6 @@
             55.7407157
           ],
           [
-            37.58349832251683,
-            55.740737960144266
-          ]
-        ]
-      },
-      "properties": {
-        "osm_id": 403667792,
-        "osm_type": "way",
-        "narrow": "no",
-        "footway": "sidewalk",
-        "highway": "footway",
-        "lit": "yes",
-        "surface": "asphalt"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "LineString",
-        "coordinates": [
-          [
-            37.58349832251683,
-            55.740737960144266
-          ],
-          [
             37.5843262,
             55.7408325
           ]
@@ -19222,32 +18955,6 @@
           [
             37.587813907117116,
             55.73520456500236
-          ],
-          [
-            37.58805299603206,
-            55.735051576089
-          ]
-        ]
-      },
-      "properties": {
-        "osm_id": 431049214,
-        "osm_type": "way",
-        "narrow": "no",
-        "footway": "sidewalk",
-        "highway": "footway",
-        "lit": "yes",
-        "smoothness": "intermediate",
-        "surface": "paving_stones"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "LineString",
-        "coordinates": [
-          [
-            37.58805299603206,
-            55.735051576089
           ],
           [
             37.588426678359234,
@@ -22062,6 +21769,31 @@
             55.7333628
           ],
           [
+            37.589163466398155,
+            55.7339816957427
+          ]
+        ]
+      },
+      "properties": {
+        "osm_id": 818912309,
+        "osm_type": "way",
+        "narrow": "no",
+        "footway": "sidewalk",
+        "highway": "footway",
+        "lit": "yes",
+        "surface": "asphalt"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            37.589163466398155,
+            55.7339816957427
+          ],
+          [
             37.589196,
             55.7339962
           ]
@@ -24416,8 +24148,176 @@
         "osm_id": 13305990963,
         "osm_type": "node",
         "type": "base_point",
+        "subtype": "dark_store",
         "dark_store": "yes",
         "name": "Яндекс.Лавка",
+        "marker-color": "#ff0000"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          37.5896874,
+          55.7320053
+        ]
+      },
+      "properties": {
+        "osm_id": 2027578587,
+        "osm_type": "node",
+        "type": "base_point",
+        "subtype": "shop:supermarket",
+        "brand": "Магнолия",
+        "contact:email": "magnolia@tcfoods.ru",
+        "contact:website": "http://www.mgnl.ru",
+        "name": "Магнолия",
+        "opening_hours": "24/7",
+        "shop": "supermarket",
+        "marker-color": "#ff0000"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          37.5924418,
+          55.7332987
+        ]
+      },
+      "properties": {
+        "osm_id": 2588512234,
+        "osm_type": "node",
+        "type": "base_point",
+        "subtype": "shop:supermarket",
+        "brand": "Азбука Вкуса",
+        "brand:en": "Azbuka Vkusa",
+        "brand:ru": "Азбука Вкуса",
+        "brand:wikidata": "Q4058209",
+        "brand:wikipedia": "ru:Азбука вкуса",
+        "check_date": "2026-03-22",
+        "contact:email": "welcome@azbukavkusa.ru",
+        "contact:phone": "+7 495 5043478;+7 800 7003487",
+        "contact:twitter": "https://twitter.com/azbukavkusa",
+        "contact:vk": "https://vk.com/azbukavkusa",
+        "contact:website": "https://av.ru/",
+        "contact:youtube": "https://www.youtube.com/user/azbukav",
+        "name": "Азбука Вкуса",
+        "name:en": "Azbuka Vkusa",
+        "name:ru": "Азбука Вкуса",
+        "opening_hours": "24/7",
+        "operator": "ООО «Городской супермаркет»",
+        "ref:av": "198470",
+        "shop": "supermarket",
+        "wheelchair": "limited",
+        "marker-color": "#ff0000"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          37.5834587,
+          55.7360879
+        ]
+      },
+      "properties": {
+        "osm_id": 5320144989,
+        "osm_type": "node",
+        "type": "base_point",
+        "subtype": "shop:supermarket",
+        "addr:housenumber": "23 к1",
+        "addr:postcode": "119021",
+        "addr:street": "улица Льва Толстого",
+        "alt_name": "Перекрёсток",
+        "branch": "Fresh",
+        "brand": "Перекрёсток",
+        "brand:en": "Perekryostok",
+        "brand:wikidata": "Q1684639",
+        "brand:wikipedia": "en:Perekrestok (supermarket chain)",
+        "check_date": "2026-03-22",
+        "contact:facebook": "https://www.facebook.com/perekrestok",
+        "contact:instagram": "https://www.instagram.com/perekrestok",
+        "contact:ok": "https://ok.ru/perekrestok.shop",
+        "contact:phone": "+7 800 2009555",
+        "contact:twitter": "https://twitter.com/perekrestok",
+        "contact:vk": "https://vk.com/perekrestok_shop",
+        "contact:website": "https://www.perekrestok.ru/",
+        "contact:youtube": "https://www.youtube.com/channel/UCY9Nwfy_8drHqif0iryQ7Vw",
+        "name": "Перекрёсток",
+        "opening_hours": "Mo-Su 08:00-23:00",
+        "operator": "Торговый дом \"ПЕРЕКРЕСТОК\"",
+        "phone": "+7 800 2009555",
+        "shop": "supermarket",
+        "website": "https://www.perekrestok.ru",
+        "wheelchair": "yes",
+        "marker-color": "#ff0000"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          37.5890055,
+          55.7340945
+        ]
+      },
+      "properties": {
+        "osm_id": 7323501624,
+        "osm_type": "node",
+        "type": "base_point",
+        "subtype": "shop:supermarket",
+        "addr:housenumber": "16",
+        "addr:street": "улица Льва Толстого",
+        "brand": "Spar",
+        "brand:wikidata": "Q610492",
+        "brand:wikipedia": "en:Spar (retailer)",
+        "check_date": "2026-03-22",
+        "check_date:opening_hours": "2024-05-19",
+        "contact:email": "info@spar.ru",
+        "contact:facebook": "https://www.facebook.com/spar",
+        "contact:twitter": "https://twitter.com/SPARInt",
+        "contact:website": "https://spar.ru",
+        "level": "0",
+        "name": "Eurospar",
+        "name:en": "Spar",
+        "opening_hours": "Mo-Su 07:00-23:00",
+        "shop": "supermarket",
+        "wheelchair": "yes",
+        "marker-color": "#ff0000"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          37.5810058,
+          55.7377829
+        ]
+      },
+      "properties": {
+        "osm_id": 8001508397,
+        "osm_type": "node",
+        "type": "base_point",
+        "subtype": "shop:supermarket",
+        "alt_name": "Пятерочка",
+        "brand": "Пятёрочка",
+        "brand:wikidata": "Q1768969",
+        "brand:wikipedia": "ru:Пятёрочка",
+        "contact:email": "vopros@5ka.ru",
+        "contact:facebook": "https://www.facebook.com/pyaterochka",
+        "contact:instagram": "https://www.instagram.com/pyaterochka_official",
+        "contact:ok": "https://ok.ru/pyaterochka",
+        "contact:phone": "+7 800 5555505",
+        "contact:vk": "https://vk.com/pyaterochka_shop",
+        "contact:website": "https://5ka.ru",
+        "name": "Пятёрочка",
+        "opening_hours": "Mo-Su 08:00-23:00",
+        "shop": "supermarket",
         "marker-color": "#ff0000"
       }
     },
@@ -24439,6 +24339,750 @@
       "properties": {
         "osm_type": "connector",
         "point_osm_id": 13305990963
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            37.5896874,
+            55.7320053
+          ],
+          [
+            37.589789038263206,
+            55.732075317588965
+          ]
+        ]
+      },
+      "properties": {
+        "osm_type": "connector",
+        "point_osm_id": 2027578587
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            37.5924418,
+            55.7332987
+          ],
+          [
+            37.59260392992996,
+            55.73327050257122
+          ]
+        ]
+      },
+      "properties": {
+        "osm_type": "connector",
+        "point_osm_id": 2588512234
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            37.5834587,
+            55.7360879
+          ],
+          [
+            37.58353589600663,
+            55.73612371559744
+          ]
+        ]
+      },
+      "properties": {
+        "osm_type": "connector",
+        "point_osm_id": 5320144989
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            37.5890055,
+            55.7340945
+          ],
+          [
+            37.589163466398155,
+            55.7339816957427
+          ]
+        ]
+      },
+      "properties": {
+        "osm_type": "connector",
+        "point_osm_id": 7323501624
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            37.5810058,
+            55.7377829
+          ],
+          [
+            37.580876200000006,
+            55.73767509999999
+          ]
+        ]
+      },
+      "properties": {
+        "osm_type": "connector",
+        "point_osm_id": 8001508397
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          37.5801518,
+          55.7356491
+        ]
+      },
+      "properties": {
+        "osm_id": 2268611060,
+        "osm_type": "node",
+        "type": "delivery_point",
+        "entrance": "main",
+        "marker-color": "#3388ff"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          37.5805173,
+          55.7350991
+        ]
+      },
+      "properties": {
+        "osm_id": 2582950755,
+        "osm_type": "node",
+        "type": "delivery_point",
+        "entrance": "main",
+        "marker-color": "#3388ff"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          37.5814446,
+          55.7355148
+        ]
+      },
+      "properties": {
+        "osm_id": 2582950793,
+        "osm_type": "node",
+        "type": "delivery_point",
+        "entrance": "main",
+        "marker-color": "#3388ff"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          37.5849252,
+          55.7369174
+        ]
+      },
+      "properties": {
+        "osm_id": 2928816903,
+        "osm_type": "node",
+        "type": "delivery_point",
+        "entrance": "main",
+        "marker-color": "#3388ff"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          37.5881556,
+          55.7341978
+        ]
+      },
+      "properties": {
+        "osm_id": 3075497597,
+        "osm_type": "node",
+        "type": "delivery_point",
+        "entrance": "main",
+        "loc_name": "Курьерский подъезд",
+        "opening_hours": "24/7",
+        "ref": "8.2",
+        "marker-color": "#3388ff"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          37.5884467,
+          55.733929
+        ]
+      },
+      "properties": {
+        "osm_id": 3075497598,
+        "osm_type": "node",
+        "type": "delivery_point",
+        "entrance": "main",
+        "opening_hours": "09:00-23:00",
+        "ref": "8.1",
+        "marker-color": "#3388ff"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          37.5809722,
+          55.7319496
+        ]
+      },
+      "properties": {
+        "osm_id": 3646233131,
+        "osm_type": "node",
+        "type": "delivery_point",
+        "entrance": "main",
+        "marker-color": "#3388ff"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          37.5836948,
+          55.732026
+        ]
+      },
+      "properties": {
+        "osm_id": 3646233212,
+        "osm_type": "node",
+        "type": "delivery_point",
+        "entrance": "main",
+        "marker-color": "#3388ff"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          37.5887627,
+          55.7325556
+        ]
+      },
+      "properties": {
+        "osm_id": 3647628710,
+        "osm_type": "node",
+        "type": "delivery_point",
+        "entrance": "main",
+        "marker-color": "#3388ff"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          37.5896626,
+          55.7325032
+        ]
+      },
+      "properties": {
+        "osm_id": 3699842360,
+        "osm_type": "node",
+        "type": "delivery_point",
+        "entrance": "main",
+        "marker-color": "#3388ff"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          37.580984,
+          55.7275138
+        ]
+      },
+      "properties": {
+        "osm_id": 5502976657,
+        "osm_type": "node",
+        "type": "delivery_point",
+        "entrance": "main",
+        "marker-color": "#3388ff"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          37.5805979,
+          55.7314935
+        ]
+      },
+      "properties": {
+        "osm_id": 7876757754,
+        "osm_type": "node",
+        "type": "delivery_point",
+        "entrance": "main",
+        "marker-color": "#3388ff"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          37.5866098,
+          55.7299763
+        ]
+      },
+      "properties": {
+        "osm_id": 9110820352,
+        "osm_type": "node",
+        "type": "delivery_point",
+        "entrance": "main",
+        "marker-color": "#3388ff"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          37.5854982,
+          55.7295866
+        ]
+      },
+      "properties": {
+        "osm_id": 9110820354,
+        "osm_type": "node",
+        "type": "delivery_point",
+        "entrance": "main",
+        "marker-color": "#3388ff"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          37.5787314,
+          55.7350457
+        ]
+      },
+      "properties": {
+        "osm_id": 2573684646,
+        "osm_type": "node",
+        "type": "delivery_point",
+        "entrance": "yes",
+        "marker-color": "#3388ff"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          37.5922083,
+          55.7339905
+        ]
+      },
+      "properties": {
+        "osm_id": 2588512280,
+        "osm_type": "node",
+        "type": "delivery_point",
+        "entrance": "yes",
+        "marker-color": "#3388ff"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          37.5882115,
+          55.7337572
+        ]
+      },
+      "properties": {
+        "osm_id": 3075497632,
+        "osm_type": "node",
+        "type": "delivery_point",
+        "entrance": "yes",
+        "opening_hours": "24/7",
+        "ref": "8.5",
+        "marker-color": "#3388ff"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          37.587769,
+          55.7337979
+        ]
+      },
+      "properties": {
+        "osm_id": 3075499849,
+        "osm_type": "node",
+        "type": "delivery_point",
+        "entrance": "yes",
+        "opening_hours": "09:00-23:00",
+        "ref": "8.6",
+        "marker-color": "#3388ff"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          37.5875143,
+          55.7343578
+        ]
+      },
+      "properties": {
+        "osm_id": 3216799594,
+        "osm_type": "node",
+        "type": "delivery_point",
+        "entrance": "yes",
+        "opening_hours": "09:00-23:00",
+        "ref": "8.3",
+        "marker-color": "#3388ff"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          37.5875192,
+          55.7335737
+        ]
+      },
+      "properties": {
+        "osm_id": 3291472198,
+        "osm_type": "node",
+        "type": "delivery_point",
+        "entrance": "yes",
+        "ref": "8.7",
+        "marker-color": "#3388ff"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          37.5889326,
+          55.7344705
+        ]
+      },
+      "properties": {
+        "osm_id": 3291472199,
+        "osm_type": "node",
+        "type": "delivery_point",
+        "entrance": "yes",
+        "ref": "9.5",
+        "marker-color": "#3388ff"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          37.5884149,
+          55.7348066
+        ]
+      },
+      "properties": {
+        "osm_id": 3291472201,
+        "osm_type": "node",
+        "type": "delivery_point",
+        "entrance": "yes",
+        "ref": "9.1",
+        "marker-color": "#3388ff"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          37.5877382,
+          55.7351669
+        ]
+      },
+      "properties": {
+        "osm_id": 3291472203,
+        "osm_type": "node",
+        "type": "delivery_point",
+        "entrance": "yes",
+        "ref": "9.2",
+        "marker-color": "#3388ff"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          37.5867201,
+          55.7363264
+        ]
+      },
+      "properties": {
+        "osm_id": 3586091601,
+        "osm_type": "node",
+        "type": "delivery_point",
+        "entrance": "yes",
+        "marker-color": "#3388ff"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          37.5809207,
+          55.732653
+        ]
+      },
+      "properties": {
+        "osm_id": 3646255138,
+        "osm_type": "node",
+        "type": "delivery_point",
+        "entrance": "yes",
+        "marker-color": "#3388ff"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          37.5801854,
+          55.7334389
+        ]
+      },
+      "properties": {
+        "osm_id": 3646255295,
+        "osm_type": "node",
+        "type": "delivery_point",
+        "entrance": "yes",
+        "marker-color": "#3388ff"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          37.5853187,
+          55.7336003
+        ]
+      },
+      "properties": {
+        "osm_id": 3646303239,
+        "osm_type": "node",
+        "type": "delivery_point",
+        "entrance": "yes",
+        "marker-color": "#3388ff"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          37.5904392,
+          55.7342943
+        ]
+      },
+      "properties": {
+        "osm_id": 3996253137,
+        "osm_type": "node",
+        "type": "delivery_point",
+        "entrance": "yes",
+        "marker-color": "#3388ff"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          37.5813678,
+          55.7273697
+        ]
+      },
+      "properties": {
+        "osm_id": 5502976656,
+        "osm_type": "node",
+        "type": "delivery_point",
+        "entrance": "yes",
+        "marker-color": "#3388ff"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          37.5758369,
+          55.7335529
+        ]
+      },
+      "properties": {
+        "osm_id": 6528495896,
+        "osm_type": "node",
+        "type": "delivery_point",
+        "entrance": "yes",
+        "marker-color": "#3388ff"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          37.5762441,
+          55.7384186
+        ]
+      },
+      "properties": {
+        "osm_id": 6532153470,
+        "osm_type": "node",
+        "type": "delivery_point",
+        "entrance": "yes",
+        "marker-color": "#3388ff"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          37.5917225,
+          55.7360158
+        ]
+      },
+      "properties": {
+        "osm_id": 7058162910,
+        "osm_type": "node",
+        "type": "delivery_point",
+        "entrance": "yes",
+        "marker-color": "#3388ff"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          37.5833221,
+          55.7360998
+        ]
+      },
+      "properties": {
+        "osm_id": 7738042380,
+        "osm_type": "node",
+        "type": "delivery_point",
+        "entrance": "yes",
+        "marker-color": "#3388ff"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          37.583844,
+          55.7311303
+        ]
+      },
+      "properties": {
+        "osm_id": 7876663228,
+        "osm_type": "node",
+        "type": "delivery_point",
+        "entrance": "yes",
+        "marker-color": "#3388ff"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          37.5801707,
+          55.7304466
+        ]
+      },
+      "properties": {
+        "osm_id": 7876939795,
+        "osm_type": "node",
+        "type": "delivery_point",
+        "entrance": "yes",
+        "marker-color": "#3388ff"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          37.5807726,
+          55.7304482
+        ]
+      },
+      "properties": {
+        "osm_id": 7876939799,
+        "osm_type": "node",
+        "type": "delivery_point",
+        "entrance": "yes",
+        "marker-color": "#3388ff"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          37.5917934,
+          55.7329455
+        ]
+      },
+      "properties": {
+        "osm_id": 9054392383,
+        "osm_type": "node",
+        "type": "delivery_point",
+        "entrance": "yes",
+        "marker-color": "#3388ff"
       }
     },
     {
@@ -24543,223 +25187,6 @@
       "geometry": {
         "type": "Point",
         "coordinates": [
-          37.5801518,
-          55.7356491
-        ]
-      },
-      "properties": {
-        "osm_id": 2268611060,
-        "osm_type": "node",
-        "type": "delivery_point",
-        "entrance": "main",
-        "marker-color": "#3388ff"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          37.5787314,
-          55.7350457
-        ]
-      },
-      "properties": {
-        "osm_id": 2573684646,
-        "osm_type": "node",
-        "type": "delivery_point",
-        "entrance": "yes",
-        "marker-color": "#3388ff"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          37.5805173,
-          55.7350991
-        ]
-      },
-      "properties": {
-        "osm_id": 2582950755,
-        "osm_type": "node",
-        "type": "delivery_point",
-        "entrance": "main",
-        "marker-color": "#3388ff"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          37.5814446,
-          55.7355148
-        ]
-      },
-      "properties": {
-        "osm_id": 2582950793,
-        "osm_type": "node",
-        "type": "delivery_point",
-        "entrance": "main",
-        "marker-color": "#3388ff"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          37.5922083,
-          55.7339905
-        ]
-      },
-      "properties": {
-        "osm_id": 2588512280,
-        "osm_type": "node",
-        "type": "delivery_point",
-        "entrance": "yes",
-        "marker-color": "#3388ff"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          37.5849252,
-          55.7369174
-        ]
-      },
-      "properties": {
-        "osm_id": 2928816903,
-        "osm_type": "node",
-        "type": "delivery_point",
-        "entrance": "main",
-        "marker-color": "#3388ff"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          37.5881556,
-          55.7341978
-        ]
-      },
-      "properties": {
-        "osm_id": 3075497597,
-        "osm_type": "node",
-        "type": "delivery_point",
-        "entrance": "main",
-        "loc_name": "Курьерский подъезд",
-        "opening_hours": "24/7",
-        "ref": "8.2",
-        "marker-color": "#3388ff"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          37.5884467,
-          55.733929
-        ]
-      },
-      "properties": {
-        "osm_id": 3075497598,
-        "osm_type": "node",
-        "type": "delivery_point",
-        "entrance": "main",
-        "opening_hours": "09:00-23:00",
-        "ref": "8.1",
-        "marker-color": "#3388ff"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          37.5882115,
-          55.7337572
-        ]
-      },
-      "properties": {
-        "osm_id": 3075497632,
-        "osm_type": "node",
-        "type": "delivery_point",
-        "entrance": "yes",
-        "opening_hours": "24/7",
-        "ref": "8.5",
-        "marker-color": "#3388ff"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          37.587769,
-          55.7337979
-        ]
-      },
-      "properties": {
-        "osm_id": 3075499849,
-        "osm_type": "node",
-        "type": "delivery_point",
-        "entrance": "yes",
-        "opening_hours": "09:00-23:00",
-        "ref": "8.6",
-        "marker-color": "#3388ff"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          37.587303,
-          55.7340072
-        ]
-      },
-      "properties": {
-        "osm_id": 3216799593,
-        "osm_type": "node",
-        "type": "delivery_point",
-        "entrance": "yes",
-        "opening_hours": "09:00-23:00",
-        "ref": "8.4",
-        "marker-color": "#3388ff"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          37.5875143,
-          55.7343578
-        ]
-      },
-      "properties": {
-        "osm_id": 3216799594,
-        "osm_type": "node",
-        "type": "delivery_point",
-        "entrance": "yes",
-        "opening_hours": "09:00-23:00",
-        "ref": "8.3",
-        "marker-color": "#3388ff"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
           37.586889,
           55.7329344
         ]
@@ -24786,95 +25213,6 @@
         "osm_type": "node",
         "type": "delivery_point",
         "entrance": "staircase",
-        "marker-color": "#3388ff"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          37.5875192,
-          55.7335737
-        ]
-      },
-      "properties": {
-        "osm_id": 3291472198,
-        "osm_type": "node",
-        "type": "delivery_point",
-        "entrance": "yes",
-        "ref": "8.7",
-        "marker-color": "#3388ff"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          37.5889326,
-          55.7344705
-        ]
-      },
-      "properties": {
-        "osm_id": 3291472199,
-        "osm_type": "node",
-        "type": "delivery_point",
-        "entrance": "yes",
-        "ref": "9.5",
-        "marker-color": "#3388ff"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          37.5884149,
-          55.7348066
-        ]
-      },
-      "properties": {
-        "osm_id": 3291472201,
-        "osm_type": "node",
-        "type": "delivery_point",
-        "entrance": "yes",
-        "ref": "9.1",
-        "marker-color": "#3388ff"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          37.5877382,
-          55.7351669
-        ]
-      },
-      "properties": {
-        "osm_id": 3291472203,
-        "osm_type": "node",
-        "type": "delivery_point",
-        "entrance": "yes",
-        "ref": "9.2",
-        "marker-color": "#3388ff"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          37.5867201,
-          55.7363264
-        ]
-      },
-      "properties": {
-        "osm_id": 3586091601,
-        "osm_type": "node",
-        "type": "delivery_point",
-        "entrance": "yes",
         "marker-color": "#3388ff"
       }
     },
@@ -24978,45 +25316,6 @@
       "geometry": {
         "type": "Point",
         "coordinates": [
-          37.5831481,
-          55.7313909
-        ]
-      },
-      "properties": {
-        "osm_id": 3646209004,
-        "osm_type": "node",
-        "type": "delivery_point",
-        "addr:flats": "61-76",
-        "entrance": "staircase",
-        "ref": "2",
-        "marker-color": "#3388ff"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          37.580886,
-          55.7314622
-        ]
-      },
-      "properties": {
-        "osm_id": 3646209006,
-        "osm_type": "node",
-        "type": "delivery_point",
-        "access": "private",
-        "addr:flats": "48-60",
-        "entrance": "staircase",
-        "ref": "5",
-        "marker-color": "#3388ff"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
           37.5810885,
           55.7315242
         ]
@@ -25029,162 +25328,6 @@
         "addr:flats": "39-48",
         "entrance": "staircase",
         "ref": "4",
-        "marker-color": "#3388ff"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          37.5812895,
-          55.7315858
-        ]
-      },
-      "properties": {
-        "osm_id": 3646209011,
-        "osm_type": "node",
-        "type": "delivery_point",
-        "access": "private",
-        "addr:flats": "25-38",
-        "entrance": "staircase",
-        "ref": "3",
-        "marker-color": "#3388ff"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          37.5809722,
-          55.7319496
-        ]
-      },
-      "properties": {
-        "osm_id": 3646233131,
-        "osm_type": "node",
-        "type": "delivery_point",
-        "entrance": "main",
-        "marker-color": "#3388ff"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          37.5836948,
-          55.732026
-        ]
-      },
-      "properties": {
-        "osm_id": 3646233212,
-        "osm_type": "node",
-        "type": "delivery_point",
-        "entrance": "main",
-        "marker-color": "#3388ff"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          37.5809207,
-          55.732653
-        ]
-      },
-      "properties": {
-        "osm_id": 3646255138,
-        "osm_type": "node",
-        "type": "delivery_point",
-        "entrance": "yes",
-        "marker-color": "#3388ff"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          37.5801854,
-          55.7334389
-        ]
-      },
-      "properties": {
-        "osm_id": 3646255295,
-        "osm_type": "node",
-        "type": "delivery_point",
-        "entrance": "yes",
-        "marker-color": "#3388ff"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          37.5801622,
-          55.7334876
-        ]
-      },
-      "properties": {
-        "osm_id": 3646255298,
-        "osm_type": "node",
-        "type": "delivery_point",
-        "entrance": "yes",
-        "marker-color": "#3388ff"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          37.5850754,
-          55.7335061
-        ]
-      },
-      "properties": {
-        "osm_id": 3646303234,
-        "osm_type": "node",
-        "type": "delivery_point",
-        "entrance": "yes",
-        "marker-color": "#3388ff"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          37.5853187,
-          55.7336003
-        ]
-      },
-      "properties": {
-        "osm_id": 3646303239,
-        "osm_type": "node",
-        "type": "delivery_point",
-        "entrance": "yes",
-        "marker-color": "#3388ff"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          37.5887627,
-          55.7325556
-        ]
-      },
-      "properties": {
-        "osm_id": 3647628710,
-        "osm_type": "node",
-        "type": "delivery_point",
-        "entrance": "main",
         "marker-color": "#3388ff"
       }
     },
@@ -25231,42 +25374,6 @@
       "geometry": {
         "type": "Point",
         "coordinates": [
-          37.5900965,
-          55.7314901
-        ]
-      },
-      "properties": {
-        "osm_id": 3699841121,
-        "osm_type": "node",
-        "type": "delivery_point",
-        "addr:flats": "88-104",
-        "entrance": "staircase",
-        "ref": "5",
-        "marker-color": "#3388ff"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          37.5896626,
-          55.7325032
-        ]
-      },
-      "properties": {
-        "osm_id": 3699842360,
-        "osm_type": "node",
-        "type": "delivery_point",
-        "entrance": "main",
-        "marker-color": "#3388ff"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
           37.5892809,
           55.736277
         ]
@@ -25304,44 +25411,6 @@
       "geometry": {
         "type": "Point",
         "coordinates": [
-          37.5887176,
-          55.7348076
-        ]
-      },
-      "properties": {
-        "osm_id": 3700901330,
-        "osm_type": "node",
-        "type": "delivery_point",
-        "addr:flats": "83-108",
-        "entrance": "staircase",
-        "ref": "5",
-        "marker-color": "#3388ff"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          37.5890333,
-          55.7346293
-        ]
-      },
-      "properties": {
-        "osm_id": 3700901353,
-        "osm_type": "node",
-        "type": "delivery_point",
-        "addr:flats": "2-19",
-        "entrance": "staircase",
-        "ref": "1",
-        "marker-color": "#3388ff"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
           37.590777,
           55.7334994
         ]
@@ -25353,23 +25422,6 @@
         "addr:flats": "1-20",
         "entrance": "staircase",
         "ref": "1",
-        "marker-color": "#3388ff"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          37.5904392,
-          55.7342943
-        ]
-      },
-      "properties": {
-        "osm_id": 3996253137,
-        "osm_type": "node",
-        "type": "delivery_point",
-        "entrance": "yes",
         "marker-color": "#3388ff"
       }
     },
@@ -25397,109 +25449,6 @@
       "geometry": {
         "type": "Point",
         "coordinates": [
-          37.5813678,
-          55.7273697
-        ]
-      },
-      "properties": {
-        "osm_id": 5502976656,
-        "osm_type": "node",
-        "type": "delivery_point",
-        "entrance": "yes",
-        "marker-color": "#3388ff"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          37.580984,
-          55.7275138
-        ]
-      },
-      "properties": {
-        "osm_id": 5502976657,
-        "osm_type": "node",
-        "type": "delivery_point",
-        "entrance": "main",
-        "marker-color": "#3388ff"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          37.5880442,
-          55.7350472
-        ]
-      },
-      "properties": {
-        "osm_id": 5676700487,
-        "osm_type": "node",
-        "type": "delivery_point",
-        "description": "Вход в музей и магазин Яндекса",
-        "entrance": "yes",
-        "marker-color": "#3388ff"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          37.5758369,
-          55.7335529
-        ]
-      },
-      "properties": {
-        "osm_id": 6528495896,
-        "osm_type": "node",
-        "type": "delivery_point",
-        "entrance": "yes",
-        "marker-color": "#3388ff"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          37.5762441,
-          55.7384186
-        ]
-      },
-      "properties": {
-        "osm_id": 6532153470,
-        "osm_type": "node",
-        "type": "delivery_point",
-        "entrance": "yes",
-        "marker-color": "#3388ff"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          37.5917225,
-          55.7360158
-        ]
-      },
-      "properties": {
-        "osm_id": 7058162910,
-        "osm_type": "node",
-        "type": "delivery_point",
-        "entrance": "yes",
-        "marker-color": "#3388ff"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
           37.5867618,
           55.736761
         ]
@@ -25511,114 +25460,6 @@
         "addr:flats": "1-60",
         "entrance": "staircase",
         "ref": "1",
-        "marker-color": "#3388ff"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          37.5833221,
-          55.7360998
-        ]
-      },
-      "properties": {
-        "osm_id": 7738042380,
-        "osm_type": "node",
-        "type": "delivery_point",
-        "entrance": "yes",
-        "marker-color": "#3388ff"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          37.583844,
-          55.7311303
-        ]
-      },
-      "properties": {
-        "osm_id": 7876663228,
-        "osm_type": "node",
-        "type": "delivery_point",
-        "entrance": "yes",
-        "marker-color": "#3388ff"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          37.5840071,
-          55.731184
-        ]
-      },
-      "properties": {
-        "osm_id": 7876663229,
-        "osm_type": "node",
-        "type": "delivery_point",
-        "entrance": "yes",
-        "marker-color": "#3388ff"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          37.5839843,
-          55.7312495
-        ]
-      },
-      "properties": {
-        "osm_id": 7876663230,
-        "osm_type": "node",
-        "type": "delivery_point",
-        "entrance": "yes",
-        "marker-color": "#3388ff"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          37.5845899,
-          55.7312238
-        ]
-      },
-      "properties": {
-        "osm_id": 7876719106,
-        "osm_type": "node",
-        "type": "delivery_point",
-        "access": "private",
-        "addr:flats": "1-15",
-        "entrance": "staircase",
-        "ref": "1",
-        "marker-color": "#3388ff"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          37.5857365,
-          55.7324575
-        ]
-      },
-      "properties": {
-        "osm_id": 7876726414,
-        "osm_type": "node",
-        "type": "delivery_point",
-        "access": "private",
-        "addr:flats": "61-70",
-        "entrance": "staircase",
-        "ref": "5",
         "marker-color": "#3388ff"
       }
     },
@@ -25647,57 +25488,6 @@
       "geometry": {
         "type": "Point",
         "coordinates": [
-          37.5805979,
-          55.7314935
-        ]
-      },
-      "properties": {
-        "osm_id": 7876757754,
-        "osm_type": "node",
-        "type": "delivery_point",
-        "entrance": "main",
-        "marker-color": "#3388ff"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          37.5801707,
-          55.7304466
-        ]
-      },
-      "properties": {
-        "osm_id": 7876939795,
-        "osm_type": "node",
-        "type": "delivery_point",
-        "entrance": "yes",
-        "marker-color": "#3388ff"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          37.5807726,
-          55.7304482
-        ]
-      },
-      "properties": {
-        "osm_id": 7876939799,
-        "osm_type": "node",
-        "type": "delivery_point",
-        "entrance": "yes",
-        "marker-color": "#3388ff"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
           37.5777398,
           55.7395474
         ]
@@ -25709,25 +25499,6 @@
         "addr:flats": "26-40",
         "entrance": "staircase",
         "ref": "3",
-        "marker-color": "#3388ff"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          37.5778111,
-          55.7396914
-        ]
-      },
-      "properties": {
-        "osm_id": 7947560685,
-        "osm_type": "node",
-        "type": "delivery_point",
-        "addr:flats": "11-25",
-        "entrance": "staircase",
-        "ref": "2",
         "marker-color": "#3388ff"
       }
     },
@@ -25755,82 +25526,12 @@
       "geometry": {
         "type": "Point",
         "coordinates": [
-          37.5917934,
-          55.7329455
-        ]
-      },
-      "properties": {
-        "osm_id": 9054392383,
-        "osm_type": "node",
-        "type": "delivery_point",
-        "entrance": "yes",
-        "marker-color": "#3388ff"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          37.5866098,
-          55.7299763
-        ]
-      },
-      "properties": {
-        "osm_id": 9110820352,
-        "osm_type": "node",
-        "type": "delivery_point",
-        "entrance": "main",
-        "marker-color": "#3388ff"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          37.5854982,
-          55.7295866
-        ]
-      },
-      "properties": {
-        "osm_id": 9110820354,
-        "osm_type": "node",
-        "type": "delivery_point",
-        "entrance": "main",
-        "marker-color": "#3388ff"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
           37.5833587,
           55.7406089
         ]
       },
       "properties": {
         "osm_id": 9542872809,
-        "osm_type": "node",
-        "type": "delivery_point",
-        "addr:flats": "1-34",
-        "entrance": "staircase",
-        "ref": "1",
-        "marker-color": "#3388ff"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          37.58349832251683,
-          55.740737960144266
-        ]
-      },
-      "properties": {
-        "osm_id": 9542872810,
         "osm_type": "node",
         "type": "delivery_point",
         "addr:flats": "1-34",
@@ -25863,25 +25564,6 @@
       "geometry": {
         "type": "Point",
         "coordinates": [
-          37.5843729,
-          55.740575
-        ]
-      },
-      "properties": {
-        "osm_id": 9542872814,
-        "osm_type": "node",
-        "type": "delivery_point",
-        "addr:flats": "37-54",
-        "entrance": "staircase",
-        "ref": "3",
-        "marker-color": "#3388ff"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
           37.5844349,
           55.7404142
         ]
@@ -25893,25 +25575,6 @@
         "addr:flats": "19-36",
         "entrance": "staircase",
         "ref": "2",
-        "marker-color": "#3388ff"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          37.5845002,
-          55.740245
-        ]
-      },
-      "properties": {
-        "osm_id": 9542878017,
-        "osm_type": "node",
-        "type": "delivery_point",
-        "addr:flats": "1-18",
-        "entrance": "staircase",
-        "ref": "1",
         "marker-color": "#3388ff"
       }
     },
@@ -25958,23 +25621,6 @@
       "geometry": {
         "type": "Point",
         "coordinates": [
-          37.5858878,
-          55.7348413
-        ]
-      },
-      "properties": {
-        "osm_id": 9754208654,
-        "osm_type": "node",
-        "type": "delivery_point",
-        "entrance": "yes",
-        "marker-color": "#3388ff"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
           37.5779065,
           55.7411527
         ]
@@ -25986,25 +25632,6 @@
         "access": "private",
         "entrance": "staircase",
         "ref": "1",
-        "marker-color": "#3388ff"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          37.5776884,
-          55.741183
-        ]
-      },
-      "properties": {
-        "osm_id": 10887375551,
-        "osm_type": "node",
-        "type": "delivery_point",
-        "access": "private",
-        "entrance": "staircase",
-        "ref": "2",
         "marker-color": "#3388ff"
       }
     },
@@ -26144,126 +25771,6 @@
     {
       "type": "Feature",
       "geometry": {
-        "type": "Point",
-        "coordinates": [
-          37.5837911,
-          55.7390138
-        ]
-      },
-      "properties": {
-        "osm_id": 13305990961,
-        "osm_type": "node",
-        "type": "delivery_point",
-        "access": "private",
-        "addr:flats": "15-26",
-        "entrance": "staircase",
-        "ref": "2",
-        "marker-color": "#3388ff"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "LineString",
-        "coordinates": [
-          [
-            37.578659,
-            55.7392565
-          ],
-          [
-            37.578962906812286,
-            55.73920588854558
-          ]
-        ]
-      },
-      "properties": {
-        "osm_type": "connector",
-        "point_osm_id": 1676802497
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "LineString",
-        "coordinates": [
-          [
-            37.5787077,
-            55.7394411
-          ],
-          [
-            37.5788168,
-            55.7394521
-          ]
-        ]
-      },
-      "properties": {
-        "osm_type": "connector",
-        "point_osm_id": 1676802502
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "LineString",
-        "coordinates": [
-          [
-            37.5787564,
-            55.7396258
-          ],
-          [
-            37.5788168,
-            55.7394521
-          ]
-        ]
-      },
-      "properties": {
-        "osm_type": "connector",
-        "point_osm_id": 1676802507
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "LineString",
-        "coordinates": [
-          [
-            37.5919932,
-            55.7335776
-          ],
-          [
-            37.59200109873254,
-            55.73358413177947
-          ]
-        ]
-      },
-      "properties": {
-        "osm_type": "connector",
-        "point_osm_id": 2016851141
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "LineString",
-        "coordinates": [
-          [
-            37.5915929,
-            55.7337218
-          ],
-          [
-            37.5916089792044,
-            55.73373509665431
-          ]
-        ]
-      },
-      "properties": {
-        "osm_type": "connector",
-        "point_osm_id": 2016851142
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
         "type": "LineString",
         "coordinates": [
           [
@@ -26279,26 +25786,6 @@
       "properties": {
         "osm_type": "connector",
         "point_osm_id": 2268611060
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "LineString",
-        "coordinates": [
-          [
-            37.5787314,
-            55.7350457
-          ],
-          [
-            37.57871721828692,
-            55.73505548677969
-          ]
-        ]
-      },
-      "properties": {
-        "osm_type": "connector",
-        "point_osm_id": 2573684646
       }
     },
     {
@@ -26339,26 +25826,6 @@
       "properties": {
         "osm_type": "connector",
         "point_osm_id": 2582950793
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "LineString",
-        "coordinates": [
-          [
-            37.5922083,
-            55.7339905
-          ],
-          [
-            37.5923186,
-            55.7339336
-          ]
-        ]
-      },
-      "properties": {
-        "osm_type": "connector",
-        "point_osm_id": 2588512280
       }
     },
     {
@@ -26427,6 +25894,206 @@
         "type": "LineString",
         "coordinates": [
           [
+            37.5809722,
+            55.7319496
+          ],
+          [
+            37.581025928909256,
+            55.731969688939834
+          ]
+        ]
+      },
+      "properties": {
+        "osm_type": "connector",
+        "point_osm_id": 3646233131
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            37.5836948,
+            55.732026
+          ],
+          [
+            37.58375329069304,
+            55.732032176223186
+          ]
+        ]
+      },
+      "properties": {
+        "osm_type": "connector",
+        "point_osm_id": 3646233212
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            37.5887627,
+            55.7325556
+          ],
+          [
+            37.58879015146252,
+            55.7325691648338
+          ]
+        ]
+      },
+      "properties": {
+        "osm_type": "connector",
+        "point_osm_id": 3647628710
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            37.5896626,
+            55.7325032
+          ],
+          [
+            37.5897718060921,
+            55.73245906855367
+          ]
+        ]
+      },
+      "properties": {
+        "osm_type": "connector",
+        "point_osm_id": 3699842360
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            37.580984,
+            55.7275138
+          ],
+          [
+            37.58094969458218,
+            55.72750071768333
+          ]
+        ]
+      },
+      "properties": {
+        "osm_type": "connector",
+        "point_osm_id": 5502976657
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            37.5805979,
+            55.7314935
+          ],
+          [
+            37.580556398853425,
+            55.73153950361756
+          ]
+        ]
+      },
+      "properties": {
+        "osm_type": "connector",
+        "point_osm_id": 7876757754
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            37.5866098,
+            55.7299763
+          ],
+          [
+            37.5866177721874,
+            55.72996937306181
+          ]
+        ]
+      },
+      "properties": {
+        "osm_type": "connector",
+        "point_osm_id": 9110820352
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            37.5854982,
+            55.7295866
+          ],
+          [
+            37.58552049186675,
+            55.72956723133815
+          ]
+        ]
+      },
+      "properties": {
+        "osm_type": "connector",
+        "point_osm_id": 9110820354
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            37.5787314,
+            55.7350457
+          ],
+          [
+            37.57871721828692,
+            55.73505548677969
+          ]
+        ]
+      },
+      "properties": {
+        "osm_type": "connector",
+        "point_osm_id": 2573684646
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            37.5922083,
+            55.7339905
+          ],
+          [
+            37.5923186,
+            55.7339336
+          ]
+        ]
+      },
+      "properties": {
+        "osm_type": "connector",
+        "point_osm_id": 2588512280
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
             37.5882115,
             55.7337572
           ],
@@ -26467,26 +26134,6 @@
         "type": "LineString",
         "coordinates": [
           [
-            37.587303,
-            55.7340072
-          ],
-          [
-            37.5873874,
-            55.7340279
-          ]
-        ]
-      },
-      "properties": {
-        "osm_type": "connector",
-        "point_osm_id": 3216799593
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "LineString",
-        "coordinates": [
-          [
             37.5875143,
             55.7343578
           ],
@@ -26499,46 +26146,6 @@
       "properties": {
         "osm_type": "connector",
         "point_osm_id": 3216799594
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "LineString",
-        "coordinates": [
-          [
-            37.586889,
-            55.7329344
-          ],
-          [
-            37.586995735493204,
-            55.73286900935574
-          ]
-        ]
-      },
-      "properties": {
-        "osm_type": "connector",
-        "point_osm_id": 3241790962
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "LineString",
-        "coordinates": [
-          [
-            37.5871334,
-            55.7332638
-          ],
-          [
-            37.58728189685078,
-            55.733214469001936
-          ]
-        ]
-      },
-      "properties": {
-        "osm_type": "connector",
-        "point_osm_id": 3241790963
       }
     },
     {
@@ -26647,226 +26254,6 @@
         "type": "LineString",
         "coordinates": [
           [
-            37.5795556,
-            55.7299438
-          ],
-          [
-            37.5793943636041,
-            55.73009241391029
-          ]
-        ]
-      },
-      "properties": {
-        "osm_type": "connector",
-        "point_osm_id": 3646188260
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "LineString",
-        "coordinates": [
-          [
-            37.5832359,
-            55.7303545
-          ],
-          [
-            37.583373023618876,
-            55.73024095476299
-          ]
-        ]
-      },
-      "properties": {
-        "osm_type": "connector",
-        "point_osm_id": 3646188264
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "LineString",
-        "coordinates": [
-          [
-            37.5838895,
-            55.7307497
-          ],
-          [
-            37.58414291790015,
-            55.73077438902961
-          ]
-        ]
-      },
-      "properties": {
-        "osm_type": "connector",
-        "point_osm_id": 3646188267
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "LineString",
-        "coordinates": [
-          [
-            37.581535,
-            55.7310343
-          ],
-          [
-            37.5816379,
-            55.7311501
-          ]
-        ]
-      },
-      "properties": {
-        "osm_type": "connector",
-        "point_osm_id": 3646194438
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "LineString",
-        "coordinates": [
-          [
-            37.583195,
-            55.7312343
-          ],
-          [
-            37.5830202,
-            55.7313607
-          ]
-        ]
-      },
-      "properties": {
-        "osm_type": "connector",
-        "point_osm_id": 3646209002
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "LineString",
-        "coordinates": [
-          [
-            37.5831481,
-            55.7313909
-          ],
-          [
-            37.5830202,
-            55.7313607
-          ]
-        ]
-      },
-      "properties": {
-        "osm_type": "connector",
-        "point_osm_id": 3646209004
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "LineString",
-        "coordinates": [
-          [
-            37.580886,
-            55.7314622
-          ],
-          [
-            37.5809309485643,
-            55.73138169252399
-          ]
-        ]
-      },
-      "properties": {
-        "osm_type": "connector",
-        "point_osm_id": 3646209006
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "LineString",
-        "coordinates": [
-          [
-            37.5810885,
-            55.7315242
-          ],
-          [
-            37.58114665432669,
-            55.73142003869538
-          ]
-        ]
-      },
-      "properties": {
-        "osm_type": "connector",
-        "point_osm_id": 3646209008
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "LineString",
-        "coordinates": [
-          [
-            37.5812895,
-            55.7315858
-          ],
-          [
-            37.58136079237531,
-            55.73145810572516
-          ]
-        ]
-      },
-      "properties": {
-        "osm_type": "connector",
-        "point_osm_id": 3646209011
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "LineString",
-        "coordinates": [
-          [
-            37.5809722,
-            55.7319496
-          ],
-          [
-            37.581025928909256,
-            55.731969688939834
-          ]
-        ]
-      },
-      "properties": {
-        "osm_type": "connector",
-        "point_osm_id": 3646233131
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "LineString",
-        "coordinates": [
-          [
-            37.5836948,
-            55.732026
-          ],
-          [
-            37.58375329069304,
-            55.732032176223186
-          ]
-        ]
-      },
-      "properties": {
-        "osm_type": "connector",
-        "point_osm_id": 3646233212
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "LineString",
-        "coordinates": [
-          [
             37.5809207,
             55.732653
           ],
@@ -26907,46 +26294,6 @@
         "type": "LineString",
         "coordinates": [
           [
-            37.5801622,
-            55.7334876
-          ],
-          [
-            37.5801044,
-            55.7334245
-          ]
-        ]
-      },
-      "properties": {
-        "osm_type": "connector",
-        "point_osm_id": 3646255298
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "LineString",
-        "coordinates": [
-          [
-            37.5850754,
-            55.7335061
-          ],
-          [
-            37.58495185032816,
-            55.733630847460496
-          ]
-        ]
-      },
-      "properties": {
-        "osm_type": "connector",
-        "point_osm_id": 3646303234
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "LineString",
-        "coordinates": [
-          [
             37.5853187,
             55.7336003
           ],
@@ -26959,206 +26306,6 @@
       "properties": {
         "osm_type": "connector",
         "point_osm_id": 3646303239
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "LineString",
-        "coordinates": [
-          [
-            37.5887627,
-            55.7325556
-          ],
-          [
-            37.58879015146252,
-            55.7325691648338
-          ]
-        ]
-      },
-      "properties": {
-        "osm_type": "connector",
-        "point_osm_id": 3647628710
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "LineString",
-        "coordinates": [
-          [
-            37.589533,
-            55.7316466
-          ],
-          [
-            37.5896958,
-            55.7317491
-          ]
-        ]
-      },
-      "properties": {
-        "osm_type": "connector",
-        "point_osm_id": 3699841097
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "LineString",
-        "coordinates": [
-          [
-            37.5896611,
-            55.7318564
-          ],
-          [
-            37.5896958,
-            55.7317491
-          ]
-        ]
-      },
-      "properties": {
-        "osm_type": "connector",
-        "point_osm_id": 3699841098
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "LineString",
-        "coordinates": [
-          [
-            37.5900965,
-            55.7314901
-          ],
-          [
-            37.59008088840927,
-            55.731563972122494
-          ]
-        ]
-      },
-      "properties": {
-        "osm_type": "connector",
-        "point_osm_id": 3699841121
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "LineString",
-        "coordinates": [
-          [
-            37.5896626,
-            55.7325032
-          ],
-          [
-            37.5897718060921,
-            55.73245906855367
-          ]
-        ]
-      },
-      "properties": {
-        "osm_type": "connector",
-        "point_osm_id": 3699842360
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "LineString",
-        "coordinates": [
-          [
-            37.5892809,
-            55.736277
-          ],
-          [
-            37.589083444053635,
-            55.73635505187864
-          ]
-        ]
-      },
-      "properties": {
-        "osm_type": "connector",
-        "point_osm_id": 3700885074
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "LineString",
-        "coordinates": [
-          [
-            37.589012,
-            55.7360265
-          ],
-          [
-            37.58878626536579,
-            55.736115729890244
-          ]
-        ]
-      },
-      "properties": {
-        "osm_type": "connector",
-        "point_osm_id": 3700885117
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "LineString",
-        "coordinates": [
-          [
-            37.5887176,
-            55.7348076
-          ],
-          [
-            37.58869181709232,
-            55.734794528546864
-          ]
-        ]
-      },
-      "properties": {
-        "osm_type": "connector",
-        "point_osm_id": 3700901330
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "LineString",
-        "coordinates": [
-          [
-            37.5890333,
-            55.7346293
-          ],
-          [
-            37.58898994674315,
-            55.734607320802006
-          ]
-        ]
-      },
-      "properties": {
-        "osm_type": "connector",
-        "point_osm_id": 3700901353
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "LineString",
-        "coordinates": [
-          [
-            37.590777,
-            55.7334994
-          ],
-          [
-            37.590750693901974,
-            55.733486561818815
-          ]
-        ]
-      },
-      "properties": {
-        "osm_type": "connector",
-        "point_osm_id": 3702713432
       }
     },
     {
@@ -27187,26 +26334,6 @@
         "type": "LineString",
         "coordinates": [
           [
-            37.5820352,
-            55.7404733
-          ],
-          [
-            37.58205506223674,
-            55.74047219641949
-          ]
-        ]
-      },
-      "properties": {
-        "osm_type": "connector",
-        "point_osm_id": 4181074171
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "LineString",
-        "coordinates": [
-          [
             37.5813678,
             55.7273697
           ],
@@ -27219,46 +26346,6 @@
       "properties": {
         "osm_type": "connector",
         "point_osm_id": 5502976656
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "LineString",
-        "coordinates": [
-          [
-            37.580984,
-            55.7275138
-          ],
-          [
-            37.58094969458218,
-            55.72750071768333
-          ]
-        ]
-      },
-      "properties": {
-        "osm_type": "connector",
-        "point_osm_id": 5502976657
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "LineString",
-        "coordinates": [
-          [
-            37.5880442,
-            55.7350472
-          ],
-          [
-            37.58805299603206,
-            55.735051576089
-          ]
-        ]
-      },
-      "properties": {
-        "osm_type": "connector",
-        "point_osm_id": 5676700487
       }
     },
     {
@@ -27327,26 +26414,6 @@
         "type": "LineString",
         "coordinates": [
           [
-            37.5867618,
-            55.736761
-          ],
-          [
-            37.58696626738082,
-            55.736642495961995
-          ]
-        ]
-      },
-      "properties": {
-        "osm_type": "connector",
-        "point_osm_id": 7504592683
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "LineString",
-        "coordinates": [
-          [
             37.5833221,
             55.7360998
           ],
@@ -27371,7 +26438,7 @@
             55.7311303
           ],
           [
-            37.584028522167785,
+            37.58402852216778,
             55.73114827687882
           ]
         ]
@@ -27379,126 +26446,6 @@
       "properties": {
         "osm_type": "connector",
         "point_osm_id": 7876663228
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "LineString",
-        "coordinates": [
-          [
-            37.5840071,
-            55.731184
-          ],
-          [
-            37.58401728840742,
-            55.731184992587345
-          ]
-        ]
-      },
-      "properties": {
-        "osm_type": "connector",
-        "point_osm_id": 7876663229
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "LineString",
-        "coordinates": [
-          [
-            37.5839843,
-            55.7312495
-          ],
-          [
-            37.58399716771061,
-            55.73125075361396
-          ]
-        ]
-      },
-      "properties": {
-        "osm_type": "connector",
-        "point_osm_id": 7876663230
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "LineString",
-        "coordinates": [
-          [
-            37.5845899,
-            55.7312238
-          ],
-          [
-            37.5847404,
-            55.7311464
-          ]
-        ]
-      },
-      "properties": {
-        "osm_type": "connector",
-        "point_osm_id": 7876719106
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "LineString",
-        "coordinates": [
-          [
-            37.5857365,
-            55.7324575
-          ],
-          [
-            37.585733,
-            55.7325021
-          ]
-        ]
-      },
-      "properties": {
-        "osm_type": "connector",
-        "point_osm_id": 7876726414
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "LineString",
-        "coordinates": [
-          [
-            37.5859473,
-            55.7325164
-          ],
-          [
-            37.5860308,
-            55.7325596
-          ]
-        ]
-      },
-      "properties": {
-        "osm_type": "connector",
-        "point_osm_id": 7876726415
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "LineString",
-        "coordinates": [
-          [
-            37.5805979,
-            55.7314935
-          ],
-          [
-            37.580556398853425,
-            55.73153950361756
-          ]
-        ]
-      },
-      "properties": {
-        "osm_type": "connector",
-        "point_osm_id": 7876757754
       }
     },
     {
@@ -27547,66 +26494,6 @@
         "type": "LineString",
         "coordinates": [
           [
-            37.5777398,
-            55.7395474
-          ],
-          [
-            37.57776956462859,
-            55.73954258550579
-          ]
-        ]
-      },
-      "properties": {
-        "osm_type": "connector",
-        "point_osm_id": 7947554484
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "LineString",
-        "coordinates": [
-          [
-            37.5778111,
-            55.7396914
-          ],
-          [
-            37.57784260501592,
-            55.73968630399381
-          ]
-        ]
-      },
-      "properties": {
-        "osm_type": "connector",
-        "point_osm_id": 7947560685
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "LineString",
-        "coordinates": [
-          [
-            37.5881521,
-            55.7373011
-          ],
-          [
-            37.58820246899688,
-            55.73733871241317
-          ]
-        ]
-      },
-      "properties": {
-        "osm_type": "connector",
-        "point_osm_id": 8638112136
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "LineString",
-        "coordinates": [
-          [
             37.5917934,
             55.7329455
           ],
@@ -27627,18 +26514,18 @@
         "type": "LineString",
         "coordinates": [
           [
-            37.5866098,
-            55.7299763
+            37.578659,
+            55.7392565
           ],
           [
-            37.5866177721874,
-            55.72996937306181
+            37.578962906812286,
+            55.73920588854558
           ]
         ]
       },
       "properties": {
         "osm_type": "connector",
-        "point_osm_id": 9110820352
+        "point_osm_id": 1676802497
       }
     },
     {
@@ -27647,18 +26534,438 @@
         "type": "LineString",
         "coordinates": [
           [
-            37.5854982,
-            55.7295866
+            37.5787077,
+            55.7394411
           ],
           [
-            37.58552049186675,
-            55.72956723133815
+            37.5788168,
+            55.7394521
           ]
         ]
       },
       "properties": {
         "osm_type": "connector",
-        "point_osm_id": 9110820354
+        "point_osm_id": 1676802502
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            37.5787564,
+            55.7396258
+          ],
+          [
+            37.5788168,
+            55.7394521
+          ]
+        ]
+      },
+      "properties": {
+        "osm_type": "connector",
+        "point_osm_id": 1676802507
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            37.5919932,
+            55.7335776
+          ],
+          [
+            37.59200109873254,
+            55.73358413177947
+          ]
+        ]
+      },
+      "properties": {
+        "osm_type": "connector",
+        "point_osm_id": 2016851141
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            37.5915929,
+            55.7337218
+          ],
+          [
+            37.5916089792044,
+            55.73373509665431
+          ]
+        ]
+      },
+      "properties": {
+        "osm_type": "connector",
+        "point_osm_id": 2016851142
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            37.586889,
+            55.7329344
+          ],
+          [
+            37.586995735493204,
+            55.73286900935574
+          ]
+        ]
+      },
+      "properties": {
+        "osm_type": "connector",
+        "point_osm_id": 3241790962
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            37.5871334,
+            55.7332638
+          ],
+          [
+            37.58728189685078,
+            55.733214469001936
+          ]
+        ]
+      },
+      "properties": {
+        "osm_type": "connector",
+        "point_osm_id": 3241790963
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            37.5795556,
+            55.7299438
+          ],
+          [
+            37.5793943636041,
+            55.73009241391029
+          ]
+        ]
+      },
+      "properties": {
+        "osm_type": "connector",
+        "point_osm_id": 3646188260
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            37.5832359,
+            55.7303545
+          ],
+          [
+            37.583373023618876,
+            55.73024095476299
+          ]
+        ]
+      },
+      "properties": {
+        "osm_type": "connector",
+        "point_osm_id": 3646188264
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            37.5838895,
+            55.7307497
+          ],
+          [
+            37.584142917900145,
+            55.73077438902961
+          ]
+        ]
+      },
+      "properties": {
+        "osm_type": "connector",
+        "point_osm_id": 3646188267
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            37.581535,
+            55.7310343
+          ],
+          [
+            37.5816379,
+            55.7311501
+          ]
+        ]
+      },
+      "properties": {
+        "osm_type": "connector",
+        "point_osm_id": 3646194438
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            37.583195,
+            55.7312343
+          ],
+          [
+            37.5830202,
+            55.7313607
+          ]
+        ]
+      },
+      "properties": {
+        "osm_type": "connector",
+        "point_osm_id": 3646209002
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            37.5810885,
+            55.7315242
+          ],
+          [
+            37.58114665432669,
+            55.73142003869538
+          ]
+        ]
+      },
+      "properties": {
+        "osm_type": "connector",
+        "point_osm_id": 3646209008
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            37.589533,
+            55.7316466
+          ],
+          [
+            37.5896958,
+            55.7317491
+          ]
+        ]
+      },
+      "properties": {
+        "osm_type": "connector",
+        "point_osm_id": 3699841097
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            37.5896611,
+            55.7318564
+          ],
+          [
+            37.5896958,
+            55.7317491
+          ]
+        ]
+      },
+      "properties": {
+        "osm_type": "connector",
+        "point_osm_id": 3699841098
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            37.5892809,
+            55.736277
+          ],
+          [
+            37.589083444053635,
+            55.73635505187864
+          ]
+        ]
+      },
+      "properties": {
+        "osm_type": "connector",
+        "point_osm_id": 3700885074
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            37.589012,
+            55.7360265
+          ],
+          [
+            37.58878626536579,
+            55.736115729890244
+          ]
+        ]
+      },
+      "properties": {
+        "osm_type": "connector",
+        "point_osm_id": 3700885117
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            37.590777,
+            55.7334994
+          ],
+          [
+            37.590750693901974,
+            55.733486561818815
+          ]
+        ]
+      },
+      "properties": {
+        "osm_type": "connector",
+        "point_osm_id": 3702713432
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            37.5820352,
+            55.7404733
+          ],
+          [
+            37.58205506223674,
+            55.74047219641949
+          ]
+        ]
+      },
+      "properties": {
+        "osm_type": "connector",
+        "point_osm_id": 4181074171
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            37.5867618,
+            55.736761
+          ],
+          [
+            37.58696626738082,
+            55.736642495961995
+          ]
+        ]
+      },
+      "properties": {
+        "osm_type": "connector",
+        "point_osm_id": 7504592683
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            37.5859473,
+            55.7325164
+          ],
+          [
+            37.5860308,
+            55.7325596
+          ]
+        ]
+      },
+      "properties": {
+        "osm_type": "connector",
+        "point_osm_id": 7876726415
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            37.5777398,
+            55.7395474
+          ],
+          [
+            37.57776956462859,
+            55.73954258550579
+          ]
+        ]
+      },
+      "properties": {
+        "osm_type": "connector",
+        "point_osm_id": 7947554484
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            37.5881521,
+            55.7373011
+          ],
+          [
+            37.58820246899688,
+            55.73733871241317
+          ]
+        ]
+      },
+      "properties": {
+        "osm_type": "connector",
+        "point_osm_id": 8638112136
       }
     },
     {
@@ -27707,26 +27014,6 @@
         "type": "LineString",
         "coordinates": [
           [
-            37.5843729,
-            55.740575
-          ],
-          [
-            37.58442072587615,
-            55.74057955123118
-          ]
-        ]
-      },
-      "properties": {
-        "osm_type": "connector",
-        "point_osm_id": 9542872814
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "LineString",
-        "coordinates": [
-          [
             37.5844349,
             55.7404142
           ],
@@ -27739,26 +27026,6 @@
       "properties": {
         "osm_type": "connector",
         "point_osm_id": 9542872816
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "LineString",
-        "coordinates": [
-          [
-            37.5845002,
-            55.740245
-          ],
-          [
-            37.58452987669887,
-            55.740249294679245
-          ]
-        ]
-      },
-      "properties": {
-        "osm_type": "connector",
-        "point_osm_id": 9542878017
       }
     },
     {
@@ -27807,26 +27074,6 @@
         "type": "LineString",
         "coordinates": [
           [
-            37.5858878,
-            55.7348413
-          ],
-          [
-            37.5857374649824,
-            55.73477217401843
-          ]
-        ]
-      },
-      "properties": {
-        "osm_type": "connector",
-        "point_osm_id": 9754208654
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "LineString",
-        "coordinates": [
-          [
             37.5779065,
             55.7411527
           ],
@@ -27839,26 +27086,6 @@
       "properties": {
         "osm_type": "connector",
         "point_osm_id": 10887375550
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "LineString",
-        "coordinates": [
-          [
-            37.5776884,
-            55.741183
-          ],
-          [
-            37.57769327106061,
-            55.741192704212644
-          ]
-        ]
-      },
-      "properties": {
-        "osm_type": "connector",
-        "point_osm_id": 10887375551
       }
     },
     {
@@ -27979,26 +27206,6 @@
       "properties": {
         "osm_type": "connector",
         "point_osm_id": 13303176538
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "LineString",
-        "coordinates": [
-          [
-            37.5837911,
-            55.7390138
-          ],
-          [
-            37.58380663551336,
-            55.739015727153394
-          ]
-        ]
-      },
-      "properties": {
-        "osm_type": "connector",
-        "point_osm_id": 13305990961
       }
     },
     {

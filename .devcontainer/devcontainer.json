@@ -9,7 +9,8 @@
 				"BazelBuild.vscode-bazel",
 				"ms-vscode.cpptools-extension-pack",
 				"James-Yu.latex-workshop",
-				"llvm-vs-code-extensions.vscode-clangd"
+				"llvm-vs-code-extensions.vscode-clangd",
+				"ms-python.python"
 			]
 		}
 	}

@@ -63,7 +63,38 @@ ENTRANCE_VALUES = frozenset(["yes", "main", "staircase", "home"])
 
 BARRIER_VALUES = frozenset(["wall", "fence", "kerb"])
 
-DARK_STORE_NAME = "Яндекс.Лавка"
+BASE_POINT_SHOP_VALUES = frozenset(["supermarket"])
+
+BASE_POINT_DISUSED_KEYS = frozenset([
+    "disused:shop", "disused:amenity",
+    "was:shop", "was:amenity",
+    "construction:shop", "construction:amenity",
+    "abandoned:shop", "abandoned:amenity",
+])
+
+# Higher = preferred when two base points fall within MIN_BASE_POINT_DISTANCE_M.
+BASE_POINT_PRIORITY = {
+    "dark_store": 3,
+    "shop:supermarket": 2,
+    "shop:convenience": 1,
+}
+
+# Minimum spacing between any two accepted base points (metres).
+MIN_BASE_POINT_DISTANCE_M = 150.0
+
+# Minimum spacing between any two accepted delivery points (metres).
+# Entrances of the same building often sit a few metres apart; collapse only
+# near-duplicates.
+MIN_DELIVERY_POINT_DISTANCE_M = 20.0
+
+# Higher = preferred when two delivery points fall within
+# MIN_DELIVERY_POINT_DISTANCE_M. Falls back to 0 for unknown values.
+DELIVERY_POINT_PRIORITY = {
+    "main": 3,
+    "yes": 2,
+    "staircase": 1,
+    "home": 1,
+}
 
 # --- Geometry / simplification thresholds (metres) ---
 
@@ -122,6 +153,18 @@ def _is_entrance(tags) -> bool:
     return tags.get("entrance") in ENTRANCE_VALUES
 
 
+def _base_point_subtype(tags) -> str | None:
+    """Return base-point subtype for *tags*, or ``None`` if not a base point."""
+    if any(k in tags for k in BASE_POINT_DISUSED_KEYS):
+        return None
+    if tags.get("dark_store") == "yes":
+        return "dark_store"
+    if tags.get("shop") in BASE_POINT_SHOP_VALUES:
+        if tags.get("name") or tags.get("name:ru"):
+            return "shop:" + tags.get("shop")
+    return None
+
+
 def _tags_to_dict(tags) -> dict:
     return {tag.k: tag.v for tag in tags}
 
@@ -150,7 +193,8 @@ class PedestrianHandler(osmium.SimpleHandler):
         self.barrier_ways: list[list[list[float]]] = []
 
     def node(self, n):
-        if n.tags.get("dark_store") == "yes" and n.tags.get("name") == DARK_STORE_NAME:
+        subtype = _base_point_subtype(n.tags)
+        if subtype is not None:
             self.store_features.append(
                 {
                     "type": "Feature",
@@ -162,6 +206,7 @@ class PedestrianHandler(osmium.SimpleHandler):
                         "osm_id": n.id,
                         "osm_type": "node",
                         "type": "base_point",
+                        "subtype": subtype,
                         **_tags_to_dict(n.tags),
                     },
                 }
@@ -1393,7 +1438,7 @@ def fix_interior_violations(
 
             for idx in range(len(features)):
                 if features[idx] is not None and features[idx].get("__deleted__"):
-                    features[idx] = None
+                    features[idx] = None  # type: ignore[call-overload]
 
             total_snaps += len(snap_pairs)
             continue
@@ -1758,6 +1803,72 @@ def load_location_polygon(path: Path) -> list[list[float]]:
     return ring
 
 
+def _dedupe_points(
+    features: list[dict],
+    min_distance_m: float,
+    priority_of,
+    label: str,
+) -> list[dict]:
+    """Greedily drop points closer than *min_distance_m* to a kept one.
+
+    Sort by (priority desc, osm_id asc); ties broken by smaller osm_id for
+    determinism. *priority_of* maps a feature to an int (higher = preferred).
+    """
+    if len(features) < 2:
+        return features
+
+    def _key(f: dict) -> tuple[int, int]:
+        oid = f["properties"].get("osm_id")
+        oid_int = oid if isinstance(oid, int) else 0
+        return (-priority_of(f), oid_int)
+
+    ordered = sorted(features, key=_key)
+    kept: list[dict] = []
+    for feat in ordered:
+        lon, lat = feat["geometry"]["coordinates"]
+        too_close = False
+        for k in kept:
+            klon, klat = k["geometry"]["coordinates"]
+            if _lonlat_distance_m([lon, lat], [klon, klat]) < min_distance_m:
+                too_close = True
+                break
+        if not too_close:
+            kept.append(feat)
+
+    dropped = len(features) - len(kept)
+    log.info(
+        "Dedupe %s: %d → %d (dropped %d within %.0f m).",
+        label, len(features), len(kept), dropped, min_distance_m,
+    )
+    return kept
+
+
+def dedupe_base_points(
+    features: list[dict],
+    min_distance_m: float = MIN_BASE_POINT_DISTANCE_M,
+) -> list[dict]:
+    """Greedily drop base points closer than *min_distance_m* to a kept one."""
+    return _dedupe_points(
+        features,
+        min_distance_m,
+        lambda f: BASE_POINT_PRIORITY.get(f["properties"].get("subtype", ""), 0),
+        "base points",
+    )
+
+
+def dedupe_delivery_points(
+    features: list[dict],
+    min_distance_m: float = MIN_DELIVERY_POINT_DISTANCE_M,
+) -> list[dict]:
+    """Greedily drop delivery points closer than *min_distance_m* to a kept one."""
+    return _dedupe_points(
+        features,
+        min_distance_m,
+        lambda f: DELIVERY_POINT_PRIORITY.get(f["properties"].get("entrance", ""), 0),
+        "delivery points",
+    )
+
+
 def load_basepoints_geojson(path: Path) -> list[dict]:
     """Load Point features from a GeoJSON file as extra base points.
 
@@ -1924,9 +2035,25 @@ def parse_args(argv=None):
     parser.add_argument(
         "-o",
         "--output",
-        required=True,
+        required=False,
+        default=None,
         metavar="FILE",
-        help="Output GeoJSON file",
+        help=(
+            "Output GeoJSON file. If omitted, the rest of the processing "
+            "pipeline is skipped (useful together with --output-map to only "
+            "download the raw OSM data)."
+        ),
+    )
+    parser.add_argument(
+        "--output-map",
+        required=False,
+        default=None,
+        metavar="FILE",
+        help=(
+            "Path to write the downloaded raw OSM file to. Only used when "
+            "OSM data is downloaded via the Overpass API (i.e. when --input "
+            "is not provided); ignored otherwise."
+        ),
     )
     parser.add_argument(
         "-l",
@@ -1968,7 +2095,8 @@ def main(argv=None):
             path = (work_dir / path).resolve()
         return path
 
-    output_path = _resolve(args.output)
+    output_path = _resolve(args.output) if args.output else None
+    output_map_path = _resolve(args.output_map) if args.output_map else None
 
     if not args.input and not args.location:
         import sys
@@ -1981,6 +2109,14 @@ def main(argv=None):
         )
         sys.exit(2)
 
+    if output_path is None and output_map_path is None:
+        import sys
+        print(
+            "error: at least one of --output or --output-map must be provided.",
+            file=sys.stderr,
+        )
+        sys.exit(2)
+
     location_ring: list[list[float]] | None = None
     if args.location:
         location_path = _resolve(args.location)
@@ -1989,10 +2125,24 @@ def main(argv=None):
     tmp_osm_path: Path | None = None
     if args.input:
         input_path = _resolve(args.input)
+        if output_map_path is not None:
+            log.info("--output-map ignored because --input was provided.")
+            output_map_path = None
     else:
         assert location_ring is not None
-        tmp_osm_path = download_osm_for_polygon(location_ring)
-        input_path = tmp_osm_path
+        downloaded_path = download_osm_for_polygon(location_ring)
+        if output_map_path is not None:
+            output_map_path.parent.mkdir(parents=True, exist_ok=True)
+            downloaded_path.replace(output_map_path)
+            input_path = output_map_path
+            log.info("Saved downloaded OSM data to %s.", output_map_path)
+        else:
+            tmp_osm_path = downloaded_path
+            input_path = tmp_osm_path
+
+    if output_path is None:
+        log.info("--output not provided; skipping processing pipeline.")
+        return
 
     try:
         handler = PedestrianHandler()
@@ -2041,6 +2191,9 @@ def main(argv=None):
                 "Total base points after merging: %d (OSM) + %d (file) = %d.",
                 osm_count, len(extra_store_features), len(store_features),
             )
+
+        store_features = dedupe_base_points(store_features)
+        entrance_features = dedupe_delivery_points(entrance_features)
 
         # Tag narrow passages before any splitting; the tag propagates through
         # the planarize/simplify passes via dict(props).

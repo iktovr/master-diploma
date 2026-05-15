@@ -1,2 +1,4 @@
 *.ipynb linguist-vendored
+src/compile_commands.sh eol=lf
 src/maps/filter_osm_wrapper.sh eol=lf
+src/maps/regenerate_all.sh eol=lf

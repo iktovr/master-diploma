@@ -12,6 +12,9 @@
 		"C_Cpp.default.cppStandard": "c++20",
 		"C_Cpp.intelliSenseEngine": "disabled",
 		"clangd.arguments": [
+			"--background-index",
+			"--clang-tidy",
+			"--header-insertion=never",
 			"--compile-commands-dir=${workspaceFolder}/src"
 		]
 	}

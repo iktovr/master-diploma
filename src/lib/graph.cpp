@@ -9,7 +9,9 @@
 #include <queue>
 #include <sstream>
 #include <string>
+#include <limits>
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -192,7 +194,7 @@ struct LonLatHash {
 
 } // namespace
 
-Graph Graph::LoadFromGeoJsonFile(const fs::path path) {
+Graph Graph::LoadFromGeoJsonFile(const fs::path path, int basepoints_limit) {
     assert(fs::exists(path) && fs::is_regular_file(path));
 
     std::ifstream file(path);
@@ -312,6 +314,100 @@ Graph Graph::LoadFromGeoJsonFile(const fs::path path) {
     const double ref_x = sum_x / n;
     const double ref_y = sum_y / n;
 
+    // Build local-frame Point positions for every vertex.
+    std::vector<Point> local_pos(n);
+    for (int i = 0; i < n; ++i) {
+        local_pos[i] = Point{utm_coords[i].first - ref_x, utm_coords[i].second - ref_y};
+    }
+
+    // Collect base-point indices.
+    std::vector<int> base_indices;
+    for (int i = 0; i < n; ++i) {
+        auto pit = point_type_by_pos.find(id_to_coord[i]);
+        if (pit != point_type_by_pos.end() && pit->second == Vertex::base) {
+            base_indices.push_back(i);
+        }
+    }
+
+    // Determine which base points to keep based on basepoints_limit.
+    std::unordered_set<int> kept_base_indices;
+    const int total_base = static_cast<int>(base_indices.size());
+    if (basepoints_limit < 0 || basepoints_limit >= total_base) {
+        for (int idx : base_indices) {
+            kept_base_indices.insert(idx);
+        }
+    } else if (basepoints_limit == 0 || total_base == 0) {
+        // keep none
+    } else if (basepoints_limit == 1) {
+        // Pick base point most centered (closest to centroid of base points).
+        Point centroid{0.0, 0.0};
+        for (int idx : base_indices) {
+            centroid += local_pos[idx];
+        }
+        bg::divide_value(centroid, static_cast<double>(total_base));
+        int best = base_indices.front();
+        double best_d = std::numeric_limits<double>::infinity();
+        for (int idx : base_indices) {
+            const double d = bg::distance(local_pos[idx], centroid);
+            if (d < best_d) {
+                best_d = d;
+                best = idx;
+            }
+        }
+        kept_base_indices.insert(best);
+    } else {
+        // Greedy farthest-point sampling: start with the most distant pair,
+        // then iteratively add the candidate that maximizes the minimum
+        // distance to the current selection.
+        int a0 = base_indices[0];
+        int b0 = base_indices[1];
+        double best_pair = -1.0;
+        for (int i = 0; i < total_base; ++i) {
+            for (int j = i + 1; j < total_base; ++j) {
+                const double d = bg::distance(local_pos[base_indices[i]], local_pos[base_indices[j]]);
+                if (d > best_pair) {
+                    best_pair = d;
+                    a0 = base_indices[i];
+                    b0 = base_indices[j];
+                }
+            }
+        }
+
+        std::vector<int> selected{a0, b0};
+        std::unordered_set<int> selected_set{a0, b0};
+        std::unordered_map<int, double> min_dist;
+        min_dist.reserve(total_base);
+        for (int idx : base_indices) {
+            if (selected_set.count(idx)) continue;
+            min_dist[idx] = std::min(
+                bg::distance(local_pos[idx], local_pos[a0]),
+                bg::distance(local_pos[idx], local_pos[b0])
+            );
+        }
+
+        while (static_cast<int>(selected.size()) < basepoints_limit) {
+            int best = -1;
+            double best_d = -1.0;
+            for (const auto& [idx, d] : min_dist) {
+                if (d > best_d) {
+                    best_d = d;
+                    best = idx;
+                }
+            }
+            if (best < 0) break;
+            selected.push_back(best);
+            selected_set.insert(best);
+            min_dist.erase(best);
+            for (auto& [idx, d] : min_dist) {
+                d = std::min(d, bg::distance(local_pos[idx], local_pos[best]));
+            }
+        }
+
+        for (int s : selected) {
+            kept_base_indices.insert(s);
+        }
+    }
+
     Graph g;
     for (int i = 0; i < n; ++i) {
         Vertex::Type vtype = Vertex::none;
@@ -319,7 +415,11 @@ Graph Graph::LoadFromGeoJsonFile(const fs::path path) {
         if (pit != point_type_by_pos.end()) {
             vtype = pit->second;
         }
-        g.AddVertex(utm_coords[i].first - ref_x, utm_coords[i].second - ref_y, vtype);
+        // Downgrade non-kept base points to none.
+        if (vtype == Vertex::base && !kept_base_indices.count(i)) {
+            vtype = Vertex::none;
+        }
+        g.AddVertex(bg::get<0>(local_pos[i]), bg::get<1>(local_pos[i]), vtype);
     }
 
     for (const auto& le : lines) {

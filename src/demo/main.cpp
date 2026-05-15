@@ -2,6 +2,7 @@
 #include <filesystem>
 #include <format>
 #include <iostream>
+#include <limits>
 #include <string>
 
 #include <CLI/CLI.hpp>
@@ -43,6 +44,7 @@ int main(int argc, char **argv) {
     double vis_step = 0.1;
     fs::path animation_path;
     int animation_framerate = 5;
+    int basepoints_limit = -1;
 
     app.add_option("-g, --graph", graph_path, "Path to file with graph description")
         ->required()->transform(correct_path)->check(CLI::ExistingFile);
@@ -60,6 +62,8 @@ int main(int argc, char **argv) {
         ->check(CLI::PositiveNumber);
     app.add_option("-v, --visualize-step", vis_step, "Period of visualizations")
         ->check(CLI::PositiveNumber);
+    app.add_option("-b, --basepoints", basepoints_limit, "Number of base points to keep from the GeoJSON map (-1 = all)")
+        ->check(CLI::Range(-1, std::numeric_limits<int>::max()));
 
     app.add_option("--animate", animation_path, "Convert visualization frames to animation using ffmpeg")
         ->transform(correct_path);
@@ -68,7 +72,7 @@ int main(int argc, char **argv) {
     CLI11_PARSE(app, argc, argv);
 
     Graph g = (graph_path.extension() == ".geojson")
-        ? Graph::LoadFromGeoJsonFile(graph_path)
+        ? Graph::LoadFromGeoJsonFile(graph_path, basepoints_limit)
         : Graph::LoadFromFile(graph_path);
     std::optional<Visualizer> vis;
     if (!output_dir.empty()) {

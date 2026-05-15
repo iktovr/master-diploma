@@ -26,6 +26,7 @@ RUN chmod -R 644 /usr/share/fonts/truetype/msttcorefonts/* \
     texlive-fonts-recommended \
     fontconfig \
     ffmpeg \
+    clangd \
     python3-pyosmium \
     python3-networkx \
     python3-pyproj \

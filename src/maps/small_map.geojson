@@ -434,30 +434,6 @@
             55.7400634601059
           ],
           [
-            37.58452987669887,
-            55.740249294679245
-          ]
-        ]
-      },
-      "properties": {
-        "osm_id": 277851257,
-        "osm_type": "way",
-        "narrow": "no",
-        "highway": "footway",
-        "lit": "yes",
-        "surface": "paving_stones"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "LineString",
-        "coordinates": [
-          [
-            37.58452987669887,
-            55.740249294679245
-          ],
-          [
             37.5844995,
             55.7403161
           ]
@@ -504,30 +480,6 @@
           [
             37.58446919166263,
             55.74041746327815
-          ],
-          [
-            37.58442072587615,
-            55.74057955123118
-          ]
-        ]
-      },
-      "properties": {
-        "osm_id": 277851257,
-        "osm_type": "way",
-        "narrow": "no",
-        "highway": "footway",
-        "lit": "yes",
-        "surface": "paving_stones"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "LineString",
-        "coordinates": [
-          [
-            37.58442072587615,
-            55.74057955123118
           ],
           [
             37.58438115191715,
@@ -699,31 +651,6 @@
           [
             37.5833034,
             55.7407157
-          ],
-          [
-            37.58349832251683,
-            55.740737960144266
-          ]
-        ]
-      },
-      "properties": {
-        "osm_id": 403667792,
-        "osm_type": "way",
-        "narrow": "no",
-        "footway": "sidewalk",
-        "highway": "footway",
-        "lit": "yes",
-        "surface": "asphalt"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "LineString",
-        "coordinates": [
-          [
-            37.58349832251683,
-            55.740737960144266
           ],
           [
             37.5843262,
@@ -1651,6 +1578,7 @@
         "osm_id": 13305990963,
         "osm_type": "node",
         "type": "base_point",
+        "subtype": "dark_store",
         "dark_store": "yes",
         "name": "Яндекс.Лавка",
         "marker-color": "#ff0000"
@@ -1719,25 +1647,6 @@
       "geometry": {
         "type": "Point",
         "coordinates": [
-          37.58349832251683,
-          55.740737960144266
-        ]
-      },
-      "properties": {
-        "osm_id": 9542872810,
-        "osm_type": "node",
-        "type": "delivery_point",
-        "addr:flats": "1-34",
-        "entrance": "staircase",
-        "ref": "1",
-        "marker-color": "#3388ff"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
           37.5843223,
           55.7407063
         ]
@@ -1757,25 +1666,6 @@
       "geometry": {
         "type": "Point",
         "coordinates": [
-          37.5843729,
-          55.740575
-        ]
-      },
-      "properties": {
-        "osm_id": 9542872814,
-        "osm_type": "node",
-        "type": "delivery_point",
-        "addr:flats": "37-54",
-        "entrance": "staircase",
-        "ref": "3",
-        "marker-color": "#3388ff"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
           37.5844349,
           55.7404142
         ]
@@ -1787,25 +1677,6 @@
         "addr:flats": "19-36",
         "entrance": "staircase",
         "ref": "2",
-        "marker-color": "#3388ff"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          37.5845002,
-          55.740245
-        ]
-      },
-      "properties": {
-        "osm_id": 9542878017,
-        "osm_type": "node",
-        "type": "delivery_point",
-        "addr:flats": "1-18",
-        "entrance": "staircase",
-        "ref": "1",
         "marker-color": "#3388ff"
       }
     },
@@ -1889,26 +1760,6 @@
     {
       "type": "Feature",
       "geometry": {
-        "type": "Point",
-        "coordinates": [
-          37.5837911,
-          55.7390138
-        ]
-      },
-      "properties": {
-        "osm_id": 13305990961,
-        "osm_type": "node",
-        "type": "delivery_point",
-        "access": "private",
-        "addr:flats": "15-26",
-        "entrance": "staircase",
-        "ref": "2",
-        "marker-color": "#3388ff"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
         "type": "LineString",
         "coordinates": [
           [
@@ -1972,26 +1823,6 @@
         "type": "LineString",
         "coordinates": [
           [
-            37.5843729,
-            55.740575
-          ],
-          [
-            37.58442072587615,
-            55.74057955123118
-          ]
-        ]
-      },
-      "properties": {
-        "osm_type": "connector",
-        "point_osm_id": 9542872814
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "LineString",
-        "coordinates": [
-          [
             37.5844349,
             55.7404142
           ],
@@ -2004,26 +1835,6 @@
       "properties": {
         "osm_type": "connector",
         "point_osm_id": 9542872816
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "LineString",
-        "coordinates": [
-          [
-            37.5845002,
-            55.740245
-          ],
-          [
-            37.58452987669887,
-            55.740249294679245
-          ]
-        ]
-      },
-      "properties": {
-        "osm_type": "connector",
-        "point_osm_id": 9542878017
       }
     },
     {
@@ -2104,26 +1915,6 @@
       "properties": {
         "osm_type": "connector",
         "point_osm_id": 13303176537
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "LineString",
-        "coordinates": [
-          [
-            37.5837911,
-            55.7390138
-          ],
-          [
-            37.58380663551336,
-            55.739015727153394
-          ]
-        ]
-      },
-      "properties": {
-        "osm_type": "connector",
-        "point_osm_id": 13305990961
       }
     }
   ]
