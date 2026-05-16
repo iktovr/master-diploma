@@ -17,9 +17,9 @@ void Dispatch::Step(Agents& agents) {
         if (current_order[i] == -1) {
             int order = NewOrder();
             current_order[i] = order;
-            agent.SetRoute(graph.GetRoute(agent.base, order));
+            agent.SetRoute(router->GetRoute(agent.base, order));
         } else {
-            agent.SetRoute(graph.GetRoute(current_order[i], agent.base));
+            agent.SetRoute(router->GetRoute(current_order[i], agent.base));
             current_order[i] = -1;
         }
     }
@@ -35,6 +35,6 @@ void Dispatch::AssignBasePoints(Agents& agents) const {
     for (size_t i = 0; i < agents.size(); ++i) {
         size_t base = i % base_points.size();
         agents[i].base = base_points[base];
-        agents[i].pos = graph.vertices[base_points[base]].pos;
+        agents[i].pos = graph->vertices[base_points[base]].pos;
     }
 }

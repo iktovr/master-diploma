@@ -1,9 +1,15 @@
 #include <gtest/gtest.h>
 
+#include <memory>
+
 #include "lib/semaphore.h"
 #include "lib/graph.h"
 #include "lib/agent.h"
 #include "lib/geometry.h"
+
+static std::shared_ptr<const Graph> AsShared(const Graph& g) {
+    return std::make_shared<const Graph>(g);
+}
 
 // ---------------------------------------------------------------------------
 // Graph helpers
@@ -44,19 +50,19 @@ static Graph MakeTwoNarrowGraph() {
 
 TEST(SemaphoreManagerConstruction, NoSemaphoresForWideGraph) {
     Graph g = MakeWideGraph();
-    SemaphoreManager sm(g);
+    SemaphoreManager sm(AsShared(g));
     EXPECT_TRUE(sm.semaphores.empty());
 }
 
 TEST(SemaphoreManagerConstruction, OneSemaphoreForOneNarrowEdge) {
     Graph g = MakeNarrowGraph();
-    SemaphoreManager sm(g);
+    SemaphoreManager sm(AsShared(g));
     EXPECT_EQ(sm.semaphores.size(), 1u);
 }
 
 TEST(SemaphoreManagerConstruction, TwoSemaphoresForTwoNarrowEdges) {
     Graph g = MakeTwoNarrowGraph();
-    SemaphoreManager sm(g);
+    SemaphoreManager sm(AsShared(g));
     EXPECT_EQ(sm.semaphores.size(), 2u);
 }
 
@@ -66,7 +72,7 @@ TEST(SemaphoreManagerConstruction, TwoSemaphoresForTwoNarrowEdges) {
 
 TEST(SemaphoreIntersection, IncomingFromLeftSide) {
     Graph g = MakeNarrowGraph();
-    SemaphoreManager sm(g);
+    SemaphoreManager sm(AsShared(g));
     const auto& sem = sm.semaphores[0];
 
     // route[1] == seg[0], route[2] == seg[1]  →  return 1
@@ -80,7 +86,7 @@ TEST(SemaphoreIntersection, IncomingFromLeftSide) {
 
 TEST(SemaphoreIntersection, IncomingFromRightSide) {
     Graph g = MakeNarrowGraph();
-    SemaphoreManager sm(g);
+    SemaphoreManager sm(AsShared(g));
     const auto& sem = sm.semaphores[0];
 
     // route[1] == seg[1], route[2] == seg[0]  →  return 2
@@ -94,7 +100,7 @@ TEST(SemaphoreIntersection, IncomingFromRightSide) {
 
 TEST(SemaphoreIntersection, AgentInsideMovingTowardsLeftSide) {
     Graph g = MakeNarrowGraph();
-    SemaphoreManager sm(g);
+    SemaphoreManager sm(AsShared(g));
     const auto& sem = sm.semaphores[0];
 
     // route[1] == seg[0], but route[2] != seg[1]  →  return -1
@@ -108,7 +114,7 @@ TEST(SemaphoreIntersection, AgentInsideMovingTowardsLeftSide) {
 
 TEST(SemaphoreIntersection, AgentInsideMovingTowardsRightSide) {
     Graph g = MakeNarrowGraph();
-    SemaphoreManager sm(g);
+    SemaphoreManager sm(AsShared(g));
     const auto& sem = sm.semaphores[0];
 
     // route[1] == seg[1], but route[2] != seg[0]  →  return -2
@@ -122,7 +128,7 @@ TEST(SemaphoreIntersection, AgentInsideMovingTowardsRightSide) {
 
 TEST(SemaphoreIntersection, NoIntersection) {
     Graph g = MakeNarrowGraph();
-    SemaphoreManager sm(g);
+    SemaphoreManager sm(AsShared(g));
     const auto& sem = sm.semaphores[0];
 
     // route does not touch the semaphore segment at all  →  return 0
@@ -140,7 +146,7 @@ TEST(SemaphoreIntersection, NoIntersection) {
 
 TEST(SemaphoreState, InitiallyEmpty) {
     Graph g = MakeNarrowGraph();
-    SemaphoreManager sm(g);
+    SemaphoreManager sm(AsShared(g));
     const auto& sem = sm.semaphores[0];
 
     EXPECT_TRUE(sem.Empty());
@@ -149,7 +155,7 @@ TEST(SemaphoreState, InitiallyEmpty) {
 
 TEST(SemaphoreState, InsideAfterInsertIntoLeftQueue) {
     Graph g = MakeNarrowGraph();
-    SemaphoreManager sm(g);
+    SemaphoreManager sm(AsShared(g));
     auto& sem = sm.semaphores[0];
 
     sem.inner_left_q.insert(42);
@@ -159,7 +165,7 @@ TEST(SemaphoreState, InsideAfterInsertIntoLeftQueue) {
 
 TEST(SemaphoreState, InsideAfterInsertIntoRightQueue) {
     Graph g = MakeNarrowGraph();
-    SemaphoreManager sm(g);
+    SemaphoreManager sm(AsShared(g));
     auto& sem = sm.semaphores[0];
 
     sem.inner_right_q.insert(7);
@@ -169,7 +175,7 @@ TEST(SemaphoreState, InsideAfterInsertIntoRightQueue) {
 
 TEST(SemaphoreState, ExitFromLeftQueueClearsAgent) {
     Graph g = MakeNarrowGraph();
-    SemaphoreManager sm(g);
+    SemaphoreManager sm(AsShared(g));
     auto& sem = sm.semaphores[0];
 
     sem.inner_left_q.insert(5);
@@ -181,7 +187,7 @@ TEST(SemaphoreState, ExitFromLeftQueueClearsAgent) {
 
 TEST(SemaphoreState, ExitFromRightQueueClearsAgent) {
     Graph g = MakeNarrowGraph();
-    SemaphoreManager sm(g);
+    SemaphoreManager sm(AsShared(g));
     auto& sem = sm.semaphores[0];
 
     sem.inner_right_q.insert(3);
@@ -193,7 +199,7 @@ TEST(SemaphoreState, ExitFromRightQueueClearsAgent) {
 
 TEST(SemaphoreState, EmptyOnlyWhenBothInnerQueuesEmpty) {
     Graph g = MakeNarrowGraph();
-    SemaphoreManager sm(g);
+    SemaphoreManager sm(AsShared(g));
     auto& sem = sm.semaphores[0];
 
     sem.inner_left_q.insert(1);
@@ -241,7 +247,7 @@ static Agent MakeAgentWithRoute(const Linestring& route) {
 
 TEST(SemaphoreManagerStep, AgentEntersWaitFromLeftSide) {
     Graph g = MakeNarrowGraph();
-    SemaphoreManager sm(g);
+    SemaphoreManager sm(AsShared(g));
     const auto& sem = sm.semaphores[0];
 
     Agents agents;
@@ -258,7 +264,7 @@ TEST(SemaphoreManagerStep, AgentEntersWaitFromLeftSide) {
 
 TEST(SemaphoreManagerStep, AgentEntersWaitFromRightSide) {
     Graph g = MakeNarrowGraph();
-    SemaphoreManager sm(g);
+    SemaphoreManager sm(AsShared(g));
     const auto& sem = sm.semaphores[0];
 
     Agents agents;
@@ -274,7 +280,7 @@ TEST(SemaphoreManagerStep, AgentEntersWaitFromRightSide) {
 
 TEST(SemaphoreManagerStep, AgentFarAwayDoesNotWait) {
     Graph g = MakeNarrowGraph();
-    SemaphoreManager sm(g);
+    SemaphoreManager sm(AsShared(g));
     const auto& sem = sm.semaphores[0];
 
     // Agent is 0.5 units away from seg[0] – beyond the 0.25 threshold
@@ -293,7 +299,7 @@ TEST(SemaphoreManagerStep, AgentFarAwayDoesNotWait) {
 
 TEST(SemaphoreManagerStep, IdleAgentIsIgnored) {
     Graph g = MakeNarrowGraph();
-    SemaphoreManager sm(g);
+    SemaphoreManager sm(AsShared(g));
 
     Agents agents;
     Agent a;
@@ -311,7 +317,7 @@ TEST(SemaphoreManagerStep, IdleAgentIsIgnored) {
 
 TEST(SemaphoreManagerStep, WaitingAgentReleasedWhenSemaphoreIsEmpty) {
     Graph g = MakeNarrowGraph();
-    SemaphoreManager sm(g);
+    SemaphoreManager sm(AsShared(g));
     auto& sem = sm.semaphores[0];
 
     Agents agents;
@@ -332,7 +338,7 @@ TEST(SemaphoreManagerStep, WaitingAgentReleasedWhenSemaphoreIsEmpty) {
 
 TEST(SemaphoreManagerStep, OpposingAgentsDoNotEnterSimultaneously) {
     Graph g = MakeNarrowGraph();
-    SemaphoreManager sm(g);
+    SemaphoreManager sm(AsShared(g));
     auto& sem = sm.semaphores[0];
 
     Agents agents;
@@ -361,7 +367,7 @@ TEST(SemaphoreManagerStep, OpposingAgentsDoNotEnterSimultaneously) {
 
 TEST(SemaphoreManagerStep, SameSideAgentsAllReleasedTogether) {
     Graph g = MakeNarrowGraph();
-    SemaphoreManager sm(g);
+    SemaphoreManager sm(AsShared(g));
     auto& sem = sm.semaphores[0];
 
     Agents agents;
@@ -379,7 +385,7 @@ TEST(SemaphoreManagerStep, SameSideAgentsAllReleasedTogether) {
 
 TEST(SemaphoreManagerStep, AgentExitsAndReleasesOpposingQueue) {
     Graph g = MakeNarrowGraph();
-    SemaphoreManager sm(g);
+    SemaphoreManager sm(AsShared(g));
     auto& sem = sm.semaphores[0];
 
     Agents agents;
@@ -407,7 +413,7 @@ TEST(SemaphoreManagerStep, AgentExitsAndReleasesOpposingQueue) {
 
 TEST(SemaphoreManagerStep, AgentInsideAllowsSameSideToJoin) {
     Graph g = MakeNarrowGraph();
-    SemaphoreManager sm(g);
+    SemaphoreManager sm(AsShared(g));
     auto& sem = sm.semaphores[0];
 
     // Agent 0 is already inside from the left and is still traversing the

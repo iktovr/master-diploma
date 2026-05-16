@@ -9,6 +9,7 @@
 
 #include "lib/agent.h"
 #include "lib/graph.h"
+#include "lib/router.h"
 #include "lib/simulation.h"
 #include "lib/visualizer.h"
 
@@ -71,9 +72,10 @@ int main(int argc, char **argv) {
 
     CLI11_PARSE(app, argc, argv);
 
-    Graph g = (graph_path.extension() == ".geojson")
-        ? Graph::LoadFromGeoJsonFile(graph_path, basepoints_limit)
-        : Graph::LoadFromFile(graph_path);
+    auto g = std::make_shared<const Graph>(
+        (graph_path.extension() == ".geojson")
+            ? Graph::LoadFromGeoJsonFile(graph_path, basepoints_limit)
+            : Graph::LoadFromFile(graph_path));
     std::optional<Visualizer> vis;
     if (!output_dir.empty()) {
         if (!fs::exists(output_dir)) {
@@ -85,11 +87,12 @@ int main(int argc, char **argv) {
                 }
             }
         }
-        vis.emplace(g.Width() * 1.05, g.Height() * 1.05, g.Centroid(), max_frame_size, output_dir);
+        vis.emplace(g->Width() * 1.05, g->Height() * 1.05, g->Centroid(), max_frame_size, output_dir);
     }
 
     Agents agents(agents_count, Agent(0, 0, 0));
-    Simulation sim(max_speed, std::move(agents), std::move(g), vis);
+    const std::shared_ptr<const IRouter> router = std::make_shared<AStarRouter>(g);
+    Simulation sim(max_speed, std::move(agents), g, router, vis);
     sim.Simulate(duration, step, vis_step);
 
     if (vis && !animation_path.empty()) {

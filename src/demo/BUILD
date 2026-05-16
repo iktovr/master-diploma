@@ -8,6 +8,7 @@ cc_binary(
     deps = [
         "//lib:agent",
         "//lib:graph",
+        "//lib:router",
         "//lib:simulation",
         "//lib:visualizer",
         "@cli11",

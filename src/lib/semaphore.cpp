@@ -1,6 +1,11 @@
 #include "semaphore.h"
 
+#include <memory>
 #include <utility>
+
+#include "agent.h"
+#include "geometry.h"
+#include "graph.h"
 
 int SemaphoreManager::Semaphore::Intersection(const Linestring& incoming_route) const {
     if (bg::equals(segment[0], incoming_route[1])) {
@@ -17,14 +22,14 @@ int SemaphoreManager::Semaphore::Intersection(const Linestring& incoming_route) 
     return 0; // no intersection
 }
 
-SemaphoreManager::SemaphoreManager(const Graph& graph) : graph(graph) {
-    for (int u = 0; u < static_cast<int>(graph.vertices.size()); ++u) {
-        for (auto& [v, edge] : graph.edges[u]) {
+SemaphoreManager::SemaphoreManager(std::shared_ptr<const Graph> graph_) : graph(std::move(graph_)) {
+    for (int u = 0; u < static_cast<int>(graph->vertices.size()); ++u) {
+        for (auto& [v, edge] : graph->edges[u]) {
             if (v > u) {
                 continue;
             }
             if (edge.narrow) {
-                semaphores.emplace_back(graph.vertices[u].pos, graph.vertices[v].pos);
+                semaphores.emplace_back(graph->vertices[u].pos, graph->vertices[v].pos);
             }
         }
     }

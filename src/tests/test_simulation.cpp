@@ -1,11 +1,14 @@
 #include <gtest/gtest.h>
 
+#include <memory>
+
 #include "lib/agent.h"
 #include "lib/graph.h"
+#include "lib/router.h"
 #include "lib/simulation.h"
 
 // ---------------------------------------------------------------------------
-// Graph helpers
+// Helpers
 // ---------------------------------------------------------------------------
 
 // base(0,0) --wide-- node(1,0) --wide-- delivery(2,0)
@@ -19,6 +22,12 @@ static Graph MakeLinearGraph() {
     return g;
 }
 
+static Simulation MakeSimulation(const double speed, const Agents& agents, const Graph& g) {
+    auto g_ptr = std::make_shared<const Graph>(g);
+    auto router = std::make_shared<const AStarRouter>(g_ptr);
+    return Simulation(speed, agents, g_ptr, router);
+}
+
 // ---------------------------------------------------------------------------
 // Simulation::Step
 // ---------------------------------------------------------------------------
@@ -26,7 +35,7 @@ static Graph MakeLinearGraph() {
 TEST(SimulationStep, IdleAgentGetsDispatchedAndStartsMoving) {
     Graph g = MakeLinearGraph();
     Agents agents(1);
-    Simulation sim(1.0, agents, g);
+    Simulation sim = MakeSimulation(1.0, agents, g);
 
     // After construction agents are idle (AssignBasePoints sets pos but not state)
     ASSERT_EQ(sim.agents[0].state, Agent::idle);
@@ -41,7 +50,7 @@ TEST(SimulationStep, MovingAgentAdvancesPosition) {
     Graph g = MakeLinearGraph();
     Agents agents(1);
     const double speed = 2.0;
-    Simulation sim(speed, agents, g);
+    Simulation sim = MakeSimulation(speed, agents, g);
 
     // First step: dispatch assigns a route, agent starts moving
     sim.Step(0.0, 0.1);
@@ -64,7 +73,7 @@ TEST(SimulationStep, AgentEventuallyBecomesIdleAfterFinishingRoute) {
     // High speed so the 2-unit route is covered in a few steps
     const double speed = 10.0;
     const double dt = 0.5;
-    Simulation sim(speed, agents, g);
+    Simulation sim = MakeSimulation(speed, agents, g);
 
     // Run enough steps to complete at least one delivery round-trip
     bool became_idle_again = false;
@@ -86,7 +95,7 @@ TEST(SimulationStep, AgentEventuallyBecomesIdleAfterFinishingRoute) {
 TEST(SimulationSimulate, TerminatesWithoutHanging) {
     Graph g = MakeLinearGraph();
     Agents agents(1);
-    Simulation sim(5.0, agents, g);
+    Simulation sim = MakeSimulation(5.0, agents, g);
 
     // Should return in finite time; if it hangs the test runner will time out
     sim.Simulate(1.0, 0.1);
@@ -96,7 +105,7 @@ TEST(SimulationSimulate, AgentMovesFromInitialPosition) {
     Graph g = MakeLinearGraph();
     Agents agents(1);
     const double speed = 5.0;
-    Simulation sim(speed, agents, g);
+    Simulation sim = MakeSimulation(speed, agents, g);
 
     const Point initial_pos = sim.agents[0].pos;
 
@@ -109,7 +118,7 @@ TEST(SimulationSimulate, AgentMovesFromInitialPosition) {
 TEST(SimulationSimulate, MultipleAgentsAllMove) {
     Graph g = MakeLinearGraph();
     Agents agents(2);
-    Simulation sim(3.0, agents, g);
+    Simulation sim = MakeSimulation(3.0, agents, g);
 
     // Record starting positions after base assignment
     const Point p0 = sim.agents[0].pos;

@@ -1,9 +1,24 @@
 #include <gtest/gtest.h>
 
+#include <memory>
+
 #include "lib/agent.h"
 #include "lib/dispatch.h"
 #include "lib/graph.h"
 #include "lib/geometry.h"
+#include "lib/router.h"
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+static std::shared_ptr<const Graph> AsShared(const Graph& g) {
+    return std::make_shared<const Graph>(g);
+}
+
+static std::shared_ptr<const IRouter> MakeRouter(const std::shared_ptr<const Graph>& g) {
+    return std::make_shared<const AStarRouter>(g);
+}
 
 // ---------------------------------------------------------------------------
 // Graph helpers
@@ -41,9 +56,9 @@ static Graph MakeTwoBaseGraph() {
 // ---------------------------------------------------------------------------
 
 TEST(DispatchAssignBasePoints, SingleAgentSingleBase) {
-    Graph g = MakeSimpleGraph();
+    auto g = AsShared(MakeSimpleGraph());
     Agents agents(1);
-    Dispatch d(g, agents);
+    Dispatch d(g, MakeRouter(g), agents);
 
     d.AssignBasePoints(agents);
 
@@ -54,9 +69,9 @@ TEST(DispatchAssignBasePoints, SingleAgentSingleBase) {
 }
 
 TEST(DispatchAssignBasePoints, TwoAgentsTwoBases) {
-    Graph g = MakeTwoBaseGraph();
+    auto g = AsShared(MakeTwoBaseGraph());
     Agents agents(2);
-    Dispatch d(g, agents);
+    Dispatch d(g, MakeRouter(g), agents);
 
     d.AssignBasePoints(agents);
 
@@ -64,16 +79,16 @@ TEST(DispatchAssignBasePoints, TwoAgentsTwoBases) {
     EXPECT_EQ(agents[0].base, 0);
     EXPECT_EQ(agents[1].base, 1);
 
-    EXPECT_NEAR(agents[0].pos.x(), g.vertices[0].pos.x(), 1e-9);
-    EXPECT_NEAR(agents[0].pos.y(), g.vertices[0].pos.y(), 1e-9);
-    EXPECT_NEAR(agents[1].pos.x(), g.vertices[1].pos.x(), 1e-9);
-    EXPECT_NEAR(agents[1].pos.y(), g.vertices[1].pos.y(), 1e-9);
+    EXPECT_NEAR(agents[0].pos.x(), g->vertices[0].pos.x(), 1e-9);
+    EXPECT_NEAR(agents[0].pos.y(), g->vertices[0].pos.y(), 1e-9);
+    EXPECT_NEAR(agents[1].pos.x(), g->vertices[1].pos.x(), 1e-9);
+    EXPECT_NEAR(agents[1].pos.y(), g->vertices[1].pos.y(), 1e-9);
 }
 
 TEST(DispatchAssignBasePoints, RoundRobinWrap) {
-    Graph g = MakeTwoBaseGraph();
+    auto g = AsShared(MakeTwoBaseGraph());
     Agents agents(3);
-    Dispatch d(g, agents);
+    Dispatch d(g, MakeRouter(g), agents);
 
     d.AssignBasePoints(agents);
 
@@ -90,14 +105,15 @@ TEST(DispatchAssignBasePoints, RoundRobinWrap) {
 // ---------------------------------------------------------------------------
 
 TEST(DispatchStep, SkipsAgentInMoveState) {
-    Graph g = MakeSimpleGraph();
+    auto g = AsShared(MakeSimpleGraph());
+    auto router = MakeRouter(g);
     Agents agents(1);
-    Dispatch d(g, agents);
+    Dispatch d(g, router, agents);
     d.AssignBasePoints(agents);
 
     agents[0].state = Agent::move;
     // Give it a known route so we can detect if it was changed
-    agents[0].SetRoute(g.GetRoute(0, 1));
+    agents[0].SetRoute(router->GetRoute(0, 1));
     const Linestring original_route = agents[0].Route();
 
     d.Step(agents);
@@ -108,9 +124,9 @@ TEST(DispatchStep, SkipsAgentInMoveState) {
 }
 
 TEST(DispatchStep, SkipsAgentInWaitState) {
-    Graph g = MakeSimpleGraph();
+    auto g = AsShared(MakeSimpleGraph());
     Agents agents(1);
-    Dispatch d(g, agents);
+    Dispatch d(g, MakeRouter(g), agents);
     d.AssignBasePoints(agents);
 
     agents[0].state = Agent::wait;
@@ -121,9 +137,9 @@ TEST(DispatchStep, SkipsAgentInWaitState) {
 }
 
 TEST(DispatchStep, IdleAgentWithNoOrderGetsDeliveryRoute) {
-    Graph g = MakeSimpleGraph();
+    auto g = AsShared(MakeSimpleGraph());
     Agents agents(1);
-    Dispatch d(g, agents);
+    Dispatch d(g, MakeRouter(g), agents);
     d.AssignBasePoints(agents);
 
     // current_order[0] == -1 (no order yet), agent is idle
@@ -135,16 +151,16 @@ TEST(DispatchStep, IdleAgentWithNoOrderGetsDeliveryRoute) {
     EXPECT_EQ(agents[0].state, Agent::move);
     // Route must be non-empty and start at the base position
     ASSERT_FALSE(agents[0].Route().empty());
-    EXPECT_NEAR(agents[0].Route().front().x(), g.vertices[agents[0].base].pos.x(), 1e-9);
-    EXPECT_NEAR(agents[0].Route().front().y(), g.vertices[agents[0].base].pos.y(), 1e-9);
+    EXPECT_NEAR(agents[0].Route().front().x(), g->vertices[agents[0].base].pos.x(), 1e-9);
+    EXPECT_NEAR(agents[0].Route().front().y(), g->vertices[agents[0].base].pos.y(), 1e-9);
     // current_order must now hold a valid delivery vertex id
     EXPECT_NE(d.current_order[0], -1);
 }
 
 TEST(DispatchStep, IdleAgentWithOrderGetsReturnRouteAndOrderCleared) {
-    Graph g = MakeSimpleGraph();
+    auto g = AsShared(MakeSimpleGraph());
     Agents agents(1);
-    Dispatch d(g, agents);
+    Dispatch d(g, MakeRouter(g), agents);
     d.AssignBasePoints(agents);
 
     // Simulate that agent already has an order (delivery vertex = 1)
@@ -157,21 +173,22 @@ TEST(DispatchStep, IdleAgentWithOrderGetsReturnRouteAndOrderCleared) {
     EXPECT_EQ(agents[0].state, Agent::move);
     // Route must end at the base position
     ASSERT_FALSE(agents[0].Route().empty());
-    EXPECT_NEAR(agents[0].Route().back().x(), g.vertices[agents[0].base].pos.x(), 1e-9);
-    EXPECT_NEAR(agents[0].Route().back().y(), g.vertices[agents[0].base].pos.y(), 1e-9);
+    EXPECT_NEAR(agents[0].Route().back().x(), g->vertices[agents[0].base].pos.x(), 1e-9);
+    EXPECT_NEAR(agents[0].Route().back().y(), g->vertices[agents[0].base].pos.y(), 1e-9);
     // Order must be cleared
     EXPECT_EQ(d.current_order[0], -1);
 }
 
 TEST(DispatchStep, MultipleAgentsOnlyIdleOnesAreDispatched) {
-    Graph g = MakeTwoBaseGraph();
+    auto g = AsShared(MakeTwoBaseGraph());
+    auto router = MakeRouter(g);
     Agents agents(2);
-    Dispatch d(g, agents);
+    Dispatch d(g, router, agents);
     d.AssignBasePoints(agents);
 
     agents[0].state = Agent::idle;
     agents[1].state = Agent::move;
-    agents[1].SetRoute(g.GetRoute(0, 2));
+    agents[1].SetRoute(router->GetRoute(0, 2));
 
     d.Step(agents);
 

@@ -42,6 +42,7 @@ cc_library(
         ":agent",
         ":dispatch",
         ":graph",
+        ":router",
         ":semaphore",
         ":visualizer",
     ],
@@ -89,6 +90,7 @@ cc_library(
     deps = [
         ":agent",
         ":graph",
+        ":router",
     ],
 )
 
@@ -102,6 +104,20 @@ cc_library(
     ],
     deps = [
         ":agent",
+        ":geometry",
+        ":graph",
+    ],
+)
+
+cc_library(
+    name = "router",
+    srcs = [
+        "router.cpp",
+    ],
+    hdrs = [
+        "router.h",
+    ],
+    deps = [
         ":geometry",
         ":graph",
     ],

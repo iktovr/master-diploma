@@ -1,13 +1,15 @@
 #pragma once
 
+#include <memory>
+#include <optional>
+#include <vector>
+
 #include "agent.h"
 #include "dispatch.h"
 #include "graph.h"
+#include "router.h"
 #include "semaphore.h"
 #include "visualizer.h"
-
-#include <optional>
-#include <vector>
 
 /* 
 число заказов
@@ -20,15 +22,26 @@
 struct Simulation {
     double speed;
     Agents agents;
-    Graph graph;
+    std::shared_ptr<const Graph> graph;
     Dispatch dispatch;
     SemaphoreManager semaphores;
     std::optional<Visualizer> vis;
 
-    Simulation(const double speed_, const Agents& agents_, const Graph& graph_, const std::optional<Visualizer> vis_ = std::nullopt) :
-        speed(speed_), agents(agents_), graph(graph_), dispatch(graph, agents), semaphores(graph), vis(vis_) {
+    Simulation(
+        const double speed_,
+        const Agents& agents_,
+        std::shared_ptr<const Graph> graph_,
+        const std::shared_ptr<const IRouter> router_,
+        const std::optional<Visualizer> vis_ = std::nullopt)
+        : speed(speed_)
+        , agents(agents_)
+        , graph(std::move(graph_))
+        , dispatch(graph, router_, agents)
+        , semaphores(graph)
+        , vis(vis_)
+    {
         if (vis) {
-            vis->DrawGraph(graph);
+            vis->DrawGraph(*graph);
             vis->SavePersistentPart();
         }
         dispatch.AssignBasePoints(agents);

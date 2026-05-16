@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include <queue>
 #include <unordered_set>
 #include <utility>
@@ -39,10 +40,10 @@ struct SemaphoreManager {
         }
     };
 
-    const Graph& graph;
+    std::shared_ptr<const Graph> graph;
     std::vector<Semaphore> semaphores;
 
-    SemaphoreManager(const Graph& graph);
+    SemaphoreManager(std::shared_ptr<const Graph> graph);
 
     void Step(const double t, Agents& agents);
 };

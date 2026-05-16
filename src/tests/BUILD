@@ -58,6 +58,7 @@ cc_test(
         "//lib:dispatch",
         "//lib:geometry",
         "//lib:graph",
+        "//lib:router",
         "@googletest//:gtest",
         "@googletest//:gtest_main",
     ],
@@ -72,7 +73,22 @@ cc_test(
     deps = [
         "//lib:agent",
         "//lib:graph",
+        "//lib:router",
         "//lib:simulation",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "test_router",
+    size = "small",
+    srcs = [
+        "test_router.cpp",
+    ],
+    deps = [
+        "//lib:graph",
+        "//lib:router",
         "@googletest//:gtest",
         "@googletest//:gtest_main",
     ],
