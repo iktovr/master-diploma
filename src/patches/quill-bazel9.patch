@@ -1,0 +1,17 @@
+Make quill 11.1.0 build under Bazel 9.
+
+Bazel 9 removed the implicit availability of native `cc_library` (and
+sibling cc_* rules) in BUILD files. Quill's BCR-shipped BUILD.bazel
+relies on the implicit symbol, so loading must be made explicit.
+
+Upstream tracking: this can be dropped once quill (or its BCR entry)
+publishes a release whose BUILD.bazel has the load() statement.
+
+--- a/BUILD.bazel
++++ b/BUILD.bazel
+@@ -1,3 +1,5 @@
++load("@rules_cc//cc:defs.bzl", "cc_library")
++
+ package(default_visibility = ["//visibility:public"])
+ 
+ licenses(["notice"])  # MIT

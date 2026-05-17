@@ -9,6 +9,7 @@
 
 #include "lib/agent.h"
 #include "lib/graph.h"
+#include "lib/logging.h"
 #include "lib/router.h"
 #include "lib/simulation.h"
 #include "lib/visualizer.h"
@@ -16,6 +17,8 @@
 namespace fs = std::filesystem;
 
 int main(int argc, char **argv) {
+    InitLogging();
+
     auto correct_path = CLI::Validator(
         [](std::string& input) {
             fs::path path(input);

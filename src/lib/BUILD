@@ -31,6 +31,19 @@ cc_library(
 )
 
 cc_library(
+    name = "logging",
+    srcs = [
+        "logging.cpp",
+    ],
+    hdrs = [
+        "logging.h",
+    ],
+    deps = [
+        "@quill",
+    ],
+)
+
+cc_library(
     name = "simulation",
     srcs = [
         "simulation.cpp",
@@ -42,6 +55,7 @@ cc_library(
         ":agent",
         ":dispatch",
         ":graph",
+        ":logging",
         ":router",
         ":semaphore",
         ":visualizer",
