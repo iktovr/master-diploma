@@ -11,6 +11,7 @@
 #include "lib/graph.h"
 #include "lib/logging.h"
 #include "lib/router.h"
+#include "lib/statistics.h"
 #include "lib/simulation.h"
 #include "lib/visualizer.h"
 
@@ -101,6 +102,14 @@ int main(int argc, char **argv) {
     const std::shared_ptr<const IRouter> router = std::make_shared<AStarRouter>(g);
     Simulation sim(max_speed, std::move(agents), g, router, vis);
     sim.Simulate(duration, step, vis_step);
+
+    LOG_INFO("Number of orders: {}", Statistics::Get().orders_count);
+    if (!Statistics::Get().waiting_time.Empty()) {
+        LOG_INFO("Average waiting time: {}", Statistics::Get().waiting_time.Average());
+    }
+    if (!Statistics::Get().speed.Empty()) {
+        LOG_INFO("Average speed: {}", Statistics::Get().speed.Average());
+    }
 
     if (vis && !animation_path.empty()) {
         std::cout.flush();

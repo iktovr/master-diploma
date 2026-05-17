@@ -35,7 +35,7 @@ bool operator>(const Event& a, const Event& b) {
 
 void Simulation::Step(const double t, const double dt) {
     semaphores.Step(t, agents);
-    dispatch.Step(agents);
+    dispatch.Step(t, agents);
     for (auto& agent : agents) {
         agent.Move(dt, speed);
     }

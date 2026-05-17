@@ -6,6 +6,7 @@
 #include "agent.h"
 #include "geometry.h"
 #include "graph.h"
+#include "statistics.h"
 
 int SemaphoreManager::Semaphore::Intersection(const Linestring& incoming_route) const {
     if (bg::equals(segment[0], incoming_route[1])) {
@@ -77,8 +78,10 @@ void SemaphoreManager::Step(const double t, Agents& agents) {
             auto& queue = left ? sem.left_q : sem.right_q;
             auto& inner_queue = left ? sem.inner_left_q : sem.inner_right_q;
             while (!queue.empty()) {
-                int a;
-                std::tie(std::ignore, a) = queue.top();
+                auto [add_t, a] = queue.top();
+                if (add_t < t) {
+                    Statistics::Get().waiting_time.Add(t - add_t);
+                }
                 queue.pop();
                 agents[a].state = Agent::move;
                 inner_queue.emplace(a);
@@ -86,8 +89,10 @@ void SemaphoreManager::Step(const double t, Agents& agents) {
         } else {
             if (!sem.inner_left_q.empty()) {
                 while (!sem.left_q.empty()) {
-                    int a;
-                    std::tie(std::ignore, a) = sem.left_q.top();
+                    auto [add_t, a] = sem.left_q.top();
+                    if (add_t < t) {
+                        Statistics::Get().waiting_time.Add(t - add_t);
+                    }
                     sem.left_q.pop();
                     agents[a].state = Agent::move;
                     sem.inner_left_q.emplace(a);
@@ -95,8 +100,10 @@ void SemaphoreManager::Step(const double t, Agents& agents) {
             }
             if (!sem.inner_right_q.empty()) {
                 while (!sem.right_q.empty()) {
-                    int a;
-                    std::tie(std::ignore, a) = sem.right_q.top();
+                    auto [add_t, a] = sem.right_q.top();
+                    if (add_t < t) {
+                        Statistics::Get().waiting_time.Add(t - add_t);
+                    }
                     sem.right_q.pop();
                     agents[a].state = Agent::move;
                     sem.inner_right_q.emplace(a);

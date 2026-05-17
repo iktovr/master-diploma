@@ -11,6 +11,7 @@ cc_binary(
         "//lib:logging",
         "//lib:router",
         "//lib:simulation",
+        "//lib:statistics",
         "//lib:visualizer",
         "@cli11",
     ],

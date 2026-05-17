@@ -105,6 +105,7 @@ cc_library(
         ":agent",
         ":graph",
         ":router",
+        ":statistics",
     ],
 )
 
@@ -120,6 +121,8 @@ cc_library(
         ":agent",
         ":geometry",
         ":graph",
+        ":statistics",
+        ":logging",
     ],
 )
 
@@ -135,4 +138,14 @@ cc_library(
         ":geometry",
         ":graph",
     ],
+)
+
+cc_library(
+    name = "statistics",
+    srcs = [
+        "statistics.cpp",
+    ],
+    hdrs = [
+        "statistics.h",
+    ]
 )

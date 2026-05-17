@@ -11,14 +11,6 @@
 #include "semaphore.h"
 #include "visualizer.h"
 
-/* 
-число заказов
-средняя скорость
-среднее время шага симуляции
-среднее время ожидания
-среднее время симуляции
-*/
-
 struct Simulation {
     double speed;
     Agents agents;
