@@ -44,7 +44,8 @@ int main(int argc, char **argv) {
     int agents_count = 10;
     double max_speed = 2.2;
     fs::path output_dir;
-    int max_frame_size = 1000;
+    int frame_size = 0;
+    double scale = 1.0;
     double vis_step = 0.1;
     fs::path animation_path;
     int animation_framerate = 5;
@@ -62,7 +63,9 @@ int main(int argc, char **argv) {
 
     app.add_option("-o, --output", output_dir, "Directory for visualizations")
         ->transform(correct_path)->check(CLI::ExistingDirectory);
-    app.add_option("-f, --frame", max_frame_size, "Maximum frame size (in pixels)")
+    app.add_option("-f, --frame", frame_size, "Maximum frame size in pixels (0 = auto, scaled to graph density)")
+        ->check(CLI::NonNegativeNumber);
+    app.add_option("--scale", scale, "Additional objects scale")
         ->check(CLI::PositiveNumber);
     app.add_option("-v, --visualize-step", vis_step, "Period of visualizations")
         ->check(CLI::PositiveNumber);
@@ -90,7 +93,8 @@ int main(int argc, char **argv) {
                 }
             }
         }
-        vis.emplace(g->Width() * 1.05, g->Height() * 1.05, g->Centroid(), max_frame_size, output_dir);
+        const int effective_frame_size = (frame_size > 0) ? frame_size : ComputeAutoFrameSize(*g);
+        vis.emplace(g->Width(), g->Height(), g->Centroid(), effective_frame_size, scale, output_dir);
     }
 
     Agents agents(agents_count, Agent(0, 0, 0));

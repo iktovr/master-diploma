@@ -1,19 +1,71 @@
 #include "visualizer.h"
 
+#include <algorithm>
 #include <cassert>
+#include <cmath>
 #include <filesystem>
 
-Visualizer::Visualizer(const double width_, const double height_, const Point& center_, const int max_dimension_in_pixels_, const std::string directory_)
-    : width(width_), height(height_), center(center_), directory(directory_) {
+namespace {
+
+constexpr double kPixelsPerWorldUnit = 2.0;
+constexpr int    kMinFrame = 1000;
+constexpr int    kMaxFrame = 10000;
+
+constexpr double kAgentRadiusRatio         = 0.006;
+constexpr double kVertexRadiusRatio        = 0.003;
+constexpr double kEdgeThicknessRatio       = 0.0010;
+constexpr double kNarrowEdgeThicknessRatio = 0.0025;
+constexpr double kMarginRatio              = 0.020;
+
+constexpr int    kMinPrimitivePx = 1;
+
+inline int RatioPx(int ref_px, double ratio) {
+    return std::max(kMinPrimitivePx, static_cast<int>(std::round(ref_px * ratio)));
+}
+
+}  // namespace
+
+int ComputeAutoFrameSize(const Graph& graph) {
+    if (graph.vertices.empty()) {
+        return kMinFrame;
+    }
+    const double max_extent = std::max(graph.Width(), graph.Height());
+    if (max_extent <= 0.0) {
+        return kMinFrame;
+    }
+    const double target = kPixelsPerWorldUnit * max_extent;
+    return std::clamp(static_cast<int>(std::ceil(target)), kMinFrame, kMaxFrame);
+}
+
+Visualizer::Visualizer(const double width_, const double height_, const Point& center_,
+                       const int max_dimension_in_pixels_, const double objects_scale_, const std::string directory_)
+    : center(center_), directory(directory_) {
     assert(fs::exists(directory));
     assert(fs::is_directory(directory));
-    if (width < height) {
+
+    if (width_ < height_) {
         img_height = max_dimension_in_pixels_;
-        img_width = width / height * img_height;
+        img_width  = static_cast<int>(width_ / height_ * img_height);
     } else {
-        img_width = max_dimension_in_pixels_;
-        img_height = height / width * img_width;
+        img_width  = max_dimension_in_pixels_;
+        img_height = static_cast<int>(height_ / width_ * img_width);
     }
+
+    const int ref_px = std::max(img_width, img_height);
+    agent_radius_px          = RatioPx(ref_px, kAgentRadiusRatio * objects_scale_);
+    vertex_radius_px         = RatioPx(ref_px, kVertexRadiusRatio * objects_scale_);
+    edge_thickness_px        = RatioPx(ref_px, kEdgeThicknessRatio * objects_scale_);
+    narrow_edge_thickness_px = RatioPx(ref_px, kNarrowEdgeThicknessRatio * objects_scale_);
+
+    const int margin_px = std::max(agent_radius_px + 2,
+                                   static_cast<int>(std::round(ref_px * kMarginRatio)));
+    const double pad_w = static_cast<double>(margin_px)
+                       / std::max(1, img_width  - 2 * margin_px) * width_;
+    const double pad_h = static_cast<double>(margin_px)
+                       / std::max(1, img_height - 2 * margin_px) * height_;
+    width  = width_  + 2 * pad_w;
+    height = height_ + 2 * pad_h;
+
     img = cv::Mat(img_height, img_width, CV_8UC3, cv::Scalar(255, 255, 255));
 }
 
@@ -21,8 +73,8 @@ void Visualizer::DrawAgent(const Agent& agent) {
     const static cv::Scalar edge_color(0, 0, 0);
     const static cv::Scalar fill_color(255, 255, 255);
 
-    cv::circle(img, ToPixels(agent.pos), 8, fill_color, cv::FILLED);
-    cv::circle(img, ToPixels(agent.pos), 8, edge_color);
+    cv::circle(img, ToPixels(agent.pos), agent_radius_px, fill_color, cv::FILLED);
+    cv::circle(img, ToPixels(agent.pos), agent_radius_px, edge_color);
 
     // if (agent.state != Agent::idle) {
     //     const auto& route = agent.IncomingRoute();
@@ -45,18 +97,21 @@ void Visualizer::DrawGraph(const Graph& graph) {
                 continue;
             }
             if (edge.narrow) {
-                cv::line(img, ToPixels(graph.vertices[u].pos), ToPixels(graph.vertices[v].pos), narrow_edge_color, 3);
+                cv::line(img, ToPixels(graph.vertices[u].pos), ToPixels(graph.vertices[v].pos), narrow_edge_color, narrow_edge_thickness_px);
             }
-            cv::line(img, ToPixels(graph.vertices[u].pos), ToPixels(graph.vertices[v].pos), edge_color);
+            cv::line(img, ToPixels(graph.vertices[u].pos), ToPixels(graph.vertices[v].pos), edge_color, edge_thickness_px);
         }
     }
     for (const auto& v : graph.vertices) {
+        if (v.type == Graph::Vertex::none) {
+            continue;
+        }
         cv::Scalar color = vertex_color;
         if (v.type == Graph::Vertex::base) {
             color = base_color;
         } else if (v.type == Graph::Vertex::delivery) {
             color = delivery_color;
         }
-        cv::circle(img, ToPixels(v.pos), 4, color, cv::FILLED);
+        cv::circle(img, ToPixels(v.pos), vertex_radius_px, color, cv::FILLED);
     }
 }

@@ -15,9 +15,11 @@
 
 namespace fs = std::filesystem;
 
+int ComputeAutoFrameSize(const Graph& graph);
+
 class Visualizer {
 public:
-    Visualizer(const double width_, const double height_, const Point& center_, const int max_dimension_in_pixels_, const std::string directory_);
+    Visualizer(const double width_, const double height_, const Point& center_, const int max_dimension_in_pixels_, const double scale_, const std::string directory_);
 
     void SavePersistentPart() {
         persistent_img = img.clone();
@@ -41,6 +43,10 @@ protected:
     Point center;
     int img_width;
     int img_height;
+    int agent_radius_px;
+    int vertex_radius_px;
+    int edge_thickness_px;
+    int narrow_edge_thickness_px;
     fs::path directory;
     cv::Mat img;
     cv::Mat persistent_img;

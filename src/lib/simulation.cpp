@@ -86,7 +86,7 @@ void Simulation::Simulate(const double duration, const double step, const double
 
     auto end = std::chrono::high_resolution_clock::now();
     double real_duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() / 1e9;
-    LOG_INFO("Simulation virtual duration: {}", duration);
-    LOG_INFO("Simulation real duration: {}", real_duration);
-    LOG_INFO("Simulation speed: {} s(v)/s", duration / real_duration);
+    LOG_INFO("Simulation virtual duration: {:.5f}", duration);
+    LOG_INFO("Simulation real duration: {:.5f}", real_duration);
+    LOG_INFO("Simulation speed: {:.3f} s(v)/s", duration / real_duration);
 }
