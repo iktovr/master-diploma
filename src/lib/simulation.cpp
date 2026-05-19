@@ -7,6 +7,7 @@
 #include <utility>
 
 #include "logging.h"
+#include "statistics.h"
 
 namespace {
 
@@ -37,15 +38,16 @@ void Simulation::Step(const double t, const double dt) {
     semaphores.Step(t, agents);
     dispatch.Step(t, agents);
     for (auto& agent : agents) {
-        agent.Move(dt, speed);
+        agent.Move(t, dt, speed);
     }
 }
 
-void Simulation::Visualize() {
+void Simulation::Visualize(const double t) {
     if (!vis) {
         return;
     }
     vis->ClearFrame();
+    vis->DrawGraphStatistics(*graph, Statistics::Get().edges, t);
     for (const auto& agent : agents) {
         vis->DrawAgent(agent);
     }
@@ -60,7 +62,7 @@ void Simulation::Simulate(const double duration, const double step, const double
 
     if (vis && vis_step > 0) {
         events.push(Event{0.0, vis_step, 1,
-            [this](double) { Visualize(); }});
+            [this](double t) { Visualize(t); }});
     }
 
     const double progress_step = duration / 10.0;

@@ -42,6 +42,20 @@ cc_test(
     deps = [
         "//lib:agent",
         "//lib:geometry",
+        "//lib:statistics",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "test_statistics",
+    size = "small",
+    srcs = [
+        "test_statistics.cpp",
+    ],
+    deps = [
+        "//lib:statistics",
         "@googletest//:gtest",
         "@googletest//:gtest_main",
     ],
@@ -89,6 +103,7 @@ cc_test(
     deps = [
         "//lib:graph",
         "//lib:router",
+        "//lib:statistics",
         "@googletest//:gtest",
         "@googletest//:gtest_main",
     ],

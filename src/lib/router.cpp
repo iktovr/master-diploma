@@ -8,7 +8,7 @@
 #include <unordered_map>
 #include <vector>
 
-std::vector<int> AStarRouter::Search(const int start, const int finish) const {
+std::vector<int> AStarRouter::Search(const int start, const int finish, const double t) const {
     std::unordered_map<int, VertexData> ctx;
     std::priority_queue<SearchState, std::vector<SearchState>, std::greater<SearchState>> heap;
 
@@ -30,7 +30,7 @@ std::vector<int> AStarRouter::Search(const int start, const int finish) const {
             if (next == cur_data.prev) {
                 continue;
             }
-            double next_dist = cur_data.dist + Cost(cur, next, edge);
+            double next_dist = cur_data.dist + Cost(cur, next, edge, t);
             double next_cost = next_dist + Heuristic(next, finish);
             if (!ctx.contains(next) || next_cost < ctx[next].cost) {
                 heap.emplace(next_cost, next);
@@ -51,12 +51,23 @@ std::vector<int> AStarRouter::Search(const int start, const int finish) const {
     return res;
 }
 
-Linestring AStarRouter::GetRoute(const int u, const int v) const {
-    const auto path = Search(u, v);
+Linestring AStarRouter::GetRoute(const int u, const int v, const double t) const {
+    const auto path = Search(u, v, t);
     Linestring route;
     route.reserve(path.size());
     for (const auto i : path) {
         route.push_back(graph_->vertices[i].pos);
     }
     return route;
+}
+
+std::pair<Linestring, std::vector<int>>
+AStarRouter::GetRouteWithVertices(const int u, const int v, const double t) const {
+    auto path = Search(u, v, t);
+    Linestring route;
+    route.reserve(path.size());
+    for (const auto i : path) {
+        route.push_back(graph_->vertices[i].pos);
+    }
+    return {std::move(route), std::move(path)};
 }

@@ -116,7 +116,7 @@ TEST(DispatchStep, SkipsAgentInMoveState) {
     agents[0].SetRoute(router->GetRoute(0, 1));
     const Linestring original_route = agents[0].Route();
 
-    d.Step(agents);
+    d.Step(0.0, agents);
 
     // State and route must be unchanged
     EXPECT_EQ(agents[0].state, Agent::move);
@@ -131,7 +131,7 @@ TEST(DispatchStep, SkipsAgentInWaitState) {
 
     agents[0].state = Agent::wait;
 
-    d.Step(agents);
+    d.Step(0.0, agents);
 
     EXPECT_EQ(agents[0].state, Agent::wait);
 }
@@ -145,7 +145,7 @@ TEST(DispatchStep, IdleAgentWithNoOrderGetsDeliveryRoute) {
     // current_order[0] == -1 (no order yet), agent is idle
     ASSERT_EQ(agents[0].state, Agent::idle);
 
-    d.Step(agents);
+    d.Step(0.0, agents);
 
     // Agent should now be moving towards a delivery point
     EXPECT_EQ(agents[0].state, Agent::move);
@@ -167,7 +167,7 @@ TEST(DispatchStep, IdleAgentWithOrderGetsReturnRouteAndOrderCleared) {
     d.current_order[0] = 1;
     agents[0].state = Agent::idle;
 
-    d.Step(agents);
+    d.Step(0.0, agents);
 
     // Agent should now be returning to base
     EXPECT_EQ(agents[0].state, Agent::move);
@@ -190,7 +190,7 @@ TEST(DispatchStep, MultipleAgentsOnlyIdleOnesAreDispatched) {
     agents[1].state = Agent::move;
     agents[1].SetRoute(router->GetRoute(0, 2));
 
-    d.Step(agents);
+    d.Step(0.0, agents);
 
     EXPECT_EQ(agents[0].state, Agent::move);  // was idle → dispatched
     EXPECT_EQ(agents[1].state, Agent::move);  // was move → untouched

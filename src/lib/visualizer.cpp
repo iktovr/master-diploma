@@ -5,6 +5,8 @@
 #include <cmath>
 #include <filesystem>
 
+#include "statistics.h"
+
 namespace {
 
 constexpr double kPixelsPerWorldUnit = 2.0;
@@ -23,6 +25,28 @@ inline int RatioPx(int ref_px, double ratio) {
     return std::max(kMinPrimitivePx, static_cast<int>(std::round(ref_px * ratio)));
 }
 
+inline cv::Scalar SpeedColor(double speed, double max_speed) {
+    if (!(max_speed > 0.0)) {
+        return cv::Scalar(0, 0, 0);
+    }
+    double ratio = speed / max_speed;
+    if (ratio < 0.0) ratio = 0.0;
+    if (ratio > 1.0) ratio = 1.0;
+    double b = 0.0, g = 0.0, r = 0.0;
+    if (ratio < 0.5) {
+        // red -> yellow
+        const double t = ratio / 0.5;
+        r = 255.0;
+        g = 255.0 * t;
+    } else {
+        // yellow -> green
+        const double t = (ratio - 0.5) / 0.5;
+        r = 255.0 * (1.0 - t);
+        g = 255.0;
+    }
+    return cv::Scalar(b, g, r);
+}
+
 }  // namespace
 
 int ComputeAutoFrameSize(const Graph& graph) {
@@ -38,8 +62,9 @@ int ComputeAutoFrameSize(const Graph& graph) {
 }
 
 Visualizer::Visualizer(const double width_, const double height_, const Point& center_,
-                       const int max_dimension_in_pixels_, const double objects_scale_, const std::string directory_)
-    : center(center_), directory(directory_) {
+                       const int max_dimension_in_pixels_, const double objects_scale_, const std::string directory_,
+                       const double max_speed_)
+    : center(center_), max_speed(max_speed_), directory(directory_) {
     assert(fs::exists(directory));
     assert(fs::is_directory(directory));
 
@@ -113,5 +138,25 @@ void Visualizer::DrawGraph(const Graph& graph) {
             color = delivery_color;
         }
         cv::circle(img, ToPixels(v.pos), vertex_radius_px, color, cv::FILLED);
+    }
+}
+
+void Visualizer::DrawGraphStatistics(const Graph& graph, GraphEdgeStatistics& stats, double t_now) {
+    if (!(max_speed > 0.0)) {
+        return;
+    }
+    for (int u = 0; u < static_cast<int>(graph.vertices.size()); ++u) {
+        for (auto& [v, edge] : graph.edges[u]) {
+            if (v > u) {
+                continue;
+            }
+            const double avg_speed = stats.AverageSpeed(u, v, t_now);
+            if (!stats.Has(u, v)) {
+                continue;
+            }
+            cv::line(img, ToPixels(graph.vertices[u].pos),
+                     ToPixels(graph.vertices[v].pos),
+                     SpeedColor(avg_speed, max_speed), edge_thickness_px);
+        }
     }
 }

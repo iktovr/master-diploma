@@ -15,11 +15,13 @@
 
 namespace fs = std::filesystem;
 
+class GraphEdgeStatistics;
+
 int ComputeAutoFrameSize(const Graph& graph);
 
 class Visualizer {
 public:
-    Visualizer(const double width_, const double height_, const Point& center_, const int max_dimension_in_pixels_, const double scale_, const std::string directory_);
+    Visualizer(const double width_, const double height_, const Point& center_, const int max_dimension_in_pixels_, const double scale_, const std::string directory_, const double max_speed_ = 0.0);
 
     void SavePersistentPart() {
         persistent_img = img.clone();
@@ -32,6 +34,8 @@ public:
     void DrawAgent(const Agent& agent);
 
     void DrawGraph(const Graph& graph);
+
+    void DrawGraphStatistics(const Graph& graph, GraphEdgeStatistics& stats, double t_now);
 
     void SaveFrame() {
         cv::imwrite(directory / std::format("frame_{:04}.png", frame++), img);
@@ -47,6 +51,7 @@ protected:
     int vertex_radius_px;
     int edge_thickness_px;
     int narrow_edge_thickness_px;
+    double max_speed;
     fs::path directory;
     cv::Mat img;
     cv::Mat persistent_img;

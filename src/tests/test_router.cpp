@@ -5,6 +5,7 @@
 
 #include "lib/graph.h"
 #include "lib/router.h"
+#include "lib/statistics.h"
 
 using ::testing::ElementsAre;
 
@@ -164,4 +165,113 @@ TEST(AStarRouterGetRoute, SingleNodeRoute) {
     ASSERT_EQ(route.size(), 1u);
     EXPECT_DOUBLE_EQ(route[0].x(), 5.0);
     EXPECT_DOUBLE_EQ(route[0].y(), 7.0);
+}
+
+// ---------------------------------------------------------------------------
+// StatAStarRouter
+// ---------------------------------------------------------------------------
+
+// Build a StatAStarRouter for a graph passed by value, with the given stats
+// and max_speed. The stats pointer must outlive the returned router.
+static std::shared_ptr<const StatAStarRouter> MakeStatRouter(
+    const Graph& g, GraphEdgeStatistics* stats, double max_speed) {
+    auto g_ptr = std::make_shared<const Graph>(g);
+    return std::make_shared<const StatAStarRouter>(g_ptr, stats, max_speed);
+}
+
+TEST(StatAStarRouterGetRoute, EmptyStatsMatchesAStar) {
+    // Diamond: 0 - 1 - 3 and 0 - 2 - 3, with 0-1-3 cheaper by length.
+    Graph g;
+    g.AddVertex(0.0, 0.0);    // 0
+    g.AddVertex(1.0, 0.0);    // 1
+    g.AddVertex(0.0, 5.0);    // 2
+    g.AddVertex(2.0, 0.0);    // 3
+    g.AddEdge(0, 1);  // length 1
+    g.AddEdge(1, 3);  // length 1
+    g.AddEdge(0, 2);  // length 5
+    g.AddEdge(2, 3);  // ~5.385
+
+    GraphEdgeStatistics stats;  // empty
+    auto router = MakeStatRouter(g, &stats, /*max_speed=*/1.0);
+
+    ExpectRoute(g, router->GetRoute(0, 3), {0, 1, 3});
+}
+
+TEST(StatAStarRouterGetRoute, SlowEdgeForcesDetour) {
+    // Same diamond as above, but edge 1-3 is recorded as extremely slow,
+    // so the longer 0-2-3 path becomes faster in travel-time.
+    Graph g;
+    g.AddVertex(0.0, 0.0);    // 0
+    g.AddVertex(1.0, 0.0);    // 1
+    g.AddVertex(0.0, 5.0);    // 2
+    g.AddVertex(2.0, 0.0);    // 3
+    g.AddEdge(0, 1);  // length 1
+    g.AddEdge(1, 3);  // length 1
+    g.AddEdge(0, 2);  // length 5
+    g.AddEdge(2, 3);  // ~5.385
+
+    GraphEdgeStatistics stats;
+    // Make 1-3 traversal 1000x slower than max_speed.
+    const double max_speed = 1.0;
+    const double slow_speed = 0.001;
+    // Record several slow passages on edge 1-3.
+    for (int i = 0; i < 5; ++i) {
+        stats.Record(1, 3, /*t_enter=*/0.0, /*t_exit=*/1.0 / slow_speed,
+                     /*length=*/1.0, /*t_now=*/0.0);
+    }
+    ASSERT_TRUE(stats.Has(1, 3));
+
+    auto router = MakeStatRouter(g, &stats, max_speed);
+
+    // Travel time via 0-1-3: 1/max_speed + 1/slow_speed ~= 1001
+    // Travel time via 0-2-3: (5 + 5.385) / max_speed ~= 10.385
+    ExpectRoute(g, router->GetRoute(0, 3), {0, 2, 3});
+}
+
+TEST(StatAStarRouterGetRoute, MixedFallbackUsesMaxSpeed) {
+    // Linear chain 0 - 1 - 2 - 3 where only edge 0-1 has stats. The router
+    // should still produce the only available path.
+    Graph g;
+    for (int i = 0; i < 4; ++i) {
+        g.AddVertex(static_cast<double>(i), 0.0);
+    }
+    for (int i = 0; i < 3; ++i) {
+        g.AddEdge(i, i + 1);
+    }
+
+    GraphEdgeStatistics stats;
+    stats.Record(0, 1, /*t_enter=*/0.0, /*t_exit=*/0.5,
+                 /*length=*/1.0, /*t_now=*/0.0);
+    ASSERT_TRUE(stats.Has(0, 1));
+    ASSERT_FALSE(stats.Has(1, 2));
+    ASSERT_FALSE(stats.Has(2, 3));
+
+    auto router = MakeStatRouter(g, &stats, /*max_speed=*/1.0);
+    ExpectRoute(g, router->GetRoute(0, 3), {0, 1, 2, 3});
+    ExpectRoute(g, router->GetRoute(3, 0), {3, 2, 1, 0});
+}
+
+TEST(StatAStarRouterGetRoute, PrefersFasterButLongerEdge) {
+    // 0 --slow,short-- 1
+    //  \              /
+    //   --fast,long--
+    // Direct edge 0-1 has length 1 but is very slow.
+    // Detour 0-2-1 has length 10 but uses max_speed.
+    Graph g;
+    g.AddVertex(0.0, 0.0);    // 0
+    g.AddVertex(1.0, 0.0);    // 1
+    g.AddVertex(0.0, 5.0);    // 2 (so 0-2 length 5, 2-1 ~5.099)
+    g.AddEdge(0, 1);  // length 1
+    g.AddEdge(0, 2);  // length 5
+    g.AddEdge(2, 1);  // ~5.099
+
+    GraphEdgeStatistics stats;
+    // Edge 0-1 observed at speed 0.01 (so travel time ~100).
+    for (int i = 0; i < 3; ++i) {
+        stats.Record(0, 1, 0.0, 100.0, 1.0, 0.0);
+    }
+
+    auto router = MakeStatRouter(g, &stats, /*max_speed=*/1.0);
+    // Direct: ~100s. Detour: ~10.099s. Detour should win.
+    ExpectRoute(g, router->GetRoute(0, 1), {0, 2, 1});
 }

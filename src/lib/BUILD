@@ -12,6 +12,7 @@ cc_library(
     ],
     deps = [
         ":geometry",
+        ":statistics",
     ],
 )
 
@@ -58,6 +59,7 @@ cc_library(
         ":logging",
         ":router",
         ":semaphore",
+        ":statistics",
         ":visualizer",
     ],
 )
@@ -74,6 +76,7 @@ cc_library(
         ":agent",
         ":geometry",
         ":graph",
+        ":statistics",
         "@opencv//:core",
         "@opencv//:imgcodecs",
         "@opencv//:imgproc",
@@ -137,6 +140,7 @@ cc_library(
     deps = [
         ":geometry",
         ":graph",
+        ":statistics",
     ],
 )
 

@@ -4,6 +4,7 @@
 
 #include "lib/agent.h"
 #include "lib/geometry.h"
+#include "lib/statistics.h"
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -173,4 +174,70 @@ TEST(AgentMove, SpeedScalesDx) {
     a2.Move(2.0, 1.0);  // dx = 2
 
     EXPECT_NEAR(a1.pos.x(), a2.pos.x(), 1e-9);
+}
+
+// ---------------------------------------------------------------------------
+// Edge-passage statistics recorded via the time-aware Move overload
+// ---------------------------------------------------------------------------
+
+TEST(AgentMoveStats, RecordsPassageAcrossSingleEdge) {
+    Statistics::Get().edges.Clear();
+
+    // Two-vertex route of length 10 over edge {100, 101}.
+    Agent a;
+    a.SetRoute(HorizontalRoute(10.0), {100, 101}, /*t_now=*/0.0);
+
+    // Two steps of dt=1 at speed=5 → covers 10 units in 2 seconds.
+    a.Move(/*t=*/1.0, /*dt=*/1.0, /*speed=*/5.0);
+    a.Move(/*t=*/2.0, /*dt=*/1.0, /*speed=*/5.0);
+
+    EXPECT_EQ(a.state, Agent::idle);
+    ASSERT_TRUE(Statistics::Get().edges.Has(100, 101));
+    EXPECT_NEAR(Statistics::Get().edges.AverageSpeed(100, 101, 2.0), 5.0, 1e-9);
+
+    const auto* window = Statistics::Get().edges.Window(100, 101);
+    ASSERT_NE(window, nullptr);
+    EXPECT_EQ(window->size(), 1u);
+    EXPECT_NEAR(window->front().t_exit, 2.0, 1e-9);
+}
+
+TEST(AgentMoveStats, RecordsPassagePerSegmentWithInterpolatedExit) {
+    Statistics::Get().edges.Clear();
+
+    // (0,0)→(4,0)→(10,0): two edges {200,201} of length 4 and {201,202} of length 6.
+    Agent a;
+    a.SetRoute(TwoSegmentRoute(4.0, 6.0), {200, 201, 202}, /*t_now=*/0.0);
+
+    // Single step covering the entire route at constant speed 10 over dt=1.
+    // The exit time of the first segment should be linearly interpolated at
+    // t = 0 + 1 * (4 / 10) = 0.4.
+    a.Move(/*t=*/1.0, /*dt=*/1.0, /*speed=*/10.0);
+
+    ASSERT_TRUE(Statistics::Get().edges.Has(200, 201));
+    ASSERT_TRUE(Statistics::Get().edges.Has(201, 202));
+
+    const auto* w1 = Statistics::Get().edges.Window(200, 201);
+    ASSERT_NE(w1, nullptr);
+    ASSERT_EQ(w1->size(), 1u);
+    EXPECT_NEAR(w1->front().t_exit, 0.4, 1e-9);
+    EXPECT_NEAR(w1->front().speed, 10.0, 1e-9);
+
+    const auto* w2 = Statistics::Get().edges.Window(201, 202);
+    ASSERT_NE(w2, nullptr);
+    ASSERT_EQ(w2->size(), 1u);
+    EXPECT_NEAR(w2->front().t_exit, 1.0, 1e-9);
+    EXPECT_NEAR(w2->front().speed, 10.0, 1e-9);
+}
+
+TEST(AgentMoveStats, LegacySetRouteDoesNotRecordPassages) {
+    Statistics::Get().edges.Clear();
+
+    Agent a;
+    a.SetRoute(HorizontalRoute(10.0));  // no vertex ids
+
+    a.Move(/*t=*/1.0, /*dt=*/1.0, /*speed=*/10.0);
+
+    // No edge has been recorded since vertex_ids was never set.
+    const auto* w = Statistics::Get().edges.Window(0, 1);
+    EXPECT_TRUE(w == nullptr || w->empty());
 }

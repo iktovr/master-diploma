@@ -51,6 +51,8 @@ int main(int argc, char **argv) {
     fs::path animation_path;
     int animation_framerate = 5;
     int basepoints_limit = -1;
+    std::string router_kind = "astar";
+    double max_age = std::numeric_limits<double>::infinity();
 
     app.add_option("-g, --graph", graph_path, "Path to file with graph description")
         ->required()->transform(correct_path)->check(CLI::ExistingFile);
@@ -61,6 +63,8 @@ int main(int argc, char **argv) {
     app.add_option("-a, --agents", agents_count, "Number of agents")
         ->check(CLI::PositiveNumber);
     app.add_option("-s, --speed", max_speed, "Maximum agent speed");
+    app.add_option("--max-age", max_age, "Maximum age graph edge statistics")
+        ->check(CLI::PositiveNumber);
 
     app.add_option("-o, --output", output_dir, "Directory for visualizations")
         ->transform(correct_path)->check(CLI::ExistingDirectory);
@@ -72,6 +76,8 @@ int main(int argc, char **argv) {
         ->check(CLI::PositiveNumber);
     app.add_option("-b, --basepoints", basepoints_limit, "Number of base points to keep from the GeoJSON map (-1 = all)")
         ->check(CLI::Range(-1, std::numeric_limits<int>::max()));
+    app.add_option("-r, --router", router_kind, "Router kind: astar (length) or stat (travel time from edge statistics)")
+        ->check(CLI::IsMember({"astar", "stat"}));
 
     app.add_option("--animate", animation_path, "Convert visualization frames to animation using ffmpeg")
         ->transform(correct_path);
@@ -95,11 +101,17 @@ int main(int argc, char **argv) {
             }
         }
         const int effective_frame_size = (frame_size > 0) ? frame_size : ComputeAutoFrameSize(*g);
-        vis.emplace(g->Width(), g->Height(), g->Centroid(), effective_frame_size, scale, output_dir);
+        vis.emplace(g->Width(), g->Height(), g->Centroid(), effective_frame_size, scale, output_dir, max_speed);
     }
+    Statistics::Get().edges.max_age = max_age;
 
     Agents agents(agents_count, Agent(0, 0, 0));
-    const std::shared_ptr<const IRouter> router = std::make_shared<AStarRouter>(g);
+    std::shared_ptr<const IRouter> router;
+    if (router_kind == "stat") {
+        router = std::make_shared<StatAStarRouter>(g, &Statistics::Get().edges, max_speed);
+    } else {
+        router = std::make_shared<AStarRouter>(g);
+    }
     Simulation sim(max_speed, std::move(agents), g, router, vis);
     sim.Simulate(duration, step, vis_step);
 

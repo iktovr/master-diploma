@@ -49,6 +49,6 @@ struct Simulation {
     }
 
     void Simulate(const double duration, const double step, const double vis_step = -1);
-    void Visualize();
+    void Visualize(const double t);
     void Step(const double t, const double dt);
 };
