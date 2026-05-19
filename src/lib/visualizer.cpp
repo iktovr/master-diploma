@@ -18,6 +18,7 @@ constexpr double kVertexRadiusRatio        = 0.003;
 constexpr double kEdgeThicknessRatio       = 0.0010;
 constexpr double kNarrowEdgeThicknessRatio = 0.0025;
 constexpr double kMarginRatio              = 0.020;
+constexpr double kAgentLaneOffsetRatio     = 0.5;
 
 constexpr int    kMinPrimitivePx = 1;
 
@@ -98,8 +99,38 @@ void Visualizer::DrawAgent(const Agent& agent) {
     const static cv::Scalar edge_color(0, 0, 0);
     const static cv::Scalar fill_color(255, 255, 255);
 
-    cv::circle(img, ToPixels(agent.pos), agent_radius_px, fill_color, cv::FILLED);
-    cv::circle(img, ToPixels(agent.pos), agent_radius_px, edge_color);
+    cv::Point center_px = ToPixels(agent.pos);
+
+    // apply lane offset for moving or waiting agents
+    if (agent.state != Agent::idle && agent.route_follower.route.size() >= 2) {
+        const auto& route = agent.route_follower.route;
+        size_t segment_idx = agent.route_follower.segment_idx;
+        
+        if (segment_idx >= route.size() - 1) {
+            segment_idx = route.size() - 2;
+        }
+        
+        if (segment_idx < route.size() - 1) {
+            cv::Point a = ToPixels(route[segment_idx]);
+            cv::Point b = ToPixels(route[segment_idx + 1]);
+            
+            double dx = b.x - a.x;
+            double dy = b.y - a.y;
+            double length = std::sqrt(dx * dx + dy * dy);
+            
+            if (length > 0.0) {
+                double nx = -dy / length;
+                double ny = dx / length;
+                
+                int offset_px = static_cast<int>(agent_radius_px * kAgentLaneOffsetRatio);
+                center_px.x += static_cast<int>(nx * offset_px);
+                center_px.y += static_cast<int>(ny * offset_px);
+            }
+        }
+    }
+
+    cv::circle(img, center_px, agent_radius_px, fill_color, cv::FILLED);
+    cv::circle(img, center_px, agent_radius_px, edge_color);
 
     // if (agent.state != Agent::idle) {
     //     const auto& route = agent.IncomingRoute();
