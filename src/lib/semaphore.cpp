@@ -34,6 +34,15 @@ SemaphoreManager::SemaphoreManager(std::shared_ptr<const Graph> graph_) : graph(
             }
         }
     }
+
+    std::vector<IndexedSegment> packed;
+    packed.reserve(semaphores.size());
+    for (int i = 0; i < static_cast<int>(semaphores.size()); ++i) {
+        Box bbox;
+        bg::envelope(semaphores[i].segment, bbox);
+        packed.emplace_back(bbox, i);
+    }
+    index = RTree(packed.begin(), packed.end());
 }
 
 void SemaphoreManager::Step(const double t, Agents& agents) {
@@ -43,36 +52,43 @@ void SemaphoreManager::Step(const double t, Agents& agents) {
             continue;
         }
 
-        for (auto& sem : semaphores) {
-            int intersection = sem.Intersection(agent.IncomingRoute());
-            if (sem.Inside(i)) {
-                if (intersection >= 0) {
-                    sem.Exit(i);
-                }
-                continue;
+        const int agent_id = static_cast<int>(i);
+        const auto& route = agent.IncomingRoute();
+
+        auto inside_it = agent_to_sem.find(agent_id);
+        if (inside_it != agent_to_sem.end()) {
+            auto& sem = semaphores[inside_it->second];
+            if (sem.Intersection(route) >= 0) {
+                sem.Exit(agent_id);
+                agent_to_sem.erase(inside_it);
             }
-            if (intersection == 0) {
-                continue;
-            } else if (intersection == 1) {
-                if (bg::length(Linestring{agent.IncomingRoute()[0], agent.IncomingRoute()[1]}) < 0.25) {
-                    sem.left_q.emplace(t, i);
+            continue;
+        }
+
+        Linestring edge{route[1], route[2]};
+        Box query_box;
+        bg::envelope(edge, query_box);
+
+        for (auto qit = index.qbegin(bgi::intersects(query_box));
+             qit != index.qend(); ++qit) {
+            auto& sem = semaphores[qit->second];
+            int intersection = sem.Intersection(route);
+            if (intersection == 1) {
+                if (bg::length(Linestring{route[0], route[1]}) < 0.25) {
+                    sem.left_q.emplace(t, agent_id);
                     agent.state = Agent::wait;
                 }
             } else if (intersection == 2) {
-                if (bg::length(Linestring{agent.IncomingRoute()[0], agent.IncomingRoute()[1]}) < 0.25) {
-                    sem.right_q.emplace(t, i);
+                if (bg::length(Linestring{route[0], route[1]}) < 0.25) {
+                    sem.right_q.emplace(t, agent_id);
                     agent.state = Agent::wait;
                 }
-            } else {
-                // double len = bg::length(Linestring{agent.IncomingRoute()[0], agent.IncomingRoute()[1]});
-                // if (len < 0.5 * sem.length) {
-
-                // }
             }
         }
     }
 
-    for (auto& sem : semaphores) {
+    for (size_t sem_idx = 0; sem_idx < semaphores.size(); ++sem_idx) {
+        auto& sem = semaphores[sem_idx];
         if (sem.Empty()) {
             bool left = (sem.left_q.size() > sem.right_q.size() || (sem.left_q.size() == sem.right_q.size() && sem.left_q.size() > 0 && sem.left_q.top().first < sem.right_q.top().first));
             auto& queue = left ? sem.left_q : sem.right_q;
@@ -85,6 +101,7 @@ void SemaphoreManager::Step(const double t, Agents& agents) {
                 queue.pop();
                 agents[a].state = Agent::move;
                 inner_queue.emplace(a);
+                agent_to_sem[a] = static_cast<int>(sem_idx);
             }
         } else {
             if (!sem.inner_left_q.empty()) {
@@ -96,6 +113,7 @@ void SemaphoreManager::Step(const double t, Agents& agents) {
                     sem.left_q.pop();
                     agents[a].state = Agent::move;
                     sem.inner_left_q.emplace(a);
+                    agent_to_sem[a] = static_cast<int>(sem_idx);
                 }
             }
             if (!sem.inner_right_q.empty()) {
@@ -107,6 +125,7 @@ void SemaphoreManager::Step(const double t, Agents& agents) {
                     sem.right_q.pop();
                     agents[a].state = Agent::move;
                     sem.inner_right_q.emplace(a);
+                    agent_to_sem[a] = static_cast<int>(sem_idx);
                 }
             }
         }

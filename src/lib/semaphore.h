@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <queue>
+#include <unordered_map>
 #include <unordered_set>
 #include <utility>
 #include <vector>
@@ -40,8 +41,13 @@ struct SemaphoreManager {
         }
     };
 
+    using IndexedSegment = std::pair<Box, int>;
+    using RTree = bgi::rtree<IndexedSegment, bgi::rstar<16>>;
+
     std::shared_ptr<const Graph> graph;
     std::vector<Semaphore> semaphores;
+    RTree index;
+    std::unordered_map<int, int> agent_to_sem;
 
     SemaphoreManager(std::shared_ptr<const Graph> graph);
 
