@@ -1,10 +1,14 @@
 #include "simulation.h"
 
+#include <algorithm>
 #include <chrono>
 #include <cmath>
+#include <cstdint>
 #include <functional>
+#include <limits>
 #include <queue>
 #include <utility>
+#include <vector>
 
 #include "logging.h"
 #include "statistics.h"
@@ -32,13 +36,118 @@ bool operator>(const Event& a, const Event& b) {
     return a.priority > b.priority;
 }
 
+inline std::uint64_t PackEdgeKey(int u, int v) {
+    return (static_cast<std::uint64_t>(static_cast<std::uint32_t>(u)) << 32)
+         | static_cast<std::uint64_t>(static_cast<std::uint32_t>(v));
+}
+
 }  // namespace
+
+Simulation::Simulation(
+    const double speed_,
+    const Agents& agents_,
+    std::shared_ptr<const Graph> graph_,
+    const std::shared_ptr<const IRouter> router_,
+    const std::optional<Visualizer> vis_)
+    : speed(speed_)
+    , agents(agents_)
+    , graph(std::move(graph_))
+    , dispatch(graph, router_, agents)
+    , semaphores(graph)
+    , vis(vis_)
+{
+    if (vis) {
+        vis->DrawGraph(*graph);
+        vis->SavePersistentPart();
+    }
+    dispatch.AssignBasePoints(agents);
+
+    edge_capacities_.reserve(graph->edges.size() * 2);
+    for (int u = 0; u < static_cast<int>(graph->edges.size()); ++u) {
+        for (const auto& [v, edge] : graph->edges[u]) {
+            const int cap = edge.narrow ? kNarrowEdgeCapacity : kWideEdgeCapacity;
+            edge_capacities_.emplace_back(PackEdgeKey(u, v), cap);
+        }
+    }
+    std::sort(edge_capacities_.begin(), edge_capacities_.end(),
+              [](const auto& a, const auto& b) { return a.first < b.first; });
+}
+
+void Simulation::ComputeFollowCaps(std::vector<double>& out) const {
+    const double kInf = std::numeric_limits<double>::infinity();
+    out.assign(agents.size(), kInf);
+
+    auto& entries = follow_scratch_;
+    entries.clear();
+    entries.reserve(agents.size());
+    for (std::size_t i = 0; i < agents.size(); ++i) {
+        const auto& a = agents[i];
+        if (a.state != Agent::move) {
+            continue;
+        }
+        const auto edge = a.route_follower.CurrentEdge();
+        if (!edge) {
+            continue;
+        }
+        entries.push_back(FollowEntry{
+            PackEdgeKey(edge->first, edge->second),
+            a.route_follower.DistanceAlongEdge(),
+            static_cast<int>(i),
+        });
+    }
+
+    if (entries.size() < 2) {
+        return;
+    }
+
+    std::sort(entries.begin(), entries.end(),
+        [](const FollowEntry& a, const FollowEntry& b) {
+            if (a.edge_key != b.edge_key) {
+                return a.edge_key < b.edge_key;
+            }
+            return a.x_on_edge < b.x_on_edge;
+        });
+
+    const std::size_t n = entries.size();
+    std::size_t i = 0;
+    while (i < n) {
+        std::size_t j = i + 1;
+        const std::uint64_t key = entries[i].edge_key;
+        while (j < n && entries[j].edge_key == key) {
+            ++j;
+        }
+        const std::size_t bucket_size = j - i;
+        if (bucket_size >= 2) {
+            int capacity = kNarrowEdgeCapacity;
+            auto it = std::lower_bound(edge_capacities_.begin(), edge_capacities_.end(), key,
+                [](const std::pair<std::uint64_t, int>& a, std::uint64_t k) {
+                    return a.first < k;
+                });
+            if (it != edge_capacities_.end() && it->first == key) {
+                capacity = it->second;
+            }
+
+            const std::size_t cap = static_cast<std::size_t>(capacity);
+            if (bucket_size > cap) {
+                for (std::size_t k = i; k + cap < j; ++k) {
+                    const FollowEntry& follower = entries[k];
+                    const FollowEntry& leader = entries[k + cap];
+                    const double allowed = leader.x_on_edge - kAgentFollowGap - follower.x_on_edge;
+                    out[follower.agent_id] = allowed > 0.0 ? allowed : 0.0;
+                }
+            }
+        }
+        i = j;
+    }
+}
 
 void Simulation::Step(const double t, const double dt) {
     semaphores.Step(t, agents);
     dispatch.Step(t, agents);
-    for (auto& agent : agents) {
-        agent.Move(t, dt, speed);
+
+    ComputeFollowCaps(follow_caps_scratch_);
+    for (std::size_t i = 0; i < agents.size(); ++i) {
+        agents[i].Move(t, dt, speed, follow_caps_scratch_[i]);
     }
 }
 

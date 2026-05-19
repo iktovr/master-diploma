@@ -23,7 +23,6 @@ void RouteFollower::SetRoute(const Linestring& new_route,
                              const std::vector<int>& new_vertex_ids,
                              double t_now) {
     SetRoute(new_route);
-    // vertex_ids must align 1-to-1 with route points to enable per-edge stats.
     assert(new_vertex_ids.size() == new_route.size());
     vertex_ids = new_vertex_ids;
     cumulative_len.assign(new_route.size(), 0.0);
@@ -33,6 +32,20 @@ void RouteFollower::SetRoute(const Linestring& new_route,
     }
     segment_idx = 0;
     segment_t_enter = t_now;
+}
+
+std::optional<std::pair<int, int>> RouteFollower::CurrentEdge() const {
+    if (vertex_ids.empty() || segment_idx + 1 >= vertex_ids.size()) {
+        return std::nullopt;
+    }
+    return std::make_pair(vertex_ids[segment_idx], vertex_ids[segment_idx + 1]);
+}
+
+double RouteFollower::DistanceAlongEdge() const {
+    if (vertex_ids.empty() || segment_idx >= cumulative_len.size()) {
+        return 0.0;
+    }
+    return x - cumulative_len[segment_idx];
 }
 
 Point RouteFollower::Move(const double dx) {
@@ -46,6 +59,16 @@ Point RouteFollower::Move(const double dx) {
     bg::line_interpolate(route, x, pos);
     incoming_route[0] = pos;
     return pos;
+}
+
+Point RouteFollower::Move(const double dx, const double dt, const double t_now,
+                          const double max_dx) {
+    const double dx_capped = dx < max_dx ? dx : max_dx;
+    if (dx_capped <= 0.0) {
+        return pos;
+    }
+    const double dt_scaled = dt * (dx_capped / dx);
+    return Move(dx_capped, dt_scaled, t_now);
 }
 
 Point RouteFollower::Move(const double dx, const double dt, const double t_now) {
@@ -119,6 +142,26 @@ void Agent::Move(const double t, const double dt, const double speed) {
     }
 
     pos = route_follower.Move(speed * dt, dt, t);
+    if (route_follower.IsFinished()) {
+        state = idle;
+    }
+}
+
+void Agent::Move(const double t, const double dt, const double speed,
+                 const double max_dx) {
+    if (state != move) {
+        return;
+    }
+
+    const double dx = speed * dt;
+    if (dx <= 0.0) {
+        return;
+    }
+    if (route_follower.vertex_ids.empty() || max_dx >= dx) {
+        pos = route_follower.Move(dx, dt, t);
+    } else {
+        pos = route_follower.Move(dx, dt, t, max_dx);
+    }
     if (route_follower.IsFinished()) {
         state = idle;
     }

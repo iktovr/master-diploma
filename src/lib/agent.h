@@ -2,9 +2,17 @@
 
 #include <cassert>
 #include <cstddef>
+#include <limits>
+#include <optional>
+#include <utility>
 #include <vector>
 
 #include "geometry.h"
+
+inline constexpr double kAgentFollowGap = 1.0;
+
+inline constexpr int kNarrowEdgeCapacity = 1;
+inline constexpr int kWideEdgeCapacity = 3;
 
 struct RouteFollower {
     Linestring route;
@@ -27,8 +35,13 @@ struct RouteFollower {
         return std::abs(length - x) < 1e-3;
     }
 
+    std::optional<std::pair<int, int>> CurrentEdge() const;
+
+    double DistanceAlongEdge() const;
+
     Point Move(double dx);
     Point Move(double dx, double dt, double t_now);
+    Point Move(double dx, double dt, double t_now, double max_dx);
 };
 
 struct Agent {
@@ -62,6 +75,7 @@ struct Agent {
 
     void Move(double dt, double speed);
     void Move(double t, double dt, double speed);
+    void Move(double t, double dt, double speed, double max_dx);
 };
 
 using Agents = std::vector<Agent>;
