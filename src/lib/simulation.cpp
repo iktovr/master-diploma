@@ -48,14 +48,20 @@ Simulation::Simulation(
     const Agents& agents_,
     std::shared_ptr<const Graph> graph_,
     const std::shared_ptr<const IRouter> router_,
-    const std::optional<Visualizer> vis_)
+    const std::optional<Visualizer> vis_,
+    ResolverKind resolver_kind)
     : speed(speed_)
     , agents(agents_)
     , graph(std::move(graph_))
     , dispatch(graph, router_, agents)
-    , semaphores(graph)
     , vis(vis_)
 {
+    if (resolver_kind == ResolverKind::semaphore) {
+        semaphores.emplace(graph);
+    } else if (resolver_kind == ResolverKind::reverse) {
+        resolver.emplace(graph);
+    }
+
     if (vis) {
         vis->DrawGraph(*graph);
         vis->SavePersistentPart();
@@ -63,13 +69,17 @@ Simulation::Simulation(
     dispatch.AssignBasePoints(agents);
 
     edge_capacities_.reserve(graph->edges.size() * 2);
+    edge_lengths_.reserve(graph->edges.size() * 2);
     for (int u = 0; u < static_cast<int>(graph->edges.size()); ++u) {
         for (const auto& [v, edge] : graph->edges[u]) {
             const int cap = edge.narrow ? kNarrowEdgeCapacity : kWideEdgeCapacity;
             edge_capacities_.emplace_back(PackEdgeKey(u, v), cap);
+            edge_lengths_.emplace_back(PackEdgeKey(u, v), edge.length);
         }
     }
     std::sort(edge_capacities_.begin(), edge_capacities_.end(),
+              [](const auto& a, const auto& b) { return a.first < b.first; });
+    std::sort(edge_lengths_.begin(), edge_lengths_.end(),
               [](const auto& a, const auto& b) { return a.first < b.first; });
 }
 
@@ -79,21 +89,37 @@ void Simulation::ComputeFollowCaps(std::vector<double>& out) const {
 
     auto& entries = follow_scratch_;
     entries.clear();
-    entries.reserve(agents.size());
+    entries.reserve(agents.size() * 2);
     for (std::size_t i = 0; i < agents.size(); ++i) {
         const auto& a = agents[i];
-        if (a.state != Agent::move) {
-            continue;
-        }
         const auto edge = a.route_follower.CurrentEdge();
         if (!edge) {
             continue;
         }
-        entries.push_back(FollowEntry{
-            PackEdgeKey(edge->first, edge->second),
-            a.route_follower.DistanceAlongEdge(),
-            static_cast<int>(i),
-        });
+        const double x = a.route_follower.DistanceAlongEdge();
+        if (a.state == Agent::move) {
+            entries.push_back(FollowEntry{
+                PackEdgeKey(edge->first, edge->second),
+                x,
+                static_cast<int>(i),
+            });
+        } else if (a.state == Agent::reverse) {
+            // Obstacle in own (directed) bucket — slows trailers in the
+            // loser's original direction.
+            entries.push_back(FollowEntry{
+                PackEdgeKey(edge->first, edge->second),
+                x,
+                -1,
+            });
+            // Obstacle in the opposite (directed) bucket — slows the
+            // pusher behind it.
+            const double L = a.route_follower.CurrentEdgeLength();
+            entries.push_back(FollowEntry{
+                PackEdgeKey(edge->second, edge->first),
+                L - x,
+                -1,
+            });
+        }
     }
 
     if (entries.size() < 2) {
@@ -132,8 +158,14 @@ void Simulation::ComputeFollowCaps(std::vector<double>& out) const {
                 for (std::size_t k = i; k + cap < j; ++k) {
                     const FollowEntry& follower = entries[k];
                     const FollowEntry& leader = entries[k + cap];
+                    if (follower.agent_id < 0) {
+                        continue;  // obstacle never receives a cap
+                    }
                     const double allowed = leader.x_on_edge - kAgentFollowGap - follower.x_on_edge;
-                    out[follower.agent_id] = allowed > 0.0 ? allowed : 0.0;
+                    const double cap_val = allowed > 0.0 ? allowed : 0.0;
+                    if (cap_val < out[follower.agent_id]) {
+                        out[follower.agent_id] = cap_val;
+                    }
                 }
             }
         }
@@ -142,7 +174,12 @@ void Simulation::ComputeFollowCaps(std::vector<double>& out) const {
 }
 
 void Simulation::Step(const double t, const double dt) {
-    semaphores.Step(t, agents);
+    if (semaphores) {
+        semaphores->Step(t, agents);
+    }
+    if (resolver) {
+        resolver->Step(t, dt, agents);
+    }
     dispatch.Step(t, agents);
 
     ComputeFollowCaps(follow_caps_scratch_);

@@ -241,3 +241,115 @@ TEST(AgentMoveStats, LegacySetRouteDoesNotRecordPassages) {
     const auto* w = Statistics::Get().edges.Window(0, 1);
     EXPECT_TRUE(w == nullptr || w->empty());
 }
+
+// ---------------------------------------------------------------------------
+// Reverse state
+// ---------------------------------------------------------------------------
+
+TEST(AgentReverse, MovesBackwardAtReducedSpeed) {
+    Agent a;
+    a.SetRoute(HorizontalRoute(10.0));
+    a.route_follower.Move(5.0);
+    a.pos = a.route_follower.pos;
+    a.state = Agent::reverse;
+
+    // dt=1, speed=2 → forward dx would be 2; reverse uses 0.75 factor → 1.5
+    a.Move(/*dt=*/1.0, /*speed=*/2.0);
+
+    EXPECT_EQ(a.state, Agent::reverse);
+    EXPECT_NEAR(a.route_follower.x, 5.0 - 1.5, 1e-6);
+    EXPECT_NEAR(a.pos.x(), 3.5, 1e-6);
+}
+
+TEST(AgentReverse, DoesNotTransitionToIdleAtRouteStart) {
+    Agent a;
+    a.SetRoute(HorizontalRoute(10.0));
+    a.route_follower.Move(0.5);
+    a.pos = a.route_follower.pos;
+    a.state = Agent::reverse;
+
+    // Reverse beyond the start — x should clamp at 0 but state stays reverse.
+    a.Move(/*dt=*/1.0, /*speed=*/10.0);
+
+    EXPECT_EQ(a.state, Agent::reverse);
+    EXPECT_NEAR(a.route_follower.x, 0.0, 1e-6);
+}
+
+TEST(AgentReverse, IgnoredWhenIdleOrWait) {
+    Agent a;
+    a.SetRoute(HorizontalRoute(10.0));
+    a.route_follower.Move(5.0);
+    a.pos = a.route_follower.pos;
+    a.state = Agent::wait;
+
+    a.Move(/*dt=*/1.0, /*speed=*/2.0);
+
+    EXPECT_EQ(a.state, Agent::wait);
+    EXPECT_NEAR(a.route_follower.x, 5.0, 1e-9);
+}
+
+TEST(AgentReverse, ForwardAfterReverseKeepsSingleEdgePassageInterval) {
+    // Route with two segments: (0,0) → (4,0) → (10,0).
+    // The agent crosses fully forward to vertex 202, reverses partially back
+    // onto segment {200,201}, then continues forward to the end. The edge
+    // {200,201} must yield only one recorded passage with t_enter being the
+    // ORIGINAL first entry (segment start) and t_exit being the time of the
+    // final forward crossing of the boundary at x = 4.
+    Statistics::Get().edges.Clear();
+
+    Agent a;
+    a.SetRoute(TwoSegmentRoute(4.0, 6.0), {200, 201, 202}, /*t_now=*/0.0);
+
+    // Forward step 1: cover the entire route at speed 10 over dt=1 → both
+    // edge {200,201} and {201,202} are crossed forward.
+    //   exit of {200,201} = 0 + 1*4/10 = 0.4
+    //   exit of {201,202} = 1.0
+    a.Move(/*t=*/1.0, /*dt=*/1.0, /*speed=*/10.0);
+    EXPECT_EQ(a.state, Agent::idle);
+
+    // Now place the agent back into reverse halfway across segment {201,202}.
+    // First send it to reverse and back across the {200,201} boundary.
+    a.state = Agent::reverse;
+    // Reverse to x = 2 (well inside the first segment).
+    // From x = 10, we need to go back 8 units. Use speed=10, dt=1, factor 0.75
+    // → 7.5 units. Then another small reverse.
+    a.Move(/*t=*/2.0, /*dt=*/1.0, /*speed=*/10.0);  // x: 10 → 2.5
+    a.Move(/*t=*/3.0, /*dt=*/0.1, /*speed=*/10.0);  // x: 2.5 → 1.75
+
+    // Now move forward again to the end at speed 10.
+    a.state = Agent::move;
+    // Need to cover 10 - 1.75 = 8.25. Use dt=1, speed=10 → 10 covered.
+    a.Move(/*t=*/4.0, /*dt=*/1.0, /*speed=*/10.0);
+
+    // Edge {200,201} must still have exactly one passage recorded with
+    // t_enter at 0.0 (first forward entry) and t_exit at 0.4 (the original
+    // first forward crossing). The back-and-forth must NOT create a second
+    // record.
+    const auto* w1 = Statistics::Get().edges.Window(200, 201);
+    ASSERT_NE(w1, nullptr);
+    EXPECT_EQ(w1->size(), 1u);
+    EXPECT_NEAR(w1->front().t_exit, 0.4, 1e-6);
+    EXPECT_NEAR(w1->front().speed, 10.0, 1e-6);
+
+    // Same for edge {201,202}.
+    const auto* w2 = Statistics::Get().edges.Window(201, 202);
+    ASSERT_NE(w2, nullptr);
+    EXPECT_EQ(w2->size(), 1u);
+    EXPECT_NEAR(w2->front().t_exit, 1.0, 1e-6);
+}
+
+TEST(AgentReverse, ReverseRebuildsIncomingRoute) {
+    Agent a;
+    a.SetRoute(TwoSegmentRoute(4.0, 6.0));  // (0,0)->(4,0)->(10,0)
+
+    // Move forward enough to consume the first vertex from incoming_route.
+    a.route_follower.Move(5.0);  // now on segment 2
+    ASSERT_EQ(a.route_follower.incoming_route.size(), 2u);
+
+    // Reverse back across the boundary.
+    a.state = Agent::reverse;
+    a.route_follower.MoveBackward(2.0);  // x = 3, segment 1
+
+    // incoming_route must again contain the (4,0) waypoint ahead.
+    EXPECT_EQ(a.route_follower.incoming_route.size(), 3u);
+}

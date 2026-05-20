@@ -95,6 +95,25 @@ cc_test(
 )
 
 cc_test(
+    name = "test_resolver",
+    size = "small",
+    srcs = [
+        "test_resolver.cpp",
+    ],
+    deps = [
+        "//lib:agent",
+        "//lib:geometry",
+        "//lib:graph",
+        "//lib:resolver",
+        "//lib:router",
+        "//lib:simulation",
+        "//lib:statistics",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_test(
     name = "test_router",
     size = "small",
     srcs = [

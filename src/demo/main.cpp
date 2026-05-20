@@ -52,6 +52,7 @@ int main(int argc, char **argv) {
     int animation_framerate = 5;
     int basepoints_limit = -1;
     std::string router_kind = "astar";
+    std::string resolver_kind = "none";
     double max_age = std::numeric_limits<double>::infinity();
 
     app.add_option("-g, --graph", graph_path, "Path to file with graph description")
@@ -78,6 +79,8 @@ int main(int argc, char **argv) {
         ->check(CLI::Range(-1, std::numeric_limits<int>::max()));
     app.add_option("-r, --router", router_kind, "Router kind: astar (length) or stat (travel time from edge statistics)")
         ->check(CLI::IsMember({"astar", "stat"}));
+    app.add_option("--resolver", resolver_kind, "Narrow-edge conflict resolver: none, semaphore, reverse")
+        ->check(CLI::IsMember({"none", "semaphore", "reverse"}));
 
     app.add_option("--animate", animation_path, "Convert visualization frames to animation using ffmpeg")
         ->transform(correct_path);
@@ -112,12 +115,22 @@ int main(int argc, char **argv) {
     } else {
         router = std::make_shared<AStarRouter>(g);
     }
-    Simulation sim(max_speed, std::move(agents), g, router, vis);
+    ResolverKind rk = ResolverKind::none;
+    if (resolver_kind == "semaphore") {
+        rk = ResolverKind::semaphore;
+    } else if (resolver_kind == "reverse") {
+        rk = ResolverKind::reverse;
+    }
+    Simulation sim(max_speed, std::move(agents), g, router, vis, rk);
     sim.Simulate(duration, step, vis_step);
 
     LOG_INFO("Number of orders: {}", Statistics::Get().orders_count);
+    LOG_INFO("Number of conflicts: {}", Statistics::Get().conflicts_count);
     if (!Statistics::Get().waiting_time.Empty()) {
         LOG_INFO("Average waiting time: {}", Statistics::Get().waiting_time.Average());
+    }
+    if (!Statistics::Get().reverse_time.Empty()) {
+        LOG_INFO("Average reverse time: {}", Statistics::Get().reverse_time.Average());
     }
     if (!Statistics::Get().speed.Empty()) {
         LOG_INFO("Average speed: {}", Statistics::Get().speed.Average());

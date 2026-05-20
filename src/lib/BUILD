@@ -57,10 +57,26 @@ cc_library(
         ":dispatch",
         ":graph",
         ":logging",
+        ":resolver",
         ":router",
         ":semaphore",
         ":statistics",
         ":visualizer",
+    ],
+)
+
+cc_library(
+    name = "resolver",
+    srcs = [
+        "resolver.cpp",
+    ],
+    hdrs = [
+        "resolver.h",
+    ],
+    deps = [
+        ":agent",
+        ":graph",
+        ":statistics",
     ],
 )
 

@@ -129,7 +129,9 @@ private:
 
 public:
     int orders_count = 0;
+    int conflicts_count = 0;
     CumulativeStatistic<double> speed;
     CumulativeStatistic<double> waiting_time;
+    CumulativeStatistic<double> reverse_time;
     GraphEdgeStatistics edges;
 };
