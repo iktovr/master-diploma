@@ -1,6 +1,7 @@
 #pragma once
 
 #include <algorithm>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <deque>
@@ -36,16 +37,62 @@ private:
     std::vector<T> values;
 };
 
+// GraphEdgeStatistics aggregates per-edge passage observations and reports an
+// effective travel speed for each edge.
+//
+// The reported speed is a *weighted harmonic mean* of observed passage speeds,
+// optionally combined with a free-flow Bayesian prior. Formally, with t the
+// query time, p ranging over stored passages on the edge, v_p the observed
+// speed of passage p, and a_p = t - t^p_exit its age:
+//
+//                  w_0 + sum_p  w(a_p)
+//   bar v(t)  =  -----------------------------,
+//                w_0 / v_0  +  sum_p  w(a_p) / v_p
+//
+//   w(a) = exp(-a / tau)        if tau is finite and > 0
+//        = 1                     otherwise (equal weights)
+//
+// Parameters (public fields, configurable at runtime):
+//   - max_age        : hard cutoff. Passages with age > max_age are discarded
+//                      from memory. Use std::numeric_limits<double>::infinity()
+//                      to disable. Independent of tau (acts as a memory bound).
+//   - tau            : EWMA decay time-constant. Infinite (default) means no
+//                      decay, i.e. all retained samples are weighted equally.
+//   - prior_weight   : w_0 -- weight of the free-flow Bayesian prior in units
+//                      of "virtual passages". 0 (default) disables the prior.
+//   - prior_speed    : v_0 -- the free-flow speed used by the prior. Ignored
+//                      when prior_weight <= 0.
+//
+// Rationale for the harmonic mean: routing/ETA consumers actually want the
+// expected travel time E[L/v], and E[L/v] != L / E[v] in general. The
+// arithmetic mean of speeds systematically over-reports the effective speed
+// when the distribution is bimodal (free-flow + congested), which is the
+// regime where this estimator matters most.
+//
+// Rationale for time-decay weights: a FIFO size-bounded window has the
+// pathological behavior that a stale fast sample stays at full weight until
+// physically displaced by a new sample. On lightly trafficked edges this
+// makes the reported speed appear to *worsen* in discrete jumps as old fast
+// samples are evicted by newly arriving slow ones, even though the physical
+// state of the edge has not changed. Exponential decay eliminates this
+// artefact: old samples lose weight continuously with elapsed time, so the
+// estimator reflects current conditions smoothly.
 class GraphEdgeStatistics {
 public:
-    static constexpr std::size_t kWindow = 15;
-
     struct EdgePassage {
         double t_exit;
         double speed;
     };
 
+    // Hard memory cutoff: passages older than max_age are discarded.
     double max_age = std::numeric_limits<double>::infinity();
+
+    // EWMA time-constant. Set to infinity (default) for legacy equal weights.
+    double tau = std::numeric_limits<double>::infinity();
+
+    // Free-flow prior. Disabled by default (weight = 0).
+    double prior_weight = 0.0;
+    double prior_speed = 0.0;
 
     void Record(int u, int v, double t_enter, double t_exit,
                 double length, double t_now) {
@@ -55,25 +102,50 @@ public:
         auto& dq = data_[Key(u, v)];
         EvictOld(dq, t_now);
         dq.push_back({t_exit, length / (t_exit - t_enter)});
-        while (dq.size() > kWindow) {
-            dq.pop_front();
-        }
     }
 
     double AverageSpeed(int u, int v, double t_now) {
         auto it = data_.find(Key(u, v));
-        if (it == data_.end()) {
+        const bool has_entry = (it != data_.end());
+        if (has_entry) {
+            EvictOld(it->second, t_now);
+        }
+        const bool has_data = has_entry && !it->second.empty();
+
+        // No data and no prior -> legacy "no estimate" sentinel.
+        if (!has_data && !(prior_weight > 0.0 && prior_speed > 0.0)) {
             return 0.0;
         }
-        EvictOld(it->second, t_now);
-        if (it->second.empty()) {
+
+        double sum_w = 0.0;
+        double sum_w_over_v = 0.0;
+
+        if (has_data) {
+            const bool decay = std::isfinite(tau) && tau > 0.0;
+            for (const auto& p : it->second) {
+                if (!(p.speed > 0.0)) {
+                    continue;
+                }
+                double w = 1.0;
+                if (decay) {
+                    const double age = t_now - p.t_exit;
+                    // Negative ages (query before exit) clamp to 0 -> weight 1.
+                    w = (age > 0.0) ? std::exp(-age / tau) : 1.0;
+                }
+                sum_w += w;
+                sum_w_over_v += w / p.speed;
+            }
+        }
+
+        if (prior_weight > 0.0 && prior_speed > 0.0) {
+            sum_w += prior_weight;
+            sum_w_over_v += prior_weight / prior_speed;
+        }
+
+        if (sum_w_over_v <= 0.0) {
             return 0.0;
         }
-        double sum = 0.0;
-        for (const auto& p : it->second) {
-            sum += p.speed;
-        }
-        return sum / static_cast<double>(it->second.size());
+        return sum_w / sum_w_over_v;
     }
 
     bool Has(int u, int v) const {

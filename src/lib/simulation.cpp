@@ -184,7 +184,20 @@ void Simulation::Step(const double t, const double dt) {
 
     ComputeFollowCaps(follow_caps_scratch_);
     for (std::size_t i = 0; i < agents.size(); ++i) {
-        agents[i].Move(t, dt, speed, follow_caps_scratch_[i]);
+        double agent_speed = speed;
+        const auto edge = agents[i].route_follower.CurrentEdge();
+        if (edge) {
+            const auto key = PackEdgeKey(edge->first, edge->second);
+            auto it = std::lower_bound(edge_capacities_.begin(), edge_capacities_.end(), key,
+                [](const std::pair<std::uint64_t, int>& a, std::uint64_t k) {
+                    return a.first < k;
+                });
+            if (it != edge_capacities_.end() && it->first == key
+                && it->second == kNarrowEdgeCapacity) {
+                agent_speed *= kNarrowEdgeSpeedFactor;
+            }
+        }
+        agents[i].Move(t, dt, agent_speed, follow_caps_scratch_[i]);
     }
 }
 

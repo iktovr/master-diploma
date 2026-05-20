@@ -53,7 +53,9 @@ int main(int argc, char **argv) {
     int basepoints_limit = -1;
     std::string router_kind = "astar";
     std::string resolver_kind = "none";
-    double max_age = std::numeric_limits<double>::infinity();
+    double max_age = 300; //std::numeric_limits<double>::infinity();
+    double ewma_tau = 60; //std::numeric_limits<double>::infinity();
+    double prior_weight = 1.0;
 
     app.add_option("-g, --graph", graph_path, "Path to file with graph description")
         ->required()->transform(correct_path)->check(CLI::ExistingFile);
@@ -64,8 +66,18 @@ int main(int argc, char **argv) {
     app.add_option("-a, --agents", agents_count, "Number of agents")
         ->check(CLI::PositiveNumber);
     app.add_option("-s, --speed", max_speed, "Maximum agent speed");
-    app.add_option("--max-age", max_age, "Maximum age graph edge statistics")
+    app.add_option("--max-age", max_age,
+                   "Hard memory cutoff (seconds) for graph edge statistics; Default: infinity.")
         ->check(CLI::PositiveNumber);
+    app.add_option("--ewma-tau", ewma_tau,
+                   "EWMA decay time-constant (seconds) for graph edge speed "
+                   "estimate; Default: infinity (equal weights).")
+        ->check(CLI::PositiveNumber);
+    app.add_option("--prior-weight", prior_weight,
+                   "Weight of the free-flow Bayesian prior in the edge speed "
+                   "estimate, in units of virtual passages at the maximum "
+                   "speed. 0 disables the prior. Default: 0.")
+        ->check(CLI::NonNegativeNumber);
 
     app.add_option("-o, --output", output_dir, "Directory for visualizations")
         ->transform(correct_path)->check(CLI::ExistingDirectory);
@@ -107,6 +119,9 @@ int main(int argc, char **argv) {
         vis.emplace(g->Width(), g->Height(), g->Centroid(), effective_frame_size, scale, output_dir, max_speed);
     }
     Statistics::Get().edges.max_age = max_age;
+    Statistics::Get().edges.tau = ewma_tau;
+    Statistics::Get().edges.prior_weight = prior_weight;
+    Statistics::Get().edges.prior_speed = max_speed;
 
     Agents agents(agents_count, Agent(0, 0, 0));
     std::shared_ptr<const IRouter> router;

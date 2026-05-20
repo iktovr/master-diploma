@@ -13,7 +13,8 @@ inline constexpr double kAgentFollowGap = 1.0;
 inline constexpr int kNarrowEdgeCapacity = 1;
 inline constexpr int kWideEdgeCapacity = 3;
 
-inline constexpr double kReverseSpeedFactor = 0.75;
+inline constexpr double kReverseSpeedFactor = 0.5;
+inline constexpr double kNarrowEdgeSpeedFactor = 0.75;
 
 struct RouteFollower {
     Linestring route;
