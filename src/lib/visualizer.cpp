@@ -48,6 +48,21 @@ inline cv::Scalar SpeedColor(double speed, double max_speed) {
     return cv::Scalar(b, g, r);
 }
 
+inline cv::Scalar AgentStateColor(Agent::State state) {
+    switch (state) {
+        case Agent::move:
+            return cv::Scalar(255, 255, 255);  // white
+        case Agent::idle:
+            return cv::Scalar(186, 186, 186);  // gray
+        case Agent::wait:
+            return cv::Scalar(0, 186, 186);   // dark yellow
+        case Agent::reverse:
+            return cv::Scalar(0, 0, 186);     // dark red
+        default:
+            return cv::Scalar(255, 255, 255);  // white as default
+    }
+}
+
 }  // namespace
 
 int ComputeAutoFrameSize(const Graph& graph) {
@@ -97,11 +112,14 @@ Visualizer::Visualizer(const double width_, const double height_, const Point& c
 
 void Visualizer::DrawAgent(const Agent& agent) {
     const static cv::Scalar edge_color(0, 0, 0);
-    const static cv::Scalar fill_color(255, 255, 255);
+    const cv::Scalar fill_color = AgentStateColor(agent.state);
 
     cv::Point center_px = ToPixels(agent.pos);
 
     // apply lane offset for moving or waiting agents
+    double dir_x = 0.0, dir_y = 0.0;
+    bool has_direction = false;
+    
     if (agent.state != Agent::idle && agent.route_follower.route.size() >= 2) {
         const auto& route = agent.route_follower.route;
         size_t segment_idx = agent.route_follower.segment_idx;
@@ -125,12 +143,25 @@ void Visualizer::DrawAgent(const Agent& agent) {
                 int offset_px = static_cast<int>(agent_radius_px * kAgentLaneOffsetRatio);
                 center_px.x += static_cast<int>(nx * offset_px);
                 center_px.y += static_cast<int>(ny * offset_px);
+                
+                // Store direction for the directional line
+                dir_x = dx / length;
+                dir_y = dy / length;
+                has_direction = true;
             }
         }
     }
 
     cv::circle(img, center_px, agent_radius_px, fill_color, cv::FILLED);
     cv::circle(img, center_px, agent_radius_px, edge_color);
+
+    // Draw directional line from center to edge, codirectional with route
+    if (has_direction) {
+        cv::Point end_px;
+        end_px.x = center_px.x + static_cast<int>(dir_x * agent_radius_px);
+        end_px.y = center_px.y + static_cast<int>(dir_y * agent_radius_px);
+        cv::line(img, center_px, end_px, edge_color, 1);
+    }
 
     // if (agent.state != Agent::idle) {
     //     const auto& route = agent.IncomingRoute();
