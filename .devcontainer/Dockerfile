@@ -38,4 +38,5 @@ RUN chmod -R 644 /usr/share/fonts/truetype/msttcorefonts/* \
   && chmod 755 "bazelisk-${TARGETOS}-${TARGETARCH}" "buildifier-${TARGETOS}-${TARGETARCH}" "buildozer-${TARGETOS}-${TARGETARCH}" \
   && mv "bazelisk-${TARGETOS}-${TARGETARCH}" /usr/bin/bazel \
   && mv "buildifier-${TARGETOS}-${TARGETARCH}" /usr/bin/buildifier \
-  && mv "buildozer-${TARGETOS}-${TARGETARCH}" /usr/bin/buildozer
+  && mv "buildozer-${TARGETOS}-${TARGETARCH}" /usr/bin/buildozer \
+  && install -m 0755 /usr/lib/git-core/git-subtree "$(git --exec-path)/git-subtree"
