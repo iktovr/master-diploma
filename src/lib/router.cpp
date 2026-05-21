@@ -51,7 +51,8 @@ std::vector<int> AStarRouter::Search(const int start, const int finish, const do
     return res;
 }
 
-Linestring AStarRouter::GetRoute(const int u, const int v, const double t) const {
+Linestring AStarRouter::GetRoute(const int u, const int v, const double t,
+                                 const int /*agent_id*/) const {
     const auto path = Search(u, v, t);
     Linestring route;
     route.reserve(path.size());
@@ -62,7 +63,8 @@ Linestring AStarRouter::GetRoute(const int u, const int v, const double t) const
 }
 
 std::pair<Linestring, std::vector<int>>
-AStarRouter::GetRouteWithVertices(const int u, const int v, const double t) const {
+AStarRouter::GetRouteWithVertices(const int u, const int v, const double t,
+                                  const int /*agent_id*/) const {
     auto path = Search(u, v, t);
     Linestring route;
     route.reserve(path.size());

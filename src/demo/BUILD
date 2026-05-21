@@ -7,6 +7,7 @@ cc_binary(
     ],
     deps = [
         "//lib:agent",
+        "//lib:ccbs_router",
         "//lib:graph",
         "//lib:logging",
         "//lib:router",

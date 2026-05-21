@@ -32,11 +32,12 @@ cc_library(
         "-Wall",
         "-Wextra",
     ],
+    include_prefix = "third_party/ccbs",
+    strip_include_prefix = "/third_party/ccbs",
     deps = [
         ":simplex",
         "@boost.multi_index",
     ],
-    includes = ["."],
 )
 
 cc_library(
@@ -74,17 +75,16 @@ cc_library(
         "-Wall",
         "-Wextra",
     ],
-    includes = ["."],
 )
 
 cc_binary(
     name = "ccbs_main",
     srcs = ["main.cpp"],
-    deps = [":ccbs"],
     copts = [
         "-std=c++11",
         "-O2",
         "-Wall",
         "-Wextra",
     ],
+    deps = [":ccbs"],
 )

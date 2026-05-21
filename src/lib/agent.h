@@ -34,10 +34,32 @@ struct RouteFollower {
     std::vector<double> segment_entry_time;
     std::size_t max_segment_reached = 0;
 
+    // Optional absolute simulation time at which the agent is scheduled
+    // to arrive at vertex_ids[i] (and equivalently at cumulative_len[i]).
+    // Must be monotonically non-decreasing. Pairs of equal vertex_ids
+    // with strictly increasing schedule entries encode an explicit
+    // wait at that vertex.
+    //
+    // When non-empty, forward Move() caps |x| so that the agent never
+    // overruns its scheduled position at the current simulation time,
+    // which produces natural pauses (e.g. waits dictated by CCBS).
+    // Empty vector means "no schedule" and preserves legacy behavior
+    // for all non-CCBS routers and tests.
+    std::vector<double> segment_schedule_t;
+
     void SetRoute(const Linestring& new_route);
     void SetRoute(const Linestring& new_route,
                   const std::vector<int>& new_vertex_ids,
                   double t_now);
+    void SetRoute(const Linestring& new_route,
+                  const std::vector<int>& new_vertex_ids,
+                  const std::vector<double>& new_segment_schedule_t,
+                  double t_now);
+
+    // Returns the scheduled x along the route at absolute simulation
+    // time t_now, derived from |segment_schedule_t|. Returns |length|
+    // when there is no schedule or t_now is past the schedule end.
+    double ScheduledPosition(double t_now) const;
 
     bool IsFinished() const {
         return std::abs(length - x) < 1e-3;
@@ -85,6 +107,10 @@ struct Agent {
     void SetRoute(const Linestring& route);
     void SetRoute(const Linestring& route,
                   const std::vector<int>& vertex_ids,
+                  double t_now);
+    void SetRoute(const Linestring& route,
+                  const std::vector<int>& vertex_ids,
+                  const std::vector<double>& segment_schedule_t,
                   double t_now);
 
     inline const Linestring& Route() const {

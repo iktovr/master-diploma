@@ -20,6 +20,7 @@ void RouteFollower::SetRoute(const Linestring& new_route) {
     segment_t_enter = 0.0;
     segment_entry_time.clear();
     max_segment_reached = 0;
+    segment_schedule_t.clear();
 }
 
 void RouteFollower::SetRoute(const Linestring& new_route,
@@ -41,6 +42,44 @@ void RouteFollower::SetRoute(const Linestring& new_route,
         segment_entry_time[0] = t_now;
     }
     max_segment_reached = 0;
+}
+
+void RouteFollower::SetRoute(const Linestring& new_route,
+                             const std::vector<int>& new_vertex_ids,
+                             const std::vector<double>& new_segment_schedule_t,
+                             double t_now) {
+    SetRoute(new_route, new_vertex_ids, t_now);
+    assert(new_segment_schedule_t.empty()
+           || new_segment_schedule_t.size() == new_vertex_ids.size());
+    segment_schedule_t = new_segment_schedule_t;
+}
+
+double RouteFollower::ScheduledPosition(double t_now) const {
+    if (segment_schedule_t.empty() || cumulative_len.empty()) {
+        return length;
+    }
+    if (t_now <= segment_schedule_t.front()) {
+        return cumulative_len.front();
+    }
+    if (t_now >= segment_schedule_t.back()) {
+        return cumulative_len.back();
+    }
+    // Find first i s.t. segment_schedule_t[i] > t_now.
+    // Linear search is fine — schedules are short (O(route length)).
+    std::size_t i = 1;
+    while (i < segment_schedule_t.size() && segment_schedule_t[i] <= t_now) {
+        ++i;
+    }
+    const double t0 = segment_schedule_t[i - 1];
+    const double t1 = segment_schedule_t[i];
+    const double x0 = cumulative_len[i - 1];
+    const double x1 = cumulative_len[i];
+    const double dt = t1 - t0;
+    if (dt <= 0.0) {
+        return x1;
+    }
+    const double a = (t_now - t0) / dt;
+    return x0 + a * (x1 - x0);
 }
 
 std::optional<std::pair<int, int>> RouteFollower::CurrentEdge() const {
@@ -114,6 +153,18 @@ Point RouteFollower::Move(const double dx, const double dt, const double t_now) 
     x += dx;
     if (x > length) {
         x = length;
+    }
+    // Schedule cap: never overrun the scheduled position at t_now.
+    if (!segment_schedule_t.empty()) {
+        const double x_sched = ScheduledPosition(t_now);
+        if (x > x_sched) {
+            x = x_sched;
+        }
+        if (x < x_before) {
+            // Schedule wants us further back than where we already are
+            // (can happen on the first tick after a re-plan); clamp.
+            x = x_before;
+        }
     }
     if (incoming_route.size() > 2 && bg::distance(incoming_route[0], incoming_route[1]) < dx) {
         incoming_route.erase(incoming_route.begin());
@@ -205,6 +256,14 @@ void Agent::SetRoute(const Linestring& route,
                      const std::vector<int>& vertex_ids,
                      double t_now) {
     route_follower.SetRoute(route, vertex_ids, t_now);
+    state = move;
+}
+
+void Agent::SetRoute(const Linestring& route,
+                     const std::vector<int>& vertex_ids,
+                     const std::vector<double>& segment_schedule_t,
+                     double t_now) {
+    route_follower.SetRoute(route, vertex_ids, segment_schedule_t, t_now);
     state = move;
 }
 

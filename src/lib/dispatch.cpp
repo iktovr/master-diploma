@@ -24,12 +24,14 @@ void Dispatch::Step(double t, Agents& agents) {
         if (current_order[i] == -1) {
             int order = NewOrder();
             current_order[i] = order;
-            auto [route, vids] = router->GetRouteWithVertices(agent.base, order, t);
+            auto [route, vids] = router->GetRouteWithVertices(
+                agent.base, order, t, static_cast<int>(i));
             agent.SetRoute(route, vids, t);
             route_length[i] = bg::length(agent.Route());
             order_start_time[i] = t;
         } else {
-            auto [route, vids] = router->GetRouteWithVertices(current_order[i], agent.base, t);
+            auto [route, vids] = router->GetRouteWithVertices(
+                current_order[i], agent.base, t, static_cast<int>(i));
             agent.SetRoute(route, vids, t);
             current_order[i] = -1;
             Statistics::Get().orders_count++;

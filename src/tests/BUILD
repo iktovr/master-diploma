@@ -7,8 +7,8 @@ cc_test(
         "test_graph.cpp",
     ],
     data = [
-        "data/graph.txt",
         "data/graph.geojson",
+        "data/graph.txt",
     ],
     deps = [
         "//lib:graph",
@@ -123,6 +123,21 @@ cc_test(
         "//lib:graph",
         "//lib:router",
         "//lib:statistics",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "test_ccbs_router",
+    size = "small",
+    srcs = [
+        "test_ccbs_router.cpp",
+    ],
+    deps = [
+        "//lib:agent",
+        "//lib:ccbs_router",
+        "//lib:graph",
         "@googletest//:gtest",
         "@googletest//:gtest_main",
     ],

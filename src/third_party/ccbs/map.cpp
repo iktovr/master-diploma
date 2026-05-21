@@ -1,5 +1,45 @@
 #include "map.h"
 
+#include <cmath>
+
+double Map::edge_time_cost(int u, int v) const
+{
+    if(u == v) return 0.0;
+    if(u < 0 || v < 0
+       || u >= int(nodes.size()) || v >= int(nodes.size()))
+        return 0.0;
+    const double di = nodes[u].i - nodes[v].i;
+    const double dj = nodes[u].j - nodes[v].j;
+    const double d = std::sqrt(di*di + dj*dj);
+    if(narrow_speed_factor_ < 1.0 && is_narrow_edge(u, v))
+        return d / narrow_speed_factor_;
+    return d;
+}
+
+void Map::build_roadmap(const std::vector<gNode>& nodes_in,
+                        const std::vector<std::vector<int>>& adj)
+{
+    map_is_roadmap = true;
+    nodes = nodes_in;
+    valid_moves.clear();
+    valid_moves.reserve(nodes.size());
+    for(unsigned int i = 0; i < nodes.size(); i++)
+    {
+        std::vector<Node> neighbors;
+        nodes[i].neighbors = (i < adj.size() ? adj[i] : std::vector<int>{});
+        for(int nb : nodes[i].neighbors)
+        {
+            Node node;
+            node.i = nodes[nb].i;
+            node.j = nodes[nb].j;
+            node.id = nb;
+            neighbors.push_back(node);
+        }
+        valid_moves.push_back(neighbors);
+    }
+    size = int(nodes.size());
+}
+
 bool Map::get_map(const char* FileName)
 {
     tinyxml2::XMLElement *root = nullptr;

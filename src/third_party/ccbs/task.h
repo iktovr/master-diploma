@@ -22,6 +22,11 @@ public:
     void make_ids(int width);
     void make_ij(const Map &map);
     Agent get_agent(int id) const;
+    // Programmatic agent registration (used by CcbsRouter adapter).
+    // Coordinates (i,j) are filled from the map and the new id is
+    // returned.
+    int add_agent(int start_id, int goal_id, const Map& map);
+    void clear() { agents.clear(); }
     void print_task()
     {
         //for(int i=0; i<agents.size(); i++)

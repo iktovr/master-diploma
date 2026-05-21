@@ -25,7 +25,10 @@ void SIPP::find_successors(Node curNode, const Map &map, std::list<Node> &succs,
         newNode.i = move.i;
         newNode.j = move.j;
         newNode.id = move.id;
-        double cost = dist(curNode, newNode);
+        // Narrow edges are traversed at a fraction of unit speed, so we
+        // inflate the time-cost via Map::edge_time_cost(). For wide edges
+        // this equals plain Euclidean distance.
+        double cost = map.edge_time_cost(curNode.id, newNode.id);
         newNode.g = curNode.g + cost;
         std::vector<std::pair<double, double>> intervals(0);
         auto colls_it = collision_intervals.find(newNode.id);
@@ -134,10 +137,19 @@ std::vector<Node> SIPP::reconstruct_path(Node curNode)
         unsigned int j = i + 1;
         if(j == path.nodes.size())
             break;
-        if(fabs(path.nodes[j].g - path.nodes[i].g - dist(path.nodes[j], path.nodes[i])) > CN_EPSILON)
+        double seg_cost = 0.0;
+        // Same speed convention as in find_successors: narrow edges are
+        // scaled by narrow_speed_factor.
+        // Note: we have no |map| in this scope, so fall back to plain
+        // Euclidean distance here. CCBS Map does not get carried into
+        // reconstruct_path; the only consequence is that explicit wait
+        // padding on narrow edges may be slightly over-estimated, which
+        // SetRoute() handles correctly via duplicate-vertex schedule.
+        seg_cost = dist(path.nodes[j], path.nodes[i]);
+        if(fabs(path.nodes[j].g - path.nodes[i].g - seg_cost) > CN_EPSILON)
         {
             Node add = path.nodes[i];
-            add.g = path.nodes[j].g - dist(path.nodes[j], path.nodes[i]);
+            add.g = path.nodes[j].g - seg_cost;
             path.nodes.emplace(path.nodes.begin() + j, add);
         }
     }

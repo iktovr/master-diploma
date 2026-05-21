@@ -8,6 +8,7 @@
 #include <CLI/CLI.hpp>
 
 #include "lib/agent.h"
+#include "lib/ccbs_router.h"
 #include "lib/graph.h"
 #include "lib/logging.h"
 #include "lib/router.h"
@@ -89,8 +90,12 @@ int main(int argc, char **argv) {
         ->check(CLI::PositiveNumber);
     app.add_option("-b, --basepoints", basepoints_limit, "Number of base points to keep from the GeoJSON map (-1 = all)")
         ->check(CLI::Range(-1, std::numeric_limits<int>::max()));
-    app.add_option("-r, --router", router_kind, "Router kind: astar (length) or stat (travel time from edge statistics)")
-        ->check(CLI::IsMember({"astar", "stat"}));
+    app.add_option("-r, --router", router_kind,
+                   "Router kind: astar (length), stat (travel time from edge "
+                   "statistics), or ccbs (continuous-time Conflict-Based "
+                   "Search; resolves narrow-edge conflicts itself, so use "
+                   "--resolver=none).")
+        ->check(CLI::IsMember({"astar", "stat", "ccbs"}));
     app.add_option("--resolver", resolver_kind, "Narrow-edge conflict resolver: none, semaphore, reverse")
         ->check(CLI::IsMember({"none", "semaphore", "reverse"}));
 
@@ -124,9 +129,19 @@ int main(int argc, char **argv) {
     Statistics::Get().edges.prior_speed = max_speed;
 
     Agents agents(agents_count, Agent(0, 0, 0));
+    if (router_kind == "ccbs" && resolver_kind != "none") {
+        std::cerr << "Error: --router=ccbs is incompatible with "
+                     "--resolver=" << resolver_kind
+                  << "; use --resolver=none." << std::endl;
+        return EXIT_FAILURE;
+    }
     std::shared_ptr<const IRouter> router;
+    std::shared_ptr<CcbsRouter> ccbs_router;
     if (router_kind == "stat") {
         router = std::make_shared<StatAStarRouter>(g, &Statistics::Get().edges, max_speed);
+    } else if (router_kind == "ccbs") {
+        ccbs_router = std::make_shared<CcbsRouter>(g, nullptr, max_speed);
+        router = ccbs_router;
     } else {
         router = std::make_shared<AStarRouter>(g);
     }
@@ -137,6 +152,9 @@ int main(int argc, char **argv) {
         rk = ResolverKind::reverse;
     }
     Simulation sim(max_speed, std::move(agents), g, router, vis, rk);
+    if (ccbs_router) {
+        ccbs_router->SetAgents(&sim.agents);
+    }
     sim.Simulate(duration, step, vis_step);
 
     LOG_INFO("Number of orders: {}", Statistics::Get().orders_count);

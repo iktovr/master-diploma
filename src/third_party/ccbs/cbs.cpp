@@ -47,6 +47,24 @@ bool CBS::init_root(const Map &map, const Task &task)
 
 bool CBS::check_conflict(Move move1, Move move2)
 {
+    // Narrow-edge gate. When the map declares any narrow edge at all,
+    // CCBS only registers a conflict if at least one of the two moves
+    // is an actual traversal of a narrow edge. Wait moves (m.id1 ==
+    // m.id2) and any move that only sits at a narrow-incident vertex
+    // without crossing a narrow edge are ignored: agents are allowed
+    // to share wide vertices freely, even ones adjacent to narrow
+    // edges. When no narrow edge is declared, the gate is disabled
+    // and every conflict is considered (legacy behavior).
+    if(map != nullptr && map->has_narrow_set())
+    {
+        auto traverses_narrow = [&](const Move& m) {
+            if(m.id1 == m.id2)
+                return false;
+            return map->is_narrow_edge(m.id1, m.id2);
+        };
+        if(!traverses_narrow(move1) && !traverses_narrow(move2))
+            return false;
+    }
     double startTimeA(move1.t1), endTimeA(move1.t2), startTimeB(move2.t1), endTimeB(move2.t2);
     double m1i1(map->get_i(move1.id1)), m1i2(map->get_i(move1.id2)), m1j1(map->get_j(move1.id1)), m1j2(map->get_j(move1.id2));
     double m2i1(map->get_i(move2.id1)), m2i2(map->get_i(move2.id2)), m2j1(map->get_j(move2.id1)), m2j2(map->get_j(move2.id2));

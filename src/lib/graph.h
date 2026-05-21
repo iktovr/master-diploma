@@ -53,9 +53,6 @@ public:
 
     static Graph LoadFromGeoJsonFile(const std::filesystem::path path, int basepoints_limit = -1);
 
-    std::vector<int> Search(const int u, const int v) const;
-    Linestring GetRoute(const int u, const int v) const;
-
 protected:
     int vertex_id = 0;
 

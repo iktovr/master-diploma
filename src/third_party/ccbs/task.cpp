@@ -71,3 +71,18 @@ Agent Task::get_agent(int id) const
     else
         return Agent();
 }
+
+int Task::add_agent(int start_id, int goal_id, const Map& map)
+{
+    Agent a;
+    a.start_id = start_id;
+    a.goal_id  = goal_id;
+    gNode s = map.get_gNode(start_id), g = map.get_gNode(goal_id);
+    a.start_i = s.i;
+    a.start_j = s.j;
+    a.goal_i  = g.i;
+    a.goal_j  = g.j;
+    a.id = int(agents.size());
+    agents.push_back(a);
+    return a.id;
+}

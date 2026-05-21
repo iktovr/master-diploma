@@ -253,12 +253,12 @@ TEST(AgentReverse, MovesBackwardAtReducedSpeed) {
     a.pos = a.route_follower.pos;
     a.state = Agent::reverse;
 
-    // dt=1, speed=2 → forward dx would be 2; reverse uses 0.75 factor → 1.5
+    // dt=1, speed=2 → forward dx would be 2; reverse uses 0.5 factor → 1.0
     a.Move(/*dt=*/1.0, /*speed=*/2.0);
 
     EXPECT_EQ(a.state, Agent::reverse);
-    EXPECT_NEAR(a.route_follower.x, 5.0 - 1.5, 1e-6);
-    EXPECT_NEAR(a.pos.x(), 3.5, 1e-6);
+    EXPECT_NEAR(a.route_follower.x, 5.0 - 1.0, 1e-6);
+    EXPECT_NEAR(a.pos.x(), 4.0, 1e-6);
 }
 
 TEST(AgentReverse, DoesNotTransitionToIdleAtRouteStart) {
@@ -352,4 +352,75 @@ TEST(AgentReverse, ReverseRebuildsIncomingRoute) {
 
     // incoming_route must again contain the (4,0) waypoint ahead.
     EXPECT_EQ(a.route_follower.incoming_route.size(), 3u);
+}
+
+// ---------------------------------------------------------------------------
+// Scheduled-position cap (RouteFollower::segment_schedule_t)
+// ---------------------------------------------------------------------------
+
+TEST(RouteFollowerSchedule, NoScheduleMovesFreely) {
+    RouteFollower rf;
+    // Two-segment route (0,0)->(4,0)->(10,0), vertices id=1,2,3, no schedule.
+    rf.SetRoute(TwoSegmentRoute(4.0, 6.0), {1, 2, 3}, 0.0);
+
+    // Without a schedule the (dx, dt, t_now) overload behaves like legacy Move.
+    rf.Move(/*dx=*/2.0, /*dt=*/1.0, /*t_now=*/1.0);
+    EXPECT_NEAR(rf.x, 2.0, 1e-9);
+}
+
+TEST(RouteFollowerSchedule, CapsForwardProgressByScheduledPosition) {
+    RouteFollower rf;
+    // Single-segment route 0..10, scheduled at 1 m/s: arrival times 0 and 10.
+    rf.SetRoute(HorizontalRoute(10.0), {1, 2},
+                /*schedule=*/std::vector<double>{0.0, 10.0}, /*t_now=*/0.0);
+
+    // Try to sprint 5 m in dt=1s — scheduled position at t=1 is 1.0.
+    rf.Move(/*dx=*/5.0, /*dt=*/1.0, /*t_now=*/1.0);
+    EXPECT_NEAR(rf.x, 1.0, 1e-9);
+
+    // At t=2, scheduled position is 2.0; another sprint should reach 2.0.
+    rf.Move(/*dx=*/5.0, /*dt=*/1.0, /*t_now=*/2.0);
+    EXPECT_NEAR(rf.x, 2.0, 1e-9);
+}
+
+TEST(RouteFollowerSchedule, ExplicitWaitAtVertexHoldsPosition) {
+    RouteFollower rf;
+    // (0,0)->(5,0)->(10,0), same vertex id 2 duplicated to encode a wait at
+    // x=5 from t=5 to t=8, then continue at 1 m/s to x=10 at t=13.
+    Linestring route;
+    route.push_back(Point{0.0, 0.0});
+    route.push_back(Point{5.0, 0.0});   // arrive at vertex 2 at t=5
+    route.push_back(Point{5.0, 0.0});   // leave vertex 2 at t=8 (wait)
+    route.push_back(Point{10.0, 0.0});  // arrive at vertex 3 at t=13
+    rf.SetRoute(route, /*vertex_ids=*/{1, 2, 2, 3},
+                /*schedule=*/std::vector<double>{0.0, 5.0, 8.0, 13.0},
+                /*t_now=*/0.0);
+
+    // Step at 1 m/s up to t=5 — should reach x=5.
+    rf.Move(/*dx=*/5.0, /*dt=*/5.0, /*t_now=*/5.0);
+    EXPECT_NEAR(rf.x, 5.0, 1e-9);
+
+    // During the wait window (t=5..8) x must stay at 5 even if we ask to move.
+    rf.Move(/*dx=*/3.0, /*dt=*/2.0, /*t_now=*/7.0);
+    EXPECT_NEAR(rf.x, 5.0, 1e-9);
+
+    // After the wait, x advances on schedule.
+    rf.Move(/*dx=*/3.0, /*dt=*/2.0, /*t_now=*/10.0);
+    EXPECT_NEAR(rf.x, 7.0, 1e-9);
+
+    // Final stretch reaches the end.
+    rf.Move(/*dx=*/5.0, /*dt=*/3.0, /*t_now=*/13.0);
+    EXPECT_NEAR(rf.x, 10.0, 1e-9);
+    EXPECT_TRUE(rf.IsFinished());
+}
+
+TEST(RouteFollowerSchedule, ScheduledPositionMonotone) {
+    RouteFollower rf;
+    rf.SetRoute(HorizontalRoute(10.0), {1, 2},
+                std::vector<double>{0.0, 10.0}, /*t_now=*/0.0);
+    EXPECT_NEAR(rf.ScheduledPosition(-1.0), 0.0, 1e-9);
+    EXPECT_NEAR(rf.ScheduledPosition(0.0), 0.0, 1e-9);
+    EXPECT_NEAR(rf.ScheduledPosition(5.0), 5.0, 1e-9);
+    EXPECT_NEAR(rf.ScheduledPosition(10.0), 10.0, 1e-9);
+    EXPECT_NEAR(rf.ScheduledPosition(15.0), 10.0, 1e-9);
 }

@@ -12,9 +12,14 @@ class IRouter {
 public:
     IRouter(std::shared_ptr<const Graph> graph) : graph_(std::move(graph)) {}
     virtual ~IRouter() = default;
-    virtual Linestring GetRoute(const int u, const int v, const double t = 0.0) const = 0;
+    // agent_id is the index of the agent for whom the route is being
+    // requested. It is ignored by single-agent routers (A*, Stat) and
+    // used by batch multi-agent routers (CCBS) to identify the caller
+    // and re-plan its peers concurrently. Default -1 == "unknown".
+    virtual Linestring GetRoute(const int u, const int v, const double t = 0.0,
+                                const int agent_id = -1) const = 0;
     virtual std::pair<Linestring, std::vector<int>> GetRouteWithVertices(
-        const int u, const int v, const double t = 0.0) const = 0;
+        const int u, const int v, const double t = 0.0, const int agent_id = -1) const = 0;
 
 protected:
     virtual double Heuristic(const int u, const int v) const = 0;
@@ -28,9 +33,10 @@ class AStarRouter : public IRouter {
 public:
     AStarRouter(std::shared_ptr<const Graph> graph) : IRouter(std::move(graph)) {}
     virtual ~AStarRouter() = default;
-    Linestring GetRoute(const int u, const int v, const double t = 0.0) const override;
+    Linestring GetRoute(const int u, const int v, const double t = 0.0,
+                        const int agent_id = -1) const override;
     std::pair<Linestring, std::vector<int>> GetRouteWithVertices(
-        const int u, const int v, const double t = 0.0) const override;
+        const int u, const int v, const double t = 0.0, const int agent_id = -1) const override;
 
 protected:
     using SearchState = std::pair<double, int>;

@@ -140,8 +140,8 @@ cc_library(
         ":agent",
         ":geometry",
         ":graph",
-        ":statistics",
         ":logging",
+        ":statistics",
     ],
 )
 
@@ -161,11 +161,42 @@ cc_library(
 )
 
 cc_library(
+    name = "ccbs_solver",
+    srcs = [
+        "ccbs_solver.cpp",
+    ],
+    hdrs = [
+        "ccbs_solver.h",
+    ],
+    deps = [
+        "//third_party/ccbs",
+    ],
+)
+
+cc_library(
+    name = "ccbs_router",
+    srcs = [
+        "ccbs_router.cpp",
+    ],
+    hdrs = [
+        "ccbs_router.h",
+    ],
+    deps = [
+        ":agent",
+        ":ccbs_solver",
+        ":geometry",
+        ":graph",
+        ":logging",
+        ":router",
+    ],
+)
+
+cc_library(
     name = "statistics",
     srcs = [
         "statistics.cpp",
     ],
     hdrs = [
         "statistics.h",
-    ]
+    ],
 )
