@@ -8,7 +8,7 @@
 
 #include "geometry.h"
 
-inline constexpr double kAgentFollowGap = 1.0;
+inline constexpr double kAgentFollowGap = 0.8;
 
 inline constexpr int kNarrowEdgeCapacity = 1;
 inline constexpr int kWideEdgeCapacity = 3;

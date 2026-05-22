@@ -121,16 +121,67 @@ bool CcbsRouter::BuildPeerPlan(const Agent& peer, double t_now,
     // that one CCBS second equals one second of absolute time.
     //
     // The plan we emit covers all vertices from the peer's *next*
-    // vertex onward. We translate each stamp's absolute schedule
-    // time |s| into a CCBS g = (s - t_now) * max_speed_.
+    // vertex onward, *plus* — when the peer is currently mid-edge —
+    // an extra leading stamp at the previous graph vertex with a
+    // negative |g|. That extra stamp makes the in-flight narrow
+    // traversal visible to the constraint-synthesis loop in
+    // Solver::SolveSingleAgent(), which would otherwise let the
+    // caller plan a head-on reverse move through the same narrow
+    // edge while the peer is still inside it.
     std::size_t next_idx = rf.segment_idx;
-    if (!rf.cumulative_len.empty() && rf.x > rf.cumulative_len[rf.segment_idx]) {
-        next_idx = std::min(rf.segment_idx + 1, rf.vertex_ids.size() - 1);
+    const bool peer_mid_edge =
+        !rf.cumulative_len.empty()
+        && rf.x > rf.cumulative_len[rf.segment_idx]
+        && rf.segment_idx + 1 < rf.vertex_ids.size();
+    if (peer_mid_edge) {
+        next_idx = rf.segment_idx + 1;
     }
     if (next_idx >= rf.vertex_ids.size()) return false;
 
+    // Compute the in-flight edge's effective traversal speed (factoring
+    // in narrow slowdown) — needed both for the prepended-stamp |g|
+    // and for the |has_sched|-less synthesis below.
+    double dt_finish = 0.0;      // wall-time to reach |next_idx|
+    double dt_already = 0.0;     // wall-time already spent on current edge
+    if (peer_mid_edge) {
+        const double remaining =
+            rf.CurrentEdgeLength() - rf.DistanceAlongEdge();
+        const double already = rf.DistanceAlongEdge();
+        const auto cur_edge = rf.CurrentEdge();
+        bool is_narrow = false;
+        if (cur_edge.has_value()) {
+            const int eu = cur_edge->first;
+            const int ev = cur_edge->second;
+            if (eu >= 0 && eu < static_cast<int>(graph_->edges.size())) {
+                auto it = graph_->edges[eu].find(ev);
+                if (it != graph_->edges[eu].end()) {
+                    is_narrow = it->second.narrow;
+                }
+            }
+        }
+        const double effective_speed =
+            max_speed_ * (is_narrow ? kNarrowEdgeSpeedFactor : 1.0);
+        if (effective_speed > 0.0) {
+            if (remaining > 0.0) dt_finish  = remaining / effective_speed;
+            if (already  > 0.0) dt_already = already  / effective_speed;
+        }
+    }
+
     out->path.clear();
-    out->path.reserve(rf.vertex_ids.size() - next_idx);
+    out->path.reserve(rf.vertex_ids.size() - next_idx + (peer_mid_edge ? 1 : 0));
+
+    // Prepend the in-flight edge's *origin* vertex with a negative |g|
+    // so the constraint loop in Solver::SolveSingleAgent() emits a
+    // head-on reverse-edge constraint covering the window during which
+    // the peer is still inside the edge. We use the origin vertex's
+    // id from |segment_idx| (the agent has moved past it but is still
+    // between it and |segment_idx + 1|).
+    if (peer_mid_edge) {
+        ccbs_adapter::Stamp st;
+        st.id = rf.vertex_ids[rf.segment_idx];
+        st.g  = -dt_already * max_speed_;  // negative => already in the past
+        out->path.push_back(st);
+    }
 
     // Schedule-based time anchoring (preferred): if the peer has a
     // segment_schedule_t, use it verbatim.
@@ -141,38 +192,20 @@ bool CcbsRouter::BuildPeerPlan(const Agent& peer, double t_now,
         for (std::size_t i = next_idx; i < rf.vertex_ids.size(); ++i) {
             ccbs_adapter::Stamp st;
             st.id = rf.vertex_ids[i];
-            // Convert absolute time to CCBS g.
+            // Convert absolute time to CCBS g. We do *not* clamp to 0
+            // here: the schedule may legitimately be slightly in the
+            // past relative to t_now (e.g. when invoked between ticks),
+            // and clamping would compress consecutive stamps to the
+            // same g, breaking constraint synthesis. The constraint
+            // loop already handles negative-g stamps correctly.
             const double dt = rf.segment_schedule_t[i] - t_now;
-            st.g = std::max(0.0, dt) * max_speed_;
+            st.g = dt * max_speed_;
             out->path.push_back(st);
         }
     } else {
         // Fallback: synthesize a schedule from cumulative_len at the
         // peer's effective speed (taking narrow edges into account).
-        double g_acc = 0.0;
-        if (next_idx < rf.cumulative_len.size()) {
-            // Time to finish the current in-flight edge.
-            const double remaining =
-                rf.CurrentEdgeLength() - rf.DistanceAlongEdge();
-            const auto cur_edge = rf.CurrentEdge();
-            bool is_narrow = false;
-            if (cur_edge.has_value()) {
-                const int eu = cur_edge->first;
-                const int ev = cur_edge->second;
-                if (eu >= 0 && eu < static_cast<int>(graph_->edges.size())) {
-                    auto it = graph_->edges[eu].find(ev);
-                    if (it != graph_->edges[eu].end()) {
-                        is_narrow = it->second.narrow;
-                    }
-                }
-            }
-            const double effective_speed =
-                max_speed_ * (is_narrow ? kNarrowEdgeSpeedFactor : 1.0);
-            const double dt_finish = (effective_speed > 0.0 && remaining > 0.0)
-                ? remaining / effective_speed
-                : 0.0;
-            g_acc = dt_finish * max_speed_;
-        }
+        double g_acc = dt_finish * max_speed_;
         for (std::size_t i = next_idx; i < rf.vertex_ids.size(); ++i) {
             ccbs_adapter::Stamp st;
             st.id = rf.vertex_ids[i];

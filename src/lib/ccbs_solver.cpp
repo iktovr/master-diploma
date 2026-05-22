@@ -168,19 +168,17 @@ bool Solver::SolveSingleAgent(int start_id, int goal_id,
                 // Move. Forbid only if narrow (wide moves cannot
                 // collide under our gating).
                 if (!is_narrow(u, v)) continue;
-                // Forbid the reverse edge during the overlap.
+                // Forbid the reverse edge during the overlap. We
+                // intentionally do *not* forbid same-direction
+                // co-traversal: agents physically following each
+                // other on a narrow edge are fine (the same-edge
+                // capacity is enforced by speed equality, not by
+                // mutex). The only narrow-edge conflict we need to
+                // prevent is the head-on case.
                 cons.emplace_back(caller_id,
                                   t1 - dur,
                                   t2,
                                   v, u);
-                // Belt-and-suspenders: also forbid same-direction
-                // overlap on the narrow edge — agents physically
-                // following each other on a single-file edge would
-                // violate capacity even without head-on conflict.
-                cons.emplace_back(caller_id,
-                                  t1 - dur,
-                                  t2,
-                                  u, v);
             } else {
                 // Wait. Only emit if the wait is at a narrow-incident
                 // vertex; otherwise CCBS's gate would never fire and

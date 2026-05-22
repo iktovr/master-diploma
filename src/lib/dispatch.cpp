@@ -40,14 +40,24 @@ void Dispatch::Step(double t, Agents& agents) {
             current_order[i] = order;
             auto [route, vids] = router->GetRouteWithVertices(
                 agent.base, order, t, static_cast<int>(i));
-            agent.SetRoute(route, vids, t);
+            // Some routers (e.g. CcbsRouter) install a scheduled route on
+            // the caller agent themselves. Re-applying SetRoute(route,
+            // vids, t) here would wipe |segment_schedule_t| and cause the
+            // simulation to treat the agent as unscheduled — defeating
+            // the schedule-aware follow-cap gate and the
+            // ScheduledPosition clamp inside RouteFollower::Move().
+            if (agent.route_follower.segment_schedule_t.empty()) {
+                agent.SetRoute(route, vids, t);
+            }
             traveled_length[i] = 0.0;
             last_pos[i] = agent.pos;
             order_start_time[i] = t;
         } else {
             auto [route, vids] = router->GetRouteWithVertices(
                 current_order[i], agent.base, t, static_cast<int>(i));
-            agent.SetRoute(route, vids, t);
+            if (agent.route_follower.segment_schedule_t.empty()) {
+                agent.SetRoute(route, vids, t);
+            }
             current_order[i] = -1;
             Statistics::Get().orders_count++;
             traveled_length[i] = 0.0;
