@@ -11,14 +11,28 @@
 void Dispatch::Step(double t, Agents& agents) {
     for (size_t i = 0; i < agents.size(); ++i) {
         auto& agent = agents[i];
+
+        // Accumulate ground-truth traveled distance for the active order
+        // every tick, regardless of state. Using positional deltas (rather
+        // than the planned route length at order-start) keeps the metric
+        // correct across mid-trip CCBS replans, semaphore waits, and
+        // reverse excursions.
+        if (order_start_time[i] >= 0) {
+            traveled_length[i] += bg::distance(last_pos[i], agent.pos);
+        }
+        last_pos[i] = agent.pos;
+
         if (agent.state != Agent::idle) {
             continue;
         }
 
-        if (order_start_time[i] > 0) {
-            Statistics::Get().speed.Add(route_length[i] / (t - order_start_time[i]));
+        if (order_start_time[i] >= 0) {
+            const double elapsed = t - order_start_time[i];
+            if (elapsed > 0.0) {
+                Statistics::Get().speed.Add(traveled_length[i] / elapsed);
+            }
             order_start_time[i] = -1;
-            route_length[i] = -1;
+            traveled_length[i] = 0.0;
         }
 
         if (current_order[i] == -1) {
@@ -27,7 +41,8 @@ void Dispatch::Step(double t, Agents& agents) {
             auto [route, vids] = router->GetRouteWithVertices(
                 agent.base, order, t, static_cast<int>(i));
             agent.SetRoute(route, vids, t);
-            route_length[i] = bg::length(agent.Route());
+            traveled_length[i] = 0.0;
+            last_pos[i] = agent.pos;
             order_start_time[i] = t;
         } else {
             auto [route, vids] = router->GetRouteWithVertices(
@@ -35,7 +50,8 @@ void Dispatch::Step(double t, Agents& agents) {
             agent.SetRoute(route, vids, t);
             current_order[i] = -1;
             Statistics::Get().orders_count++;
-            route_length[i] = bg::length(agent.Route());
+            traveled_length[i] = 0.0;
+            last_pos[i] = agent.pos;
             order_start_time[i] = t;
         }
     }

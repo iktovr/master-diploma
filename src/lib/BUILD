@@ -12,6 +12,7 @@ cc_library(
     ],
     deps = [
         ":geometry",
+        ":logging",
         ":statistics",
     ],
 )

@@ -174,6 +174,10 @@ std::pair<Linestring, std::vector<int>> CcbsRouter::GetRouteWithVertices(
         return fallback_router_.GetRouteWithVertices(u, v, t, agent_id);
     }
 
+    // Caller branch: Dispatch::Step() only invokes the router when the
+    // caller agent is idle, so |u| is always the caller's current
+    // vertex — no prefix stitching is needed and the schedule's
+    // first entry naturally lands at t.
     Linestring caller_route;
     std::vector<int> caller_vids;
     std::vector<double> caller_sched;
@@ -192,7 +196,69 @@ std::pair<Linestring, std::vector<int>> CcbsRouter::GetRouteWithVertices(
         std::vector<double> sched;
         PathToRoute(paths[p.task_idx], t, &route, &vids, &sched);
         if (vids.size() < 2) continue;
-        (*agents_)[p.sim_agent_idx].SetRoute(route, vids, sched, t);
+
+        // Peer agents are typically mid-edge when CCBS replans them.
+        // BuildSubtask() picked the *next* graph vertex as the sub-task
+        // start, so |route.front()| is the position of that next
+        // vertex — handing this directly to Agent::SetRoute() would
+        // teleport the agent forward (RouteFollower::SetRoute resets
+        // |x = 0; pos = route.front()|). Prepend the peer's current
+        // position so the route geometry starts where the agent
+        // actually is, and shift the first CCBS-stamp's schedule time
+        // by the time it physically takes to finish the in-flight edge
+        // at the same effective speed Simulation::Step() will apply.
+        Agent& peer = (*agents_)[p.sim_agent_idx];
+        const auto& rf = peer.route_follower;
+        const auto cur_edge = rf.CurrentEdge();
+        if (cur_edge.has_value() && rf.segment_idx < rf.vertex_ids.size()) {
+            const double remaining =
+                rf.CurrentEdgeLength() - rf.DistanceAlongEdge();
+            bool is_narrow = false;
+            const int eu = cur_edge->first;
+            const int ev = cur_edge->second;
+            if (eu >= 0 && eu < static_cast<int>(graph_->edges.size())) {
+                auto it = graph_->edges[eu].find(ev);
+                if (it != graph_->edges[eu].end()) {
+                    is_narrow = it->second.narrow;
+                }
+            }
+            const double effective_speed =
+                max_speed_ * (is_narrow ? kNarrowEdgeSpeedFactor : 1.0);
+            const double dt_finish = (effective_speed > 0.0 && remaining > 0.0)
+                ? remaining / effective_speed
+                : 0.0;
+
+            // Prepend the peer's true current pos and a matching
+            // vertex_id (re-use the previous vertex id — it's already
+            // behind the agent so RouteFollower::Move() never revisits
+            // it under monotone schedules). Shift the existing first
+            // stamp's schedule by dt_finish so the agent has time to
+            // physically reach it.
+            Linestring stitched;
+            stitched.reserve(route.size() + 1);
+            stitched.push_back(rf.pos);
+            for (const auto& pt : route) stitched.push_back(pt);
+
+            std::vector<int> stitched_vids;
+            stitched_vids.reserve(vids.size() + 1);
+            stitched_vids.push_back(rf.vertex_ids[rf.segment_idx]);
+            for (int id : vids) stitched_vids.push_back(id);
+
+            std::vector<double> stitched_sched;
+            stitched_sched.reserve(sched.size() + 1);
+            stitched_sched.push_back(t);
+            // Original sched.front() == t; the next vertex is reached
+            // at t + dt_finish, all subsequent stamps shift by the
+            // same offset so CCBS-scheduled waits stay synchronized.
+            const double shift = dt_finish;
+            for (double s : sched) stitched_sched.push_back(s + shift);
+
+            peer.SetRoute(stitched, stitched_vids, stitched_sched, t);
+        } else {
+            // Peer has no in-flight edge (rare; e.g. just finished a
+            // segment exactly on this tick). Apply the CCBS plan as-is.
+            peer.SetRoute(route, vids, sched, t);
+        }
     }
 
     return {caller_route, caller_vids};

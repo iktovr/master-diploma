@@ -15,7 +15,13 @@ struct Dispatch {
     std::vector<int> base_points;
     std::vector<int> current_order;
 
-    std::vector<double> route_length;
+    // Distance actually traveled since the current order's start, accumulated
+    // from per-tick |agent.pos| deltas. Resilient to mid-trip route changes
+    // (e.g. CCBS peer replans) and to reverse excursions: the resulting
+    // distance/time ratio reported to Statistics::Get().speed reflects the
+    // agent's true average ground speed rather than the planned route length.
+    std::vector<double> traveled_length;
+    std::vector<Point>  last_pos;
     std::vector<double> order_start_time;
 
     Dispatch(
@@ -27,7 +33,8 @@ struct Dispatch {
         , delivery_points(this->graph->GetVertices(Graph::Vertex::delivery))
         , base_points(this->graph->GetVertices(Graph::Vertex::base))
         , current_order(agents.size(), -1)
-        , route_length(agents.size(), -1)
+        , traveled_length(agents.size(), 0.0)
+        , last_pos(agents.size(), Point{0.0, 0.0})
         , order_start_time(agents.size(), -1)
     {
     }
