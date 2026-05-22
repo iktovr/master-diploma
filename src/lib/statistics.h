@@ -206,4 +206,27 @@ public:
     CumulativeStatistic<double> waiting_time;
     CumulativeStatistic<double> reverse_time;
     GraphEdgeStatistics edges;
+
+    // ----- CCBS router instrumentation -----
+    // Counters and distributions populated by CcbsRouter to validate the
+    // tiered solve strategy (single-agent SIPP with frozen peers ->
+    // joint CCBS -> A* last resort). All values are cumulative across
+    // the lifetime of the process; tests reset Statistics::Get() between
+    // runs as needed.
+    //
+    // - ccbs_singleagent_success: caller-only SIPP with frozen peers
+    //   produced a valid path in the fast (or fallback) attempt.
+    // - ccbs_joint_success      : full joint CCBS replan succeeded
+    //   (used when the fast path failed but joint had room to manoeuvre).
+    // - ccbs_fallback           : A* last-resort fallback was taken.
+    // - ccbs_joint_task_size    : number of agents in each joint CCBS
+    //   task (caller + relevant peers; idle/distant peers excluded).
+    // - ccbs_solve_time_s       : wall-clock seconds spent inside the
+    //   solver per GetRouteWithVertices() invocation (sum of all
+    //   attempts including timeouts).
+    int ccbs_singleagent_success = 0;
+    int ccbs_joint_success = 0;
+    int ccbs_fallback = 0;
+    CumulativeStatistic<int> ccbs_joint_task_size;
+    CumulativeStatistic<double> ccbs_solve_time_s;
 };

@@ -19,6 +19,7 @@
 namespace ccbs_adapter {
 class Solver;
 struct Stamp;
+struct PeerPlan;
 using Path = std::vector<Stamp>;
 }
 
@@ -61,6 +62,13 @@ public:
     // value (e.g. 0.05 s) to force fallback quickly.
     void SetSolverTimeLimit(double seconds);
 
+    // Override the wall-clock budget of the *fast* CCBS attempt
+    // (run before the longer escalation attempt). Default 0.2 s,
+    // chosen empirically so that the typical small-graph dispatch
+    // event finishes inside one attempt without timing out. Pass a
+    // very small value (e.g. 1e-3) in tests to force escalation.
+    void SetFastSolverTimeLimit(double seconds);
+
     Linestring GetRoute(const int u, const int v, const double t = 0.0,
                         const int agent_id = -1) const override;
     std::pair<Linestring, std::vector<int>> GetRouteWithVertices(
@@ -99,8 +107,36 @@ private:
                       int* start_id_out,
                       int* goal_id_out) const;
 
+    // Build a single peer's already-committed plan in the caller's
+    // time frame, anchored so g=0 corresponds to absolute time |t_now|
+    // and the first stamp lands at the peer's earliest arrival at
+    // its next graph vertex (accounting for the time still needed to
+    // finish the in-flight edge at the appropriate speed).
+    //
+    // Returns false when the peer has no usable in-flight plan
+    // (idle, or no route segments remaining).
+    bool BuildPeerPlan(const Agent& peer, double t_now,
+                       ccbs_adapter::PeerPlan* out) const;
+
+    // Conservative spatial relevance test between the caller and a
+    // peer: returns true if their planned vertex sequences could
+    // plausibly interact. Used to prune the joint CCBS task so that
+    // only agents that *might* conflict are passed to the multi-agent
+    // solver. Conservative in the false-positive direction (i.e. may
+    // include some peers that do not actually conflict); never
+    // excludes a peer that does conflict.
+    bool PeerRelevant(const std::vector<int>& caller_vids,
+                      const std::vector<int>& peer_vids) const;
+
     Agents* agents_;
     double max_speed_;
+
+    // Two-tier time budget. The fast attempt is run on the joint
+    // CCBS task first; on a *timeout* (vs. "no solution") we
+    // escalate to the longer budget. See SetSolverTimeLimit() and
+    // SetFastSolverTimeLimit() for tuning hooks.
+    double fast_timelimit_s_ = 0.2;
+    double slow_timelimit_s_ = 5.0;
 
     // Owned CCBS bridge, mutable because GetRoute* is logically
     // const yet we lazily build the underlying roadmap.

@@ -22,6 +22,18 @@ struct Stamp {
 
 using Path = std::vector<Stamp>;
 
+// A peer's already-committed plan, expressed in the same CCBS time
+// axis (g) the caller will be planned against. |path| is a sequence
+// of (id, g) stamps starting at g = the peer's earliest reachable
+// time on this plan (typically the time the peer arrives at its
+// next graph vertex, relative to the caller's planning origin).
+//
+// Consumed by Solver::SolveSingleAgent() to build forbidden-edge
+// constraints that the caller's SIPP search must respect.
+struct PeerPlan {
+    Path path;
+};
+
 class Solver {
 public:
     Solver();
@@ -44,6 +56,23 @@ public:
     // (vertex id, g) form.
     bool Solve(const std::vector<std::pair<int, int>>& subtasks,
                std::vector<Path>* paths_out) const;
+
+    // Single-agent fast path: run SIPP for one (start, goal) task
+    // while treating |peer_plans| as already-committed, immutable
+    // schedules. Forbidden-edge constraints are synthesized from
+    // each peer's *narrow* edge traversals (wide moves cannot
+    // conflict per the CCBS narrow-edge gate, so they are skipped).
+    //
+    // Returns true and writes the caller's path on success. Returns
+    // false if SIPP cannot find any feasible single-agent path
+    // honoring the constraints (in which case the caller should
+    // fall through to the full joint CBS or to A*).
+    //
+    // This is the primary fast-path used by CcbsRouter to avoid
+    // re-running multi-agent CBS on every dispatch event.
+    bool SolveSingleAgent(int start_id, int goal_id,
+                          const std::vector<PeerPlan>& peer_plans,
+                          Path* path_out) const;
 
     // Bound wall-clock time spent inside CCBS::find_solution(). When
     // CCBS cannot find a conflict-free joint plan within |seconds|,

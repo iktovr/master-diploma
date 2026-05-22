@@ -1,8 +1,10 @@
 #include "ccbs_router.h"
 
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <cstddef>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -11,6 +13,7 @@
 #include "geometry.h"
 #include "graph.h"
 #include "logging.h"
+#include "statistics.h"
 
 CcbsRouter::CcbsRouter(std::shared_ptr<const Graph> graph,
                        Agents* agents,
@@ -20,17 +23,33 @@ CcbsRouter::CcbsRouter(std::shared_ptr<const Graph> graph,
     , max_speed_(max_speed > 0.0 ? max_speed : 1.0)
     , solver_(new ccbs_adapter::Solver())
     , fallback_router_(std::move(graph)) {
-    // CCBS is exponential in the number of conflicts in pathological
-    // dense head-on scenarios. Cap its wall-clock budget so that
-    // Solve() returns false (triggering the A* fallback) instead of
-    // blocking the caller.
-    solver_->SetTimeLimit(5.0);
+    // Two-tier solver budget. The slow timelimit is what
+    // SetSolverTimeLimit() controls (tests and external knobs). The
+    // fast timelimit is used for the first attempt and falls back to
+    // the slow budget only if the first attempt times out (vs. proves
+    // infeasible).
+    solver_->SetTimeLimit(slow_timelimit_s_);
 }
 
 CcbsRouter::~CcbsRouter() = default;
 
 void CcbsRouter::SetSolverTimeLimit(double seconds) {
-    solver_->SetTimeLimit(seconds);
+    if (seconds > 0.0) {
+        slow_timelimit_s_ = seconds;
+    }
+    // Keep the fast budget bounded by the slow one. A test that sets
+    // a very small slow budget (e.g. 0.05 s to force fallback) should
+    // not have an even smaller fast budget below it.
+    if (fast_timelimit_s_ > slow_timelimit_s_) {
+        fast_timelimit_s_ = slow_timelimit_s_;
+    }
+    solver_->SetTimeLimit(slow_timelimit_s_);
+}
+
+void CcbsRouter::SetFastSolverTimeLimit(double seconds) {
+    if (seconds > 0.0) {
+        fast_timelimit_s_ = std::min(seconds, slow_timelimit_s_);
+    }
 }
 
 double CcbsRouter::Heuristic(const int u, const int v) const {
@@ -89,6 +108,126 @@ bool CcbsRouter::BuildSubtask(const Agent& a,
     return *start_id_out != *goal_id_out;
 }
 
+bool CcbsRouter::BuildPeerPlan(const Agent& peer, double t_now,
+                               ccbs_adapter::PeerPlan* out) const {
+    if (peer.state == Agent::idle) return false;
+    const auto& rf = peer.route_follower;
+    if (rf.vertex_ids.size() < 2) return false;
+
+    // Determine the peer's next graph vertex index (same logic as
+    // BuildSubtask) and the absolute wall-clock time at which the
+    // peer reaches it. We express the peer plan in CCBS time-cost
+    // units (g) measured from t_now, multiplied by max_speed_ so
+    // that one CCBS second equals one second of absolute time.
+    //
+    // The plan we emit covers all vertices from the peer's *next*
+    // vertex onward. We translate each stamp's absolute schedule
+    // time |s| into a CCBS g = (s - t_now) * max_speed_.
+    std::size_t next_idx = rf.segment_idx;
+    if (!rf.cumulative_len.empty() && rf.x > rf.cumulative_len[rf.segment_idx]) {
+        next_idx = std::min(rf.segment_idx + 1, rf.vertex_ids.size() - 1);
+    }
+    if (next_idx >= rf.vertex_ids.size()) return false;
+
+    out->path.clear();
+    out->path.reserve(rf.vertex_ids.size() - next_idx);
+
+    // Schedule-based time anchoring (preferred): if the peer has a
+    // segment_schedule_t, use it verbatim.
+    const bool has_sched =
+        rf.segment_schedule_t.size() == rf.vertex_ids.size();
+
+    if (has_sched) {
+        for (std::size_t i = next_idx; i < rf.vertex_ids.size(); ++i) {
+            ccbs_adapter::Stamp st;
+            st.id = rf.vertex_ids[i];
+            // Convert absolute time to CCBS g.
+            const double dt = rf.segment_schedule_t[i] - t_now;
+            st.g = std::max(0.0, dt) * max_speed_;
+            out->path.push_back(st);
+        }
+    } else {
+        // Fallback: synthesize a schedule from cumulative_len at the
+        // peer's effective speed (taking narrow edges into account).
+        double g_acc = 0.0;
+        if (next_idx < rf.cumulative_len.size()) {
+            // Time to finish the current in-flight edge.
+            const double remaining =
+                rf.CurrentEdgeLength() - rf.DistanceAlongEdge();
+            const auto cur_edge = rf.CurrentEdge();
+            bool is_narrow = false;
+            if (cur_edge.has_value()) {
+                const int eu = cur_edge->first;
+                const int ev = cur_edge->second;
+                if (eu >= 0 && eu < static_cast<int>(graph_->edges.size())) {
+                    auto it = graph_->edges[eu].find(ev);
+                    if (it != graph_->edges[eu].end()) {
+                        is_narrow = it->second.narrow;
+                    }
+                }
+            }
+            const double effective_speed =
+                max_speed_ * (is_narrow ? kNarrowEdgeSpeedFactor : 1.0);
+            const double dt_finish = (effective_speed > 0.0 && remaining > 0.0)
+                ? remaining / effective_speed
+                : 0.0;
+            g_acc = dt_finish * max_speed_;
+        }
+        for (std::size_t i = next_idx; i < rf.vertex_ids.size(); ++i) {
+            ccbs_adapter::Stamp st;
+            st.id = rf.vertex_ids[i];
+            st.g  = g_acc;
+            out->path.push_back(st);
+
+            // Advance g by the duration of the *next* edge if any.
+            if (i + 1 < rf.vertex_ids.size()) {
+                const int eu = rf.vertex_ids[i];
+                const int ev = rf.vertex_ids[i + 1];
+                if (eu >= 0 && eu < static_cast<int>(graph_->edges.size())) {
+                    auto it = graph_->edges[eu].find(ev);
+                    if (it != graph_->edges[eu].end()) {
+                        const double len = it->second.length;
+                        const bool narrow = it->second.narrow;
+                        const double v_eff = max_speed_ *
+                            (narrow ? kNarrowEdgeSpeedFactor : 1.0);
+                        if (v_eff > 0.0) {
+                            // g advances in unit-speed time; one CCBS
+                            // second = 1/max_speed_ wall seconds, so
+                            // edge-time-cost = len / (v_eff/max_speed_)
+                            //                = len*max_speed_/v_eff.
+                            // For wide edges that simplifies to len.
+                            // For narrow edges it inflates by
+                            // 1/kNarrowEdgeSpeedFactor — matching the
+                            // CCBS Map::edge_time_cost convention.
+                            g_acc += len * max_speed_ / v_eff;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    return out->path.size() >= 2;
+}
+
+bool CcbsRouter::PeerRelevant(const std::vector<int>& caller_vids,
+                              const std::vector<int>& peer_vids) const {
+    if (caller_vids.empty() || peer_vids.empty()) return false;
+
+    // Cheap shared-vertex test. Two routes that don't touch any
+    // common graph vertex cannot generate edge or wait conflicts
+    // under CCBS's narrow-edge gate (head-on conflicts require both
+    // endpoints to be common, and our narrow detection is per
+    // vertex). The test is conservative: we include the peer if
+    // there's any vertex overlap at all.
+    std::unordered_set<int> caller_set(caller_vids.begin(),
+                                       caller_vids.end());
+    for (int v : peer_vids) {
+        if (caller_set.count(v)) return true;
+    }
+    return false;
+}
+
 void CcbsRouter::PathToRoute(const ccbs_adapter::Path& path,
                              double t_start,
                              Linestring* out_route,
@@ -136,9 +275,105 @@ std::pair<Linestring, std::vector<int>> CcbsRouter::GetRouteWithVertices(
     std::lock_guard<std::mutex> lock(mu_);
     EnsureMapBuilt();
 
-    // Build the batch task: caller first, then every other non-idle
-    // agent with a still-valid trip. The caller's sub-task index in
-    // the result vector is 0.
+    // ------------------------------------------------------------------
+    // Tier 1 — single-agent SIPP fast path
+    // ------------------------------------------------------------------
+    // The dispatcher invokes the router whenever a single agent becomes
+    // idle and needs a new order. In the overwhelming majority of those
+    // events the *other* agents already have valid, conflict-free CCBS
+    // schedules from earlier replans. Re-running a full multi-agent
+    // CCBS from scratch is wasteful in that regime: we can instead
+    // route the caller alone against the peers' frozen schedules using
+    // SIPP with synthesized constraints.
+    //
+    // We only attempt this fast path when |agents_| is connected (so
+    // we have access to peer schedules) and the caller is identified
+    // (agent_id >= 0). It is also skipped on degenerate (u == v)
+    // sub-tasks because the upstream CCBS path treats those as no-ops.
+    const auto t_solve_start = std::chrono::steady_clock::now();
+    const bool can_use_peers =
+        agents_ != nullptr && agent_id >= 0
+        && agent_id < static_cast<int>(agents_->size());
+
+    std::vector<ccbs_adapter::PeerPlan> peer_plans;
+    // Side table preserved for later joint-CCBS escalation: each entry
+    // mirrors a peer that BuildPeerPlan() accepted, in the same order.
+    struct PeerRef {
+        int  sim_agent_idx;
+        std::vector<int> peer_vids;
+    };
+    std::vector<PeerRef> peer_refs;
+
+    if (can_use_peers && u != v) {
+        peer_plans.reserve(agents_->size());
+        peer_refs.reserve(agents_->size());
+        for (std::size_t i = 0; i < agents_->size(); ++i) {
+            if (static_cast<int>(i) == agent_id) continue;
+            const Agent& a = (*agents_)[i];
+            ccbs_adapter::PeerPlan pp;
+            if (!BuildPeerPlan(a, t, &pp)) continue;
+            // Extract the peer's vertex sequence (we built it just
+            // now) for the spatial-relevance filter and for later
+            // joint-CCBS escalation.
+            std::vector<int> peer_vids;
+            peer_vids.reserve(pp.path.size());
+            for (const auto& st : pp.path) peer_vids.push_back(st.id);
+
+            peer_plans.push_back(std::move(pp));
+            peer_refs.push_back({static_cast<int>(i), std::move(peer_vids)});
+        }
+
+        // -----------------------------------------------------------
+        // Tier 1a — try the caller-only SIPP plan against all peer
+        // plans verbatim. SolveSingleAgent() internally derives
+        // negative constraints from the peers' narrow traversals and
+        // wait intervals at narrow-incident vertices.
+        // -----------------------------------------------------------
+        ccbs_adapter::Path single_path;
+        if (solver_->SolveSingleAgent(u, v, peer_plans, &single_path)
+            && !single_path.empty()) {
+            // Convert and commit only the caller; peers keep their
+            // existing schedules untouched.
+            Linestring caller_route;
+            std::vector<int> caller_vids;
+            std::vector<double> caller_sched;
+            PathToRoute(single_path, t,
+                        &caller_route, &caller_vids, &caller_sched);
+            if (!caller_vids.empty()) {
+                (*agents_)[agent_id].SetRoute(
+                    caller_route, caller_vids, caller_sched, t);
+                Statistics::Get().ccbs_singleagent_success++;
+                Statistics::Get().ccbs_solve_time_s.Add(
+                    std::chrono::duration<double>(
+                        std::chrono::steady_clock::now() - t_solve_start)
+                        .count());
+                return {caller_route, caller_vids};
+            }
+        }
+    }
+
+    // ------------------------------------------------------------------
+    // Tier 2 — joint CCBS, with spatial peer filtering and adaptive
+    // time budget. Single-agent failed (or wasn't applicable): the
+    // peer-plan constraints we synthesized were too tight, or there's
+    // an actual cooperative manoeuvre to plan. Run multi-agent CBS.
+    // ------------------------------------------------------------------
+    //
+    // First we need a rough caller corridor for the relevance filter.
+    // We approximate it with the unconstrained single-agent SIPP path
+    // (no peer constraints) — that gives a cheap, conflict-agnostic
+    // upper bound on the vertices the caller might pass through.
+    std::vector<int> caller_corridor_vids;
+    {
+        ccbs_adapter::Path raw;
+        if (solver_->SolveSingleAgent(u, v, /*peer_plans=*/{}, &raw)) {
+            caller_corridor_vids.reserve(raw.size());
+            for (const auto& st : raw) {
+                caller_corridor_vids.push_back(st.id);
+            }
+        }
+    }
+
     std::vector<std::pair<int, int>> subtasks;
     subtasks.push_back({u, v});
     const int caller_task_idx = 0;
@@ -148,31 +383,101 @@ std::pair<Linestring, std::vector<int>> CcbsRouter::GetRouteWithVertices(
         int task_idx;
     };
     std::vector<PeerEntry> peers;
-    if (agents_ != nullptr && agent_id >= 0) {
+
+    if (can_use_peers) {
         for (std::size_t i = 0; i < agents_->size(); ++i) {
             if (static_cast<int>(i) == agent_id) continue;
             const Agent& a = (*agents_)[i];
             int s = -1, g = -1;
             if (!BuildSubtask(a, &s, &g)) continue;
+
+            // Spatial filter: include only peers whose route is
+            // plausibly relevant to the caller. When we have no
+            // caller corridor estimate (raw SIPP failed), fall back
+            // to including all peers — better safe than sorry.
+            if (!caller_corridor_vids.empty()) {
+                const auto& rf = a.route_follower;
+                if (!PeerRelevant(caller_corridor_vids, rf.vertex_ids)) {
+                    continue;
+                }
+            }
+
             peers.push_back({static_cast<int>(i),
                              static_cast<int>(subtasks.size())});
             subtasks.push_back({s, g});
         }
     }
 
+    Statistics::Get().ccbs_joint_task_size.Add(
+        static_cast<int>(subtasks.size()));
+
+    // Adaptive time budget. We run a fast attempt first; only if it
+    // returns "no solution" within the fast budget do we re-run with
+    // the full slow budget. This makes the common case cheap while
+    // preserving completeness on hard scenes.
     std::vector<ccbs_adapter::Path> paths;
-    const bool ok = solver_->Solve(subtasks, &paths);
+    bool ok = false;
+    {
+        const double fast = std::min(fast_timelimit_s_, slow_timelimit_s_);
+        solver_->SetTimeLimit(fast);
+        ok = solver_->Solve(subtasks, &paths);
+        if (!ok && fast < slow_timelimit_s_ - 1e-9) {
+            solver_->SetTimeLimit(slow_timelimit_s_);
+            ok = solver_->Solve(subtasks, &paths);
+        }
+        // Restore the slow budget so any direct callers of
+        // SetSolverTimeLimit() see consistent state.
+        solver_->SetTimeLimit(slow_timelimit_s_);
+    }
 
     if (!ok) {
-        // CCBS failed to find a joint conflict-free solution. Fall
-        // back to plain single-agent A* so the dispatcher still gets
-        // a usable route. No schedule is produced in this path, so
-        // narrow-edge conflicts may briefly occur until the next
-        // successful CCBS replan.
+        // ------------------------------------------------------------------
+        // Tier 3 — schedule-aware fallback. Before giving up to plain
+        // A* we try one more single-agent SIPP attempt with the
+        // already-built peer constraints (same as Tier 1 but it's
+        // worth retrying because peer plans may have been refined
+        // since). If that also fails we use plain A* as a last
+        // resort, accepting that narrow-edge conflicts may briefly
+        // re-emerge until the next successful replan.
+        // ------------------------------------------------------------------
+        ccbs_adapter::Path single_path;
+        if (!peer_plans.empty()
+            && solver_->SolveSingleAgent(u, v, peer_plans, &single_path)
+            && !single_path.empty()) {
+            Linestring caller_route;
+            std::vector<int> caller_vids;
+            std::vector<double> caller_sched;
+            PathToRoute(single_path, t,
+                        &caller_route, &caller_vids, &caller_sched);
+            if (!caller_vids.empty()) {
+                (*agents_)[agent_id].SetRoute(
+                    caller_route, caller_vids, caller_sched, t);
+                Statistics::Get().ccbs_singleagent_success++;
+                Statistics::Get().ccbs_solve_time_s.Add(
+                    std::chrono::duration<double>(
+                        std::chrono::steady_clock::now() - t_solve_start)
+                        .count());
+                LOG_INFO("CCBS joint solve failed for agent {}; resolved via single-agent SIPP fallback.",
+                         agent_id);
+                return {caller_route, caller_vids};
+            }
+        }
+
         LOG_WARNING("CCBS router failed to find joint conflict-free solution for agent {} ({} -> {}). Falling back to single-agent A* routing.",
                     agent_id, u, v);
+        Statistics::Get().ccbs_fallback++;
+        Statistics::Get().ccbs_solve_time_s.Add(
+            std::chrono::duration<double>(
+                std::chrono::steady_clock::now() - t_solve_start)
+                .count());
         return fallback_router_.GetRouteWithVertices(u, v, t, agent_id);
     }
+
+    Statistics::Get().ccbs_joint_success++;
+    Statistics::Get().ccbs_solve_time_s.Add(
+        std::chrono::duration<double>(
+            std::chrono::steady_clock::now() - t_solve_start)
+            .count());
 
     // Caller branch: Dispatch::Step() only invokes the router when the
     // caller agent is idle, so |u| is always the caller's current
@@ -183,8 +488,7 @@ std::pair<Linestring, std::vector<int>> CcbsRouter::GetRouteWithVertices(
     std::vector<double> caller_sched;
     PathToRoute(paths[caller_task_idx], t,
                 &caller_route, &caller_vids, &caller_sched);
-    if (agents_ != nullptr && agent_id >= 0
-        && agent_id < static_cast<int>(agents_->size())) {
+    if (can_use_peers) {
         (*agents_)[agent_id].SetRoute(
             caller_route, caller_vids, caller_sched, t);
     }

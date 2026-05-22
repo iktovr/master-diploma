@@ -189,6 +189,7 @@ cc_library(
         ":graph",
         ":logging",
         ":router",
+        ":statistics",
     ],
 )
 

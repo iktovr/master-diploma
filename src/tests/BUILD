@@ -138,6 +138,7 @@ cc_test(
         "//lib:agent",
         "//lib:ccbs_router",
         "//lib:graph",
+        "//lib:statistics",
         "@googletest//:gtest",
         "@googletest//:gtest_main",
     ],
