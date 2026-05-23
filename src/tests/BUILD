@@ -62,6 +62,19 @@ cc_test(
 )
 
 cc_test(
+    name = "test_metrics_report",
+    size = "small",
+    srcs = [
+        "test_metrics_report.cpp",
+    ],
+    deps = [
+        "//lib:statistics",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_test(
     name = "test_dispatch",
     size = "small",
     srcs = [

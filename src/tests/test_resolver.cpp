@@ -68,10 +68,10 @@ TEST(ResolverHeadOn, TwoAgentsOnNarrowEdgeOneReverses) {
 
     // Agent 0: forward 0→1, at x=4.5 from u.
     PlaceOnEdge(agents[0], 0.0, 10.0, {0, 1}, 4.5);
-    // Agent 1: forward 1→0, at x=4.5 from v (physical 5.5 from u).
-    // Gap = 10 - 4.5 - 4.5 = 1.0 — equal to kAgentFollowGap; choose slightly
-    // smaller to trigger conflict.
-    PlaceOnEdge(agents[1], 10.0, 0.0, {1, 0}, 4.6);
+    // Agent 1: forward 1→0, at x=4.7 from v (physical 5.3 from u).
+    // Gap = 10 - 4.5 - 4.7 = 0.8 — equal to kAgentFollowGap; choose slightly
+    // larger to trigger conflict.
+    PlaceOnEdge(agents[1], 10.0, 0.0, {1, 0}, 4.7);
 
     r.Step(0.0, 0.1, agents);
 
@@ -116,7 +116,7 @@ TEST(ResolverHeadOn, WideEdgeDoesNotTriggerConflict) {
     const int before = Statistics::Get().conflicts_count;
 
     PlaceOnEdge(agents[0], 0.0, 10.0, {0, 1}, 4.5);
-    PlaceOnEdge(agents[1], 10.0, 0.0, {1, 0}, 4.6);
+    PlaceOnEdge(agents[1], 10.0, 0.0, {1, 0}, 4.7);
 
     r.Step(0.0, 0.1, agents);
 
@@ -136,7 +136,7 @@ TEST(ResolverFlow, LoserBecomesWaitAfterExitingEdge) {
     Agents agents(2);
 
     PlaceOnEdge(agents[0], 0.0, 10.0, {0, 1}, 4.5);  // forward at 4.5
-    PlaceOnEdge(agents[1], 10.0, 0.0, {1, 0}, 4.6);  // forward at 4.6
+    PlaceOnEdge(agents[1], 10.0, 0.0, {1, 0}, 4.7);  // forward at 4.7 (gap = 10 - 4.5 - 4.7 = 0.8)
 
     // Detect conflict.
     r.Step(0.0, 0.1, agents);
@@ -161,7 +161,7 @@ TEST(ResolverFlow, WaitingAgentReleasedOnlyAfterAllPushersExit) {
     Agents agents(2);
 
     PlaceOnEdge(agents[0], 0.0, 10.0, {0, 1}, 4.5);
-    PlaceOnEdge(agents[1], 10.0, 0.0, {1, 0}, 4.6);
+    PlaceOnEdge(agents[1], 10.0, 0.0, {1, 0}, 4.7);
 
     r.Step(0.0, 0.1, agents);
     ASSERT_EQ(agents[0].state, Agent::reverse);
@@ -205,9 +205,9 @@ TEST(ResolverCascade, TrailerBehindReversingAgentAlsoReverses) {
 
     // Agent 1: forward 0→1, deep in the edge at x=9.5 (will be loser).
     // Agent 2: forward 1→0, at x=10.0 from v (physical 10.0 from u).
-    //   physical_gap = 20 - 9.5 - 10.0 = 0.5 < 1.0 → conflict.
-    // Agent 0: forward 0→1, trailing agent 1 at x=8.7 (gap 0.8 < 1.0).
-    PlaceOnEdge(agents[0], 0.0, 20.0, {0, 1}, 8.7);
+    //   physical_gap = 20 - 9.5 - 10.0 = 0.5 < 0.8 → conflict.
+    // Agent 0: forward 0→1, trailing agent 1 at x=8.8 (gap 0.7 < 0.8).
+    PlaceOnEdge(agents[0], 0.0, 20.0, {0, 1}, 8.8);
     PlaceOnEdge(agents[1], 0.0, 20.0, {0, 1}, 9.5);
     PlaceOnEdge(agents[2], 20.0, 0.0, {1, 0}, 10.0);
 
@@ -216,18 +216,18 @@ TEST(ResolverCascade, TrailerBehindReversingAgentAlsoReverses) {
     // Agent 0 is the loser (smaller id wins for "smaller id loses" rule
     // because we chose smaller id as loser).
     // Actually our rule: loser = smaller id. So between agents 0 and 2,
-    // agent 0 loses on first head-on. But agent 0 is at x=8.7 forward
+    // agent 0 loses on first head-on. But agent 0 is at x=8.8 forward
     // (going 0→1) and agent 2 at 1→0 — these two see physical gap:
-    //   20 - 8.7 - 10.0 = 1.3 (above kAgentFollowGap=1.0) → NOT a conflict.
+    //   20 - 8.8 - 10.0 = 1.2 (above kAgentFollowGap=0.8) → NOT a conflict.
     // Conflict is detected between agent 1 (x=9.5) and agent 2 (x=10.0):
-    //   20 - 9.5 - 10.0 = 0.5 < 1.0. Smaller id of {1,2} = 1 → loser.
+    //   20 - 9.5 - 10.0 = 0.5 < 0.8. Smaller id of {1,2} = 1 → loser.
     EXPECT_EQ(agents[1].state, Agent::reverse);
     EXPECT_EQ(agents[2].state, Agent::move);
     EXPECT_EQ(agents[0].state, Agent::move);
     EXPECT_EQ(Statistics::Get().conflicts_count, before + 1);
 
     // Now cascade: agent 0 is in same direction as agent 1 (0→1) and the
-    // gap between them is 9.5 - 8.7 = 0.8 < kAgentFollowGap. The cascade
+    // gap between them is 9.5 - 8.8 = 0.7 < kAgentFollowGap. The cascade
     // path will flip agent 0 to reverse.
     r.Step(0.1, 0.1, agents);
 
@@ -252,7 +252,7 @@ TEST(ResolverNewcomer, NewAgentEnteringDuringConflictDoesNotExtendDependency) {
     Agents agents(3);
 
     PlaceOnEdge(agents[0], 0.0, 10.0, {0, 1}, 4.5);
-    PlaceOnEdge(agents[1], 10.0, 0.0, {1, 0}, 4.6);
+    PlaceOnEdge(agents[1], 10.0, 0.0, {1, 0}, 4.7);
     // Agent 2 starts off any edge (idle).
     agents[2].state = Agent::idle;
 
@@ -284,7 +284,7 @@ TEST(ResolverNewcomer, WinnerSideNewcomerJoinsPushers) {
     // Agent 0 (loser, forward 0->1 at x=4.5) and agent 1 (pusher, forward
     // 1->0 at x=4.6).
     PlaceOnEdge(agents[0], 0.0, 10.0, {0, 1}, 4.5);
-    PlaceOnEdge(agents[1], 10.0, 0.0, {1, 0}, 4.6);
+    PlaceOnEdge(agents[1], 10.0, 0.0, {1, 0}, 4.7);
     agents[2].state = Agent::idle;
 
     r.Step(0.0, 0.1, agents);
@@ -316,7 +316,7 @@ TEST(ResolverNewcomer, WinnerSideNewcomerFarAwayIsIgnored) {
     const int before = Statistics::Get().conflicts_count;
 
     PlaceOnEdge(agents[0], 0.0, 10.0, {0, 1}, 4.5);
-    PlaceOnEdge(agents[1], 10.0, 0.0, {1, 0}, 4.6);
+    PlaceOnEdge(agents[1], 10.0, 0.0, {1, 0}, 4.7);
     agents[2].state = Agent::idle;
 
     r.Step(0.0, 0.1, agents);
@@ -344,7 +344,7 @@ TEST(ResolverLifecycle, FreshConflictAfterReleaseCreatesNewDependencyList) {
     Agents agents(2);
 
     PlaceOnEdge(agents[0], 0.0, 10.0, {0, 1}, 4.5);
-    PlaceOnEdge(agents[1], 10.0, 0.0, {1, 0}, 4.6);
+    PlaceOnEdge(agents[1], 10.0, 0.0, {1, 0}, 4.7);
 
     // 1st conflict.
     r.Step(0.0, 0.1, agents);
@@ -367,7 +367,7 @@ TEST(ResolverLifecycle, FreshConflictAfterReleaseCreatesNewDependencyList) {
 
     // Now reset the agents for a fresh head-on, with roles reversed.
     PlaceOnEdge(agents[0], 0.0, 10.0, {0, 1}, 4.5);
-    PlaceOnEdge(agents[1], 10.0, 0.0, {1, 0}, 4.6);
+    PlaceOnEdge(agents[1], 10.0, 0.0, {1, 0}, 4.7);
     r.Step(0.3, 0.1, agents);
     EXPECT_EQ(r.conflicts.size(), 1u);
     EXPECT_EQ(r.conflicts[0].pushers.size(), 1u);
@@ -386,7 +386,7 @@ TEST(ResolverStats, ReverseTimeAccumulatedPerTickPerAgent) {
     const std::size_t before_size = Statistics::Get().reverse_time.Values().size();
 
     PlaceOnEdge(agents[0], 0.0, 10.0, {0, 1}, 4.5);
-    PlaceOnEdge(agents[1], 10.0, 0.0, {1, 0}, 4.6);
+    PlaceOnEdge(agents[1], 10.0, 0.0, {1, 0}, 4.7);
 
     // Step 1: detect conflict (no reverse_time added on the conflict tick
     // — at the start of the tick agent 0 is still move).

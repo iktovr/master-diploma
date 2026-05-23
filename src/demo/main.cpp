@@ -168,17 +168,15 @@ int main(int argc, char **argv) {
     }
     sim.Simulate(duration, step, vis_step);
 
-    LOG_INFO("Number of orders: {}", Statistics::Get().orders_count);
-    LOG_INFO("Number of conflicts: {}", Statistics::Get().conflicts_count);
-    if (!Statistics::Get().waiting_time.Empty()) {
-        LOG_INFO("Average waiting time: {}", Statistics::Get().waiting_time.Average());
-    }
-    if (!Statistics::Get().reverse_time.Empty()) {
-        LOG_INFO("Average reverse time: {}", Statistics::Get().reverse_time.Average());
-    }
-    if (!Statistics::Get().speed.Empty()) {
-        LOG_INFO("Average speed: {}", Statistics::Get().speed.Average());
-    }
+    ReportContext report_ctx{
+        .router_kind   = router_kind,
+        .resolver_kind = resolver_kind,
+        .has_visualizer = vis.has_value(),
+    };
+    MetricsReporter reporter = BuildDefaultMetricsReporter(Statistics::Get());
+    reporter.Print(report_ctx, [](const std::string& line) {
+        LOG_INFO("{}", line);
+    });
 
     if (vis && !animation_path.empty()) {
         std::cout.flush();

@@ -286,7 +286,7 @@ TEST(SimulationFollowGap, WideEdgeAgentIsCapped) {
     sim.agents[kWideEdgeCapacity].state = Agent::move;
 
     const auto caps = sim.ComputeFollowCaps();
-    EXPECT_NEAR(caps[kWideEdgeCapacity], 4.0, 1e-9);
+    EXPECT_NEAR(caps[kWideEdgeCapacity], 4.2, 1e-9);
     for (int i = 0; i < kWideEdgeCapacity; ++i) {
         EXPECT_TRUE(std::isinf(caps[i]));
     }
@@ -308,8 +308,8 @@ TEST(SimulationFollowGap, NarrowEdgeStillBlocksSecondAgent) {
     }
 
     const auto caps = sim.ComputeFollowCaps();
-    // Follower: cap = 8 - 1 - 5 = 2.
-    EXPECT_NEAR(caps[0], 2.0, 1e-9);
+    // Follower: cap = 8 - 0.8 - 5 = 2.2.
+    EXPECT_NEAR(caps[0], 2.2, 1e-9);
     EXPECT_TRUE(std::isinf(caps[1]));
 }
 

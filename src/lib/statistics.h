@@ -5,9 +5,13 @@
 #include <cstddef>
 #include <cstdint>
 #include <deque>
+#include <functional>
 #include <limits>
 #include <numeric>
+#include <optional>
+#include <string>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 template<class T>
@@ -230,3 +234,99 @@ public:
     CumulativeStatistic<int> ccbs_joint_task_size;
     CumulativeStatistic<double> ccbs_solve_time_s;
 };
+
+// ---------------------------------------------------------------------------
+// Metrics reporting
+// ---------------------------------------------------------------------------
+//
+// MetricsReporter decouples *what* is printed at the end of a run from *where*
+// it is printed and *which components were active*. Each metric is registered
+// once together with:
+//   - a label (for identification / test introspection),
+//   - an optional condition over a ReportContext (which CLI components are
+//     active), and
+//   - a formatter producing the final string, or std::nullopt to suppress
+//     the entry (e.g. when a CumulativeStatistic happens to be empty).
+//
+// The reporter holds no global state and is constructed locally per run.
+// Adding a new metric is a single registration call in
+// BuildDefaultMetricsReporter() -- no edits to main.cpp are required.
+
+struct ReportContext {
+    // Which router was selected on the command line. See demo/main.cpp.
+    std::string router_kind = "astar";
+    // Which narrow-edge resolver was selected on the command line.
+    std::string resolver_kind = "none";
+    // Whether visualization output was requested (--output).
+    bool has_visualizer = false;
+
+    bool UsesStatRouter() const { return router_kind == "stat"; }
+    bool UsesCcbsRouter() const { return router_kind == "ccbs"; }
+    bool UsesSemaphore()  const { return resolver_kind == "semaphore"; }
+    bool UsesReverse()    const { return resolver_kind == "reverse"; }
+};
+
+class MetricsReporter {
+public:
+    using Condition = std::function<bool(const ReportContext&)>;
+    // Returns the formatted "<label>: <value>" string, or std::nullopt when
+    // the metric carries no data and should be omitted entirely.
+    using Formatter = std::function<std::optional<std::string>()>;
+    using Sink      = std::function<void(const std::string&)>;
+
+    struct Entry {
+        std::string label;
+        Condition   cond;     // empty -> always active
+        Formatter   format;
+    };
+
+    // Register an unconditional metric.
+    MetricsReporter& Add(std::string label, Formatter format) {
+        entries_.push_back({std::move(label), {}, std::move(format)});
+        return *this;
+    }
+
+    // Register a metric that is only meaningful when `cond(ctx)` holds.
+    MetricsReporter& AddIf(Condition cond, std::string label, Formatter format) {
+        entries_.push_back({std::move(label), std::move(cond), std::move(format)});
+        return *this;
+    }
+
+    // All registered entries, in registration order.
+    const std::vector<Entry>& Entries() const { return entries_; }
+
+    // Returns pointers to entries whose condition is satisfied by `ctx`,
+    // preserving registration order. Does NOT invoke formatters and therefore
+    // does NOT apply data-driven suppression -- this is the test-friendly
+    // gating step.
+    std::vector<const Entry*> SelectActive(const ReportContext& ctx) const {
+        std::vector<const Entry*> out;
+        out.reserve(entries_.size());
+        for (const auto& e : entries_) {
+            if (!e.cond || e.cond(ctx)) {
+                out.push_back(&e);
+            }
+        }
+        return out;
+    }
+
+    // Evaluate active entries and write each non-nullopt formatted line to
+    // `sink`. Entries whose formatter returns std::nullopt are skipped
+    // (e.g. empty CumulativeStatistic).
+    void Print(const ReportContext& ctx, const Sink& sink) const {
+        for (const Entry* e : SelectActive(ctx)) {
+            auto line = e->format();
+            if (line) {
+                sink(*line);
+            }
+        }
+    }
+
+private:
+    std::vector<Entry> entries_;
+};
+
+// Builds the default metrics reporter bound to `stats`. All metrics defined
+// in Statistics are registered here; the registration is the single source of
+// truth for which component owns which metric.
+MetricsReporter BuildDefaultMetricsReporter(const Statistics& stats);

@@ -8,6 +8,7 @@ bazel_dep(name = "rules_shell", version = "0.6.1")
 bazel_dep(name = "nlohmann_json", version = "3.12.0.bcr.1")
 bazel_dep(name = "proj", version = "9.8.0")
 bazel_dep(name = "quill", version = "11.1.0")
+bazel_dep(name = "rules_python", version = "1.6.3")
 
 single_version_override(
     module_name = "quill",
