@@ -9,6 +9,20 @@
 
 namespace {
 
+constexpr unsigned char HexToByte(char c) {
+    return (c >= '0' && c <= '9') ? (c - '0') :
+           (c >= 'a' && c <= 'f') ? (c - 'a' + 10) :
+           (c >= 'A' && c <= 'F') ? (c - 'A' + 10) : 0;
+}
+
+inline cv::Scalar Color(const char* hex) {
+    return cv::Scalar(
+        HexToByte(hex[5]) * 16 + HexToByte(hex[6]),  // blue
+        HexToByte(hex[3]) * 16 + HexToByte(hex[4]),  // green
+        HexToByte(hex[1]) * 16 + HexToByte(hex[2])   // red
+    );
+}
+
 constexpr double kPixelsPerWorldUnit = 2.0;
 constexpr int    kMinFrame = 1000;
 constexpr int    kMaxFrame = 10000;
@@ -51,15 +65,15 @@ inline cv::Scalar SpeedColor(double speed, double max_speed) {
 inline cv::Scalar AgentStateColor(Agent::State state) {
     switch (state) {
         case Agent::move:
-            return cv::Scalar(255, 255, 255);  // white
+            return Color("#ffffff");
         case Agent::idle:
-            return cv::Scalar(186, 186, 186);  // gray
+            return Color("#c1c1c1");
         case Agent::wait:
-            return cv::Scalar(0, 186, 186);   // dark yellow
+            return Color("#1a7ed5");
         case Agent::reverse:
-            return cv::Scalar(0, 0, 186);     // dark red
+            return Color("#a10c0c");
         default:
-            return cv::Scalar(255, 255, 255);  // white as default
+            return Color("#ffffff");
     }
 }
 
@@ -177,25 +191,61 @@ void Visualizer::DrawAgent(const Agent& agent) {
 }
 
 void Visualizer::DrawGraph(const Graph& graph) {
-    if (!draw_graph) {
-        return;
-    }
-    
-    const static cv::Scalar edge_color(0, 0, 0);
-    const static cv::Scalar narrow_edge_color(255, 0, 0);
-    const static cv::Scalar vertex_color(0, 0, 0);
-    const static cv::Scalar base_color(0, 0, 255);
-    const static cv::Scalar delivery_color(0, 255, 0);
+    const static cv::Scalar edge_color = Color("#9a3fe5");
+    const static cv::Scalar narrow_edge_color = Color("#ec8000");
+    const static cv::Scalar vertex_color = Color("#000000");
+    const static cv::Scalar base_color = Color("#e52400");
+    const static cv::Scalar delivery_color = Color("#2ee26d");
 
-    for (int u = 0; u < static_cast<int>(graph.vertices.size()); ++u) {
-        for (auto& [v, edge] : graph.edges[u]) {
-            if (v > u) {
-                continue;
+    if (draw_graph) {
+        for (int u = 0; u < static_cast<int>(graph.vertices.size()); ++u) {
+            for (auto& [v, edge] : graph.edges[u]) {
+                if (v > u) {
+                    continue;
+                }
+                cv::line(img, ToPixels(graph.vertices[u].pos), ToPixels(graph.vertices[v].pos), edge_color, edge_thickness_px);
             }
-            if (edge.narrow && draw_narrow_edges) {
-                cv::line(img, ToPixels(graph.vertices[u].pos), ToPixels(graph.vertices[v].pos), narrow_edge_color, narrow_edge_thickness_px);
+        }
+    }
+
+    if (draw_narrow_edges) {
+        for (int u = 0; u < static_cast<int>(graph.vertices.size()); ++u) {
+            for (auto& [v, edge] : graph.edges[u]) {
+                if (v > u || !edge.narrow) {
+                    continue;
+                }
+
+                cv::Point p1 = ToPixels(graph.vertices[u].pos);
+                cv::Point p2 = ToPixels(graph.vertices[v].pos);
+                int thickness = edge_thickness_px;
+                float amplitude = 5.0f;
+                float period = 14.0f;
+                const cv::Point2f d = cv::Point2f(p2 - p1);
+                const float dist = cv::norm(d);
+                if (dist < 1.0f) return;
+
+                const cv::Point2f along = d / dist;
+                const cv::Point2f perp(-along.y, along.x);
+
+                const int steps = std::max(2, static_cast<int>(dist / (period / 2.0f)));
+                const float step_dist = dist / static_cast<float>(steps);
+
+                cv::Point prev = p1;
+                for (int i = 1; i <= steps; ++i) {
+                    const float t = i * step_dist;
+                    const float side = (i % 2 == 0) ? amplitude : -amplitude;
+
+                    // Snap cleanly to endpoint on last step
+                    cv::Point next = (i == steps)
+                        ? p2
+                        : p1 + cv::Point(along * t) + cv::Point(perp * side);
+
+                    cv::line(img, prev, next, narrow_edge_color, thickness);
+                    prev = next;
+                }
+
+                // cv::line(img, ToPixels(graph.vertices[u].pos), ToPixels(graph.vertices[v].pos), narrow_edge_color, narrow_edge_thickness_px);
             }
-            cv::line(img, ToPixels(graph.vertices[u].pos), ToPixels(graph.vertices[v].pos), edge_color, edge_thickness_px);
         }
     }
     
