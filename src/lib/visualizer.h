@@ -21,7 +21,8 @@ int ComputeAutoFrameSize(const Graph& graph);
 
 class Visualizer {
 public:
-    Visualizer(const double width_, const double height_, const Point& center_, const int max_dimension_in_pixels_, const double scale_, const std::string directory_, const double max_speed_ = 0.0);
+    Visualizer(const double width_, const double height_, const Point& center_, const int max_dimension_in_pixels_, const double scale_, const std::string directory_, const double max_speed_ = 0.0,
+               bool draw_graph_ = true, bool draw_agents_ = true, bool draw_statistics_ = false, bool draw_points_ = true, bool draw_narrow_edges_ = true);
 
     void SavePersistentPart() {
         persistent_img = img.clone();
@@ -56,6 +57,11 @@ protected:
     cv::Mat img;
     cv::Mat persistent_img;
     int frame = 0;
+    bool draw_graph = true;
+    bool draw_agents = true;
+    bool draw_statistics = false;
+    bool draw_points = true;
+    bool draw_narrow_edges = true;
 
     inline int ToPixels(const double x) const {
         return static_cast<int>(x / width * img_width);

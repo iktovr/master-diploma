@@ -57,6 +57,11 @@ int main(int argc, char **argv) {
     double max_age = 300; //std::numeric_limits<double>::infinity();
     double ewma_tau = 60; //std::numeric_limits<double>::infinity();
     double prior_weight = 1.0;
+    bool draw_graph = true;
+    bool draw_agents = true;
+    bool draw_statistics = false;
+    bool draw_points = true;
+    bool draw_narrow_edges = true;
 
     app.add_option("-g, --graph", graph_path, "Path to file with graph description")
         ->required()->transform(correct_path)->check(CLI::ExistingFile);
@@ -98,6 +103,11 @@ int main(int argc, char **argv) {
         ->check(CLI::IsMember({"astar", "stat", "ccbs"}));
     app.add_option("--resolver", resolver_kind, "Narrow-edge conflict resolver: none, semaphore, reverse")
         ->check(CLI::IsMember({"none", "semaphore", "reverse"}));
+    app.add_flag("--draw-graph,!--no-draw-graph", draw_graph, "Draw graph structure (default: true)");
+    app.add_flag("--draw-agents,!--no-draw-agents", draw_agents, "Draw agents (default: true)");
+    app.add_flag("--draw-statistics,!--no-draw-statistics", draw_statistics, "Draw graph statistics (default: false)");
+    app.add_flag("--draw-points,!--no-draw-points", draw_points, "Draw graph points (default: true)");
+    app.add_flag("--draw-narrow-edges,!--no-draw-narrow-edges", draw_narrow_edges, "Draw narrow edges (default: true)");
 
     app.add_option("--animate", animation_path, "Convert visualization frames to animation using ffmpeg")
         ->transform(correct_path);
@@ -121,7 +131,8 @@ int main(int argc, char **argv) {
             }
         }
         const int effective_frame_size = (frame_size > 0) ? frame_size : ComputeAutoFrameSize(*g);
-        vis.emplace(g->Width(), g->Height(), g->Centroid(), effective_frame_size, scale, output_dir, max_speed);
+        vis.emplace(g->Width(), g->Height(), g->Centroid(), effective_frame_size, scale, output_dir, max_speed,
+                   draw_graph, draw_agents, draw_statistics, draw_points, draw_narrow_edges);
     }
     Statistics::Get().edges.max_age = max_age;
     Statistics::Get().edges.tau = ewma_tau;

@@ -79,8 +79,9 @@ int ComputeAutoFrameSize(const Graph& graph) {
 
 Visualizer::Visualizer(const double width_, const double height_, const Point& center_,
                        const int max_dimension_in_pixels_, const double objects_scale_, const std::string directory_,
-                       const double max_speed_)
-    : center(center_), max_speed(max_speed_), directory(directory_) {
+                       const double max_speed_, bool draw_graph_, bool draw_agents_, bool draw_statistics_, bool draw_points_, bool draw_narrow_edges_)
+    : center(center_), max_speed(max_speed_), directory(directory_),
+      draw_graph(draw_graph_), draw_agents(draw_agents_), draw_statistics(draw_statistics_), draw_points(draw_points_), draw_narrow_edges(draw_narrow_edges_) {
     assert(fs::exists(directory));
     assert(fs::is_directory(directory));
 
@@ -111,6 +112,10 @@ Visualizer::Visualizer(const double width_, const double height_, const Point& c
 }
 
 void Visualizer::DrawAgent(const Agent& agent) {
+    if (!draw_agents) {
+        return;
+    }
+    
     const static cv::Scalar edge_color(0, 0, 0);
     const cv::Scalar fill_color = AgentStateColor(agent.state);
 
@@ -172,6 +177,10 @@ void Visualizer::DrawAgent(const Agent& agent) {
 }
 
 void Visualizer::DrawGraph(const Graph& graph) {
+    if (!draw_graph) {
+        return;
+    }
+    
     const static cv::Scalar edge_color(0, 0, 0);
     const static cv::Scalar narrow_edge_color(255, 0, 0);
     const static cv::Scalar vertex_color(0, 0, 0);
@@ -183,27 +192,33 @@ void Visualizer::DrawGraph(const Graph& graph) {
             if (v > u) {
                 continue;
             }
-            if (edge.narrow) {
+            if (edge.narrow && draw_narrow_edges) {
                 cv::line(img, ToPixels(graph.vertices[u].pos), ToPixels(graph.vertices[v].pos), narrow_edge_color, narrow_edge_thickness_px);
             }
             cv::line(img, ToPixels(graph.vertices[u].pos), ToPixels(graph.vertices[v].pos), edge_color, edge_thickness_px);
         }
     }
-    for (const auto& v : graph.vertices) {
-        if (v.type == Graph::Vertex::none) {
-            continue;
+    
+    if (draw_points) {
+        for (const auto& v : graph.vertices) {
+            if (v.type == Graph::Vertex::none) {
+                continue;
+            }
+            cv::Scalar color = vertex_color;
+            if (v.type == Graph::Vertex::base) {
+                color = base_color;
+            } else if (v.type == Graph::Vertex::delivery) {
+                color = delivery_color;
+            }
+            cv::circle(img, ToPixels(v.pos), vertex_radius_px, color, cv::FILLED);
         }
-        cv::Scalar color = vertex_color;
-        if (v.type == Graph::Vertex::base) {
-            color = base_color;
-        } else if (v.type == Graph::Vertex::delivery) {
-            color = delivery_color;
-        }
-        cv::circle(img, ToPixels(v.pos), vertex_radius_px, color, cv::FILLED);
     }
 }
 
 void Visualizer::DrawGraphStatistics(const Graph& graph, GraphEdgeStatistics& stats, double t_now) {
+    if (!draw_statistics) {
+        return;
+    }
     if (!(max_speed > 0.0)) {
         return;
     }
