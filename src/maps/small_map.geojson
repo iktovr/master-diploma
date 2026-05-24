@@ -219,11 +219,12 @@
       "properties": {
         "osm_id": 159978502,
         "osm_type": "way",
-        "narrow": "no",
+        "narrow": "yes",
         "footway": "sidewalk",
         "highway": "footway",
         "lit": "yes",
-        "surface": "asphalt"
+        "surface": "asphalt",
+        "stroke": "#ff8800"
       }
     },
     {
@@ -270,12 +271,13 @@
       "properties": {
         "osm_id": 159978505,
         "osm_type": "way",
-        "narrow": "no",
+        "narrow": "yes",
         "footway": "sidewalk",
         "highway": "footway",
         "lit": "yes",
         "surface": "asphalt",
-        "width": "8"
+        "width": "8",
+        "stroke": "#ff8800"
       }
     },
     {
@@ -346,10 +348,11 @@
       "properties": {
         "osm_id": 277851256,
         "osm_type": "way",
-        "narrow": "no",
+        "narrow": "yes",
         "highway": "footway",
         "lit": "yes",
-        "surface": "paving_stones"
+        "surface": "paving_stones",
+        "stroke": "#ff8800"
       }
     },
     {
@@ -562,10 +565,11 @@
       "properties": {
         "osm_id": 277851265,
         "osm_type": "way",
-        "narrow": "no",
+        "narrow": "yes",
         "highway": "footway",
         "lit": "yes",
-        "surface": "paving_stones"
+        "surface": "paving_stones",
+        "stroke": "#ff8800"
       }
     },
     {
@@ -1143,10 +1147,11 @@
       "properties": {
         "osm_id": 436433976,
         "osm_type": "way",
-        "narrow": "no",
+        "narrow": "yes",
         "footway": "sidewalk",
         "highway": "footway",
-        "surface": "paving_stones"
+        "surface": "paving_stones",
+        "stroke": "#ff8800"
       }
     },
     {
@@ -1167,11 +1172,12 @@
       "properties": {
         "osm_id": 436473218,
         "osm_type": "way",
-        "narrow": "no",
+        "narrow": "yes",
         "footway": "crossing",
         "highway": "footway",
         "lit": "yes",
-        "surface": "asphalt"
+        "surface": "asphalt",
+        "stroke": "#ff8800"
       }
     },
     {
@@ -1293,11 +1299,12 @@
       "properties": {
         "osm_id": 436525114,
         "osm_type": "way",
-        "narrow": "no",
+        "narrow": "yes",
         "footway": "sidewalk",
         "highway": "footway",
         "lit": "yes",
-        "surface": "asphalt"
+        "surface": "asphalt",
+        "stroke": "#ff8800"
       }
     },
     {
@@ -1342,11 +1349,10 @@
       "properties": {
         "osm_id": 477460668,
         "osm_type": "way",
-        "narrow": "yes",
+        "narrow": "no",
         "highway": "footway",
         "lit": "yes",
-        "surface": "paving_stones",
-        "stroke": "#ff8800"
+        "surface": "paving_stones"
       }
     },
     {
@@ -1535,10 +1541,11 @@
       "properties": {
         "osm_id": 1076609457,
         "osm_type": "way",
-        "narrow": "no",
+        "narrow": "yes",
         "highway": "footway",
         "lit": "yes",
-        "surface": "paving_stones"
+        "surface": "paving_stones",
+        "stroke": "#ff8800"
       }
     },
     {
