@@ -263,7 +263,6 @@ def _results_to_dataframe(results: list[dict[str, Any]]) -> pd.DataFrame:
         data.append(row)
 
     df = pd.DataFrame(data)
-    print(df.info())
 
     return df
 

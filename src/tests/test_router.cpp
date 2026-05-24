@@ -275,3 +275,102 @@ TEST(StatAStarRouterGetRoute, PrefersFasterButLongerEdge) {
     // Direct: ~100s. Detour: ~10.099s. Detour should win.
     ExpectRoute(g, router->GetRoute(0, 1), {0, 2, 1});
 }
+
+// ---------------------------------------------------------------------------
+// StatAStarRouter per-tick edge-speed cache
+// ---------------------------------------------------------------------------
+//
+// These tests pin down the cross-call memoization that StatAStarRouter
+// performs to avoid re-evaluating GraphEdgeStatistics::AverageSpeed on every
+// edge expansion during a simulation tick. They use the public
+// |query_count| counter on GraphEdgeStatistics to assert the expected number
+// of underlying AverageSpeed evaluations.
+
+namespace {
+
+// 4-vertex diamond with stats recorded on every edge. Returns the graph and
+// fully populates |stats| so that every Cost() call goes through
+// AverageSpeed and is therefore observable via query_count.
+Graph BuildDiamondAndRecordStats(GraphEdgeStatistics& stats) {
+    Graph g;
+    g.AddVertex(0.0, 0.0);    // 0
+    g.AddVertex(1.0, 0.0);    // 1
+    g.AddVertex(0.0, 5.0);    // 2
+    g.AddVertex(2.0, 0.0);    // 3
+    g.AddEdge(0, 1);
+    g.AddEdge(1, 3);
+    g.AddEdge(0, 2);
+    g.AddEdge(2, 3);
+    // Record one fast passage on each undirected edge so AverageSpeed has
+    // data to fold and Has() returns true.
+    const std::pair<int, int> edges[] = {{0,1},{1,3},{0,2},{2,3}};
+    for (auto [u, v] : edges) {
+        // Use the graph's actual edge length to keep the recorded speed
+        // physically meaningful (not strictly required for the cache test).
+        double len = 1.0;
+        for (const auto& [n, e] : g.edges[u]) {
+            if (n == v) { len = e.length; break; }
+        }
+        stats.Record(u, v, /*t_enter=*/0.0, /*t_exit=*/len /*speed=1*/,
+                     /*length=*/len, /*t_now=*/0.0);
+    }
+    return g;
+}
+
+}  // namespace
+
+TEST(StatAStarRouterCache, CollapsesRepeatedQueriesWithinSameTick) {
+    GraphEdgeStatistics stats;
+    Graph g = BuildDiamondAndRecordStats(stats);
+    auto router = MakeStatRouter(g, &stats, /*max_speed=*/1.0);
+
+    // Warm: a single route at t=0 forces every edge it expands to populate
+    // the cache.
+    router->GetRoute(0, 3, /*t=*/0.0);
+    const std::uint64_t after_first = stats.query_count;
+    // Repeating the *same* query at the same t must not trigger any new
+    // AverageSpeed evaluation: every edge A* expands is already cached.
+    router->GetRoute(0, 3, /*t=*/0.0);
+    EXPECT_EQ(stats.query_count, after_first);
+    router->GetRoute(0, 3, /*t=*/0.0);
+    EXPECT_EQ(stats.query_count, after_first);
+
+    // A *different* (start, finish) pair at the same t may touch edges the
+    // first search didn't expand, so query_count may grow — but the total
+    // is hard-bounded by the number of distinct undirected edges (4).
+    router->GetRoute(3, 0, /*t=*/0.0);
+    router->GetRoute(1, 2, /*t=*/0.0);
+    router->GetRoute(2, 1, /*t=*/0.0);
+    EXPECT_LE(stats.query_count, 4u);
+}
+
+TEST(StatAStarRouterCache, InvalidatesOnTimeChange) {
+    GraphEdgeStatistics stats;
+    Graph g = BuildDiamondAndRecordStats(stats);
+    auto router = MakeStatRouter(g, &stats, /*max_speed=*/1.0);
+
+    router->GetRoute(0, 3, /*t=*/0.0);
+    const std::uint64_t after_t0 = stats.query_count;
+    // Querying at a different t must re-populate the cache, so query_count
+    // must strictly increase.
+    router->GetRoute(0, 3, /*t=*/1.0);
+    EXPECT_GT(stats.query_count, after_t0);
+}
+
+TEST(StatAStarRouterCache, InvalidatesOnRecord) {
+    GraphEdgeStatistics stats;
+    Graph g = BuildDiamondAndRecordStats(stats);
+    auto router = MakeStatRouter(g, &stats, /*max_speed=*/1.0);
+
+    router->GetRoute(0, 3, /*t=*/0.0);
+    const std::uint64_t after_first = stats.query_count;
+
+    // A mutation to GraphEdgeStatistics between two router calls at the
+    // same t must invalidate the cache (otherwise the router would return
+    // stale speeds and could pick a wrong path after a sudden congestion
+    // event).
+    stats.Record(0, 1, /*t_enter=*/0.0, /*t_exit=*/100.0, /*length=*/1.0,
+                 /*t_now=*/0.0);
+    router->GetRoute(0, 3, /*t=*/0.0);
+    EXPECT_GT(stats.query_count, after_first);
+}

@@ -106,9 +106,24 @@ public:
         auto& dq = data_[Key(u, v)];
         EvictOld(dq, t_now);
         dq.push_back({t_exit, length / (t_exit - t_enter)});
+        ++version_;
     }
 
+    // Monotonically-increasing change counter. Bumped on every mutation
+    // (Record, Clear). Consumers can use it together with t_now to cheaply
+    // detect whether AverageSpeed results computed earlier are still valid
+    // and avoid recomputing the harmonic-mean reduction on the per-edge
+    // hot path of a router. See StatAStarRouter.
+    std::uint64_t Version() const { return version_; }
+
+    // Test hook: number of times AverageSpeed has been invoked (counts both
+    // cache misses and hits since the counter is incremented unconditionally
+    // at entry). Useful for asserting that router-side caches actually
+    // collapse repeated queries within a single simulation tick.
+    mutable std::uint64_t query_count = 0;
+
     double AverageSpeed(int u, int v, double t_now) {
+        ++query_count;
         auto it = data_.find(Key(u, v));
         const bool has_entry = (it != data_.end());
         if (has_entry) {
@@ -167,6 +182,7 @@ public:
 
     void Clear() {
         data_.clear();
+        ++version_;
     }
 
 private:
@@ -188,6 +204,7 @@ private:
     }
 
     std::unordered_map<std::int64_t, std::deque<EdgePassage>> data_;
+    std::uint64_t version_ = 0;
 };
 
 class Statistics {
