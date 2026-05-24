@@ -29,6 +29,13 @@ Examples:
     # Combine sorting and column filtering
     bazel run //demo:run_sweep -- -p router=astar,stat -p agents=5,10,20 --sort-by avg_wait:desc --columns router,agents,avg_wait
 
+    # Per-combo time budget: re-run each combo until predicted next run would
+    # blow the budget, then average results in the summary.
+    bazel run //demo:run_sweep -- -p router=astar,stat -p agents=5,10 --budget 60
+
+    # Write a per-combo CSV with every individual run (string values preserved).
+    bazel run //demo:run_sweep -- -p router=astar,stat -p agents=5,10 --budget 60 --output-dir /tmp/sweep_csv
+
     # Dry run to see what would be executed
     bazel run //demo:run_sweep -- -p router=astar,stat -p agents=5,10 --dry-run
 """
@@ -42,6 +49,7 @@ import re
 import subprocess
 import sys
 import time
+from pathlib import Path
 from typing import Any
 
 import pandas as pd
@@ -207,10 +215,10 @@ def _run_one(
 # Output formatting.
 # ---------------------------------------------------------------------------
 
-def _print_run_result(idx: int, total: int, result: dict[str, Any]) -> None:
+def _print_run_result(run: int, idx: int, total: int, result: dict[str, Any]) -> None:
     bar = "=" * 78
     print(f"\n{bar}")
-    print(f"[{idx}/{total}] {_format_combo(result['combo'])}")
+    print(f"[{run}/{idx}/{total}] {_format_combo(result['combo'])}")
     print(f"  cmd: {' '.join(result['argv'])}")
     rc = result["returncode"]
     rc_str = "TIMEOUT" if result["timed_out"] else str(rc)
@@ -224,68 +232,207 @@ def _print_run_result(idx: int, total: int, result: dict[str, Any]) -> None:
         print(result["stderr"].rstrip())
 
 
-def _results_to_dataframe(results: list[dict[str, Any]]) -> pd.DataFrame:
-    """Convert results list to pandas DataFrame for easy manipulation.
+def _result_to_row(
+    result: dict[str, Any],
+    param_keys: list[str],
+    metric_keys: list[str],
+) -> dict[str, Any]:
+    """Convert one _run_one result into a row dict with raw string values."""
+    metrics = _scrape_metrics((result["stdout"] or "") + "\n" + (result["stderr"] or ""))
+    if result["timed_out"]:
+        rc_str = "TIMEOUT"
+    elif result["returncode"] is None:
+        rc_str = "-"
+    else:
+        rc_str = str(result["returncode"])
 
-    Args:
-        results: List of result dictionaries from _run_one
+    row: dict[str, Any] = {}
+    for k in param_keys:
+        row[k] = result["combo"][f"--{k}"]
+    row["rc"] = rc_str
+    row["time_s"] = f"{result['elapsed']:.3f}"
+    for mk in metric_keys:
+        row[mk] = metrics.get(mk, "-")
+    return row
+
+
+# ---------------------------------------------------------------------------
+# Budgeted per-combo execution.
+# ---------------------------------------------------------------------------
+
+def _run_combo_budgeted(
+    combo: dict[str, Any],
+    fixed_args: list[str],
+    workspace_root: str,
+    timeout: float | None,
+    budget: float | None,
+    combo_idx: int,
+    combo_total: int,
+    stop_on_error: bool,
+    param_keys: list[str],
+    metric_keys: list[str],
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]], int]:
+    """Run a combo one or more times, respecting an optional wall-time budget.
 
     Returns:
-        DataFrame with columns for parameters, rc, time_s, and metrics
+        (raw_results, rows, failures)
+        raw_results: list of dicts from _run_one (for verbose per-run printing).
+        rows: list of stringly-typed row dicts (one per run) for CSV/aggregation.
+        failures: count of runs that timed out or returned non-zero rc.
     """
-    if not results:
+    raw_results: list[dict[str, Any]] = []
+    rows: list[dict[str, Any]] = []
+    failures = 0
+
+    total_elapsed = 0.0
+    avg = 0.0
+    n = 0
+
+    while True:
+        result = _run_one(combo, fixed_args, workspace_root, timeout)
+        n += 1
+        total_elapsed += result["elapsed"]
+        avg = total_elapsed / n
+
+        raw_results.append(result)
+        rows.append(_result_to_row(result, param_keys, metric_keys))
+        _print_run_result(n, combo_idx, combo_total, result)
+
+        is_failure = result["timed_out"] or (result["returncode"] not in (0, None))
+        if is_failure:
+            failures += 1
+
+        if budget is not None:
+            # Estimate remaining runs based on current running average.
+            remaining_budget = max(0.0, budget - total_elapsed)
+            est_remaining = int(remaining_budget // avg) if avg > 0 else 0
+            print(f"  [combo {combo_idx}/{combo_total}] run {n} done, "
+                  f"avg={avg:.2f}s, budget used {total_elapsed:.2f}/{budget:.2f}s, "
+                  f"est remaining {est_remaining} run(s)")
+
+        if stop_on_error and is_failure:
+            break
+
+        if budget is None:
+            # Without a budget, the legacy behavior is exactly one run per combo.
+            break
+
+        # Stop if we are already over budget, or if the predicted next run would
+        # exceed the budget by more than 0.5 * running_avg (i.e. budget + 0.5*avg).
+        if total_elapsed >= budget:
+            break
+        if total_elapsed + avg * 0.5 > budget:
+            break
+
+    return raw_results, rows, failures
+
+
+# ---------------------------------------------------------------------------
+# CSV report writing.
+# ---------------------------------------------------------------------------
+
+_SAFE_CHARS = re.compile(r"[^A-Za-z0-9._=+-]+")
+
+
+def _sanitize_combo_filename(combo: dict[str, Any]) -> str:
+    parts = [f"{k.lstrip('-')}={v}" for k, v in combo.items()]
+    stem = "_".join(parts)
+    stem = _SAFE_CHARS.sub("_", stem)
+    return stem or "combo"
+
+
+def _write_combo_csv(
+    output_dir: str,
+    combo: dict[str, Any],
+    rows: list[dict[str, Any]],
+) -> str:
+    """Write per-combo CSV with string values preserved (no numeric coercion)."""
+    if not rows:
+        return ""
+    path = os.path.join(output_dir, _sanitize_combo_filename(combo) + ".csv")
+    df = pd.DataFrame(rows).astype(str)
+    df.to_csv(path, index=False)
+    return path
+
+
+# ---------------------------------------------------------------------------
+# Summary aggregation.
+# ---------------------------------------------------------------------------
+
+# Columns that should be averaged across runs in the summary.
+_NUMERIC_SUMMARY_COLS: list[str] = ["time_s"] + list(_METRIC_PATTERNS.keys())
+
+
+def _aggregate_rc(rc_values: list[str]) -> str:
+    """Return the 'worst' rc seen across runs (TIMEOUT > non-zero > 0)."""
+    if any(v == "TIMEOUT" for v in rc_values):
+        return "TIMEOUT"
+    non_zero = [v for v in rc_values if v not in ("0", "-")]
+    if non_zero:
+        return non_zero[0]
+    if all(v == "-" for v in rc_values):
+        return "-"
+    return "0"
+
+
+def _aggregate_combo_rows(
+    rows: list[dict[str, Any]],
+    param_keys: list[str],
+) -> dict[str, Any]:
+    """Average numeric columns across runs of a single combo.
+
+    Non-numeric / missing values are converted with pd.to_numeric(errors='coerce')
+    and then averaged with NaN ignored. If all values are NaN the column is '-'.
+    """
+    agg: dict[str, Any] = {}
+    for k in param_keys:
+        agg[k] = rows[0][k]
+
+    agg["rc"] = _aggregate_rc([r["rc"] for r in rows])
+    agg["runs"] = len(rows)
+
+    for col in _NUMERIC_SUMMARY_COLS:
+        series = pd.to_numeric(
+            pd.Series([r.get(col, "-") for r in rows]), errors="coerce")
+        mean = series.mean()
+        if pd.isna(mean):
+            agg[col] = "-"
+        else:
+            # Keep a compact numeric representation; tabulate's
+            # disable_numparse=True means we control formatting here.
+            agg[col] = f"{mean:.4g}"
+
+    return agg
+
+
+def _build_summary_dataframe(
+    per_combo_rows: list[list[dict[str, Any]]],
+    param_keys: list[str],
+) -> pd.DataFrame:
+    if not per_combo_rows:
         return pd.DataFrame()
 
-    # Get parameter keys from first result
-    param_keys = [k.lstrip("-") for k in results[0]["combo"].keys()]
-    metric_keys = list(_METRIC_PATTERNS.keys())
+    summary_rows = [
+        _aggregate_combo_rows(rows, param_keys) for rows in per_combo_rows if rows
+    ]
+    if not summary_rows:
+        return pd.DataFrame()
 
-    # Build data for DataFrame
-    data = []
-    for r in results:
-        metrics = _scrape_metrics((r["stdout"] or "") + "\n" + (r["stderr"] or ""))
-        rc_str = "TIMEOUT" if r["timed_out"] else (
-            "-" if r["returncode"] is None else str(r["returncode"]))
-
-        row = {}
-        # Add parameters
-        for k in param_keys:
-            row[k] = r["combo"][f"--{k}"]
-
-        # Add metadata
-        row["rc"] = rc_str
-        row["time_s"] = r["elapsed"]
-
-        # Add metrics
-        for mk in metric_keys:
-            row[mk] = metrics.get(mk, "-")
-
-        data.append(row)
-
-    df = pd.DataFrame(data)
-
-    return df
+    # Preserve a stable column order:
+    #   params..., rc, runs, time_s, metrics...
+    columns = list(param_keys) + ["rc", "runs", "time_s"] + list(_METRIC_PATTERNS.keys())
+    return pd.DataFrame(summary_rows, columns=columns)
 
 
 def _print_summary(
-    results: list[dict[str, Any]],
+    df: pd.DataFrame,
     sort_by: str | None = None,
-    columns: str | None = None
+    columns: str | None = None,
 ) -> None:
-    """Print summary table using pandas for sorting/filtering and tabulate for formatting.
-
-    Args:
-        results: List of result dictionaries from _run_one
-        sort_by: Comma-separated list of columns to sort by (with optional :desc suffix)
-        columns: Comma-separated list of columns to display
-    """
-    if not results:
+    """Print summary table using pandas for sorting/filtering and tabulate for formatting."""
+    if df.empty:
         return
 
-    # Convert to DataFrame
-    df = _results_to_dataframe(results)
-
-    # Apply sorting if specified
     if sort_by:
         sort_spec = _parse_sort_spec(sort_by)
         if sort_spec:
@@ -299,12 +446,21 @@ def _print_summary(
                     print(f"Warning: Sort column '{col}' not found in data", file=sys.stderr)
 
             if sort_columns:
-                df = df.sort_values(by=sort_columns, ascending=ascending)
+                # For numeric columns sort by their numeric interpretation so
+                # that "10" sorts after "9", etc.
+                tmp_keys: list[str] = []
+                for col in sort_columns:
+                    if col in _NUMERIC_SUMMARY_COLS:
+                        key = f"__sort__{col}"
+                        df[key] = pd.to_numeric(df[col], errors="coerce")
+                        tmp_keys.append(key)
+                    else:
+                        tmp_keys.append(col)
+                df = df.sort_values(by=tmp_keys, ascending=ascending)
+                df = df.drop(columns=[k for k in tmp_keys if k.startswith("__sort__")])
 
-    # Apply column filtering if specified
     if columns:
         col_list = [col.strip() for col in columns.split(",") if col.strip()]
-        # Validate columns exist
         valid_cols = [col for col in col_list if col in df.columns]
         missing_cols = [col for col in col_list if col not in df.columns]
 
@@ -314,20 +470,17 @@ def _print_summary(
         if valid_cols:
             df = df[valid_cols]
 
-    # Convert DataFrame to list of lists for tabulate
-    # Replace NaN with "-" for display
     df_display = df.fillna("-")
 
     print("\n" + "#" * 78)
     print("# Summary")
     print("#" * 78)
 
-    # Use tabulate for pretty printing
     table = tabulate(
         df_display.values.tolist(),
         headers=df_display.columns.tolist(),
         tablefmt="simple",
-        disable_numparse=True,
+        floatfmt=".4f"
     )
     print(table)
 
@@ -357,23 +510,41 @@ def main() -> int:
                              "name without leading dashes (e.g. router=astar).")
     parser.add_argument("--timeout", type=float, default=None,
                         help="Per-run timeout in seconds (default: none).")
+    parser.add_argument("--budget", type=float, default=None,
+                        help="Per-combo wall-time budget in seconds. When set, each "
+                             "combo is executed repeatedly until the predicted next "
+                             "run would exceed the budget by more than 0.5 * avg, or "
+                             "the elapsed wall-time meets/exceeds the budget. The "
+                             "running average is updated after every run. Without "
+                             "this flag, each combo is executed exactly once.")
+    parser.add_argument("--output-dir", default=None, metavar="DIR",
+                        help="Directory where per-combo CSV reports are written, "
+                             "one CSV per combo with every individual run kept as "
+                             "string values (no numeric coercion). Created if missing.")
     parser.add_argument("--stop-on-error", action="store_true",
                         help="Abort the sweep on the first non-zero return code.")
     parser.add_argument("--sort-by", default=None,
                         metavar="COL[,COL:desc,...]",
                         help="Sort summary by specified columns. Columns are sorted in "
                              "the order specified. Append ':desc' for descending order. "
-                             "Available columns: parameter names, rc, time_s, and "
+                             "Available columns: parameter names, rc, runs, time_s, and "
                              "metrics (orders, conflicts, avg_wait, avg_reverse, avg_speed, sim_speed). "
                              "Example: --sort-by router,agents:desc,avg_wait")
     parser.add_argument("--columns", default=None,
                         metavar="COL[,COL,...]",
                         help="Display only specified columns in the given order. "
                              "If not specified, all columns are shown. "
-                             "Available columns: parameter names, rc, time_s, and "
+                             "Available columns: parameter names, rc, runs, time_s, and "
                              "metrics (orders, conflicts, avg_wait, avg_reverse, avg_speed, sim_speed). "
                              "Example: --columns router,agents,avg_wait,time_s")
     args = parser.parse_args()
+
+    work_dir = Path(os.getenv("BUILD_WORKING_DIRECTORY", "./"))
+    def _resolve(p: str) -> Path:
+        path = Path(p)
+        if not path.is_absolute():
+            path = (work_dir / path).resolve()
+        return path
 
     # Parse --param KEY=VAL[,VAL,...] into a grid dict.
     cli_grid: dict[str, list[str]] = {}
@@ -438,21 +609,71 @@ def main() -> int:
     workspace_root = _resolve_workspace_root()
     print(f"Workspace root: {workspace_root}")
 
-    results: list[dict[str, Any]] = []
-    failures = 0
-    for i, combo in enumerate(runnable, 1):
-        result = _run_one(combo, args.fixed, workspace_root, args.timeout)
-        results.append(result)
-        _print_run_result(i, len(runnable), result)
-        if result["timed_out"] or (result["returncode"] not in (0, None)):
-            failures += 1
-            if args.stop_on_error:
-                print("Stopping early due to --stop-on-error.")
-                break
+    # Pre-build //demo:demo once so per-run timings reflect execution only
+    # and we don't pay a rebuild cost on the first combo.
+    build_argv = ["bazel", "build",
+                  "--ui_event_filters=-info,-stdout,-stderr",
+                  "--noshow_progress", "//demo:demo"]
+    print(f"Pre-building: {' '.join(build_argv)}")
+    build_start = time.monotonic()
+    build_proc = subprocess.run(build_argv, cwd=workspace_root)
+    build_elapsed = time.monotonic() - build_start
+    if build_proc.returncode != 0:
+        print(f"error: pre-build failed (rc={build_proc.returncode})", file=sys.stderr)
+        return build_proc.returncode
+    print(f"Pre-build done in {build_elapsed:.2f}s")
 
-    _print_summary(results, sort_by=args.sort_by, columns=args.columns)
-    print(f"\nDone: {len(results)} runs, {failures} failure(s).")
-    return 0 if failures == 0 else 1
+    # Prepare output directory upfront if requested.
+    output_dir = _resolve(args.output_dir)
+    if output_dir:
+        os.makedirs(output_dir, exist_ok=True)
+        print(f"CSV output dir: {output_dir}")
+
+    # Param/metric key sets are stable across combos (Cartesian product keys).
+    param_keys: list[str] = [k.lstrip("-") for k in cli_grid.keys()]
+    metric_keys: list[str] = list(_METRIC_PATTERNS.keys())
+
+    per_combo_rows: list[list[dict[str, Any]]] = []
+    total_runs = 0
+    total_failures = 0
+    aborted = False
+
+    for i, combo in enumerate(runnable, 1):
+        raw_results, rows, failures = _run_combo_budgeted(
+            combo=combo,
+            fixed_args=args.fixed,
+            workspace_root=workspace_root,
+            timeout=args.timeout,
+            budget=args.budget,
+            combo_idx=i,
+            combo_total=len(runnable),
+            stop_on_error=args.stop_on_error,
+            param_keys=param_keys,
+            metric_keys=metric_keys,
+        )
+        per_combo_rows.append(rows)
+        total_runs += len(rows)
+        total_failures += failures
+
+        if output_dir and rows:
+            path = _write_combo_csv(output_dir, combo, rows)
+            if path:
+                print(f"  wrote {path} ({len(rows)} run(s))")
+
+        if args.stop_on_error and failures > 0:
+            print("Stopping early due to --stop-on-error.")
+            aborted = True
+            break
+
+    summary_df = _build_summary_dataframe(per_combo_rows, param_keys)
+    _print_summary(summary_df, sort_by=args.sort_by, columns=args.columns)
+
+    completed_combos = len(per_combo_rows)
+    print(f"\nDone: {completed_combos} combo(s), {total_runs} total run(s), "
+          f"{total_failures} failure(s).")
+    if aborted:
+        return 1
+    return 0 if total_failures == 0 else 1
 
 
 if __name__ == "__main__":
