@@ -10,6 +10,20 @@ bazel_dep(name = "proj", version = "9.8.0")
 bazel_dep(name = "quill", version = "11.1.0")
 bazel_dep(name = "rules_python", version = "1.6.3")
 
+python = use_extension("@rules_python//python/extensions:python.bzl", "python")
+python.toolchain(
+    python_version = "3.11",
+    is_default = True,
+)
+
+pip = use_extension("@rules_python//python/extensions:pip.bzl", "pip")
+pip.parse(
+    hub_name = "pypi",
+    python_version = "3.11",
+    requirements_lock = "//:requirements.txt",
+)
+use_repo(pip, "pypi")
+
 single_version_override(
     module_name = "quill",
     patch_strip = 1,

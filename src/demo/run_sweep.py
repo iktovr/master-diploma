@@ -4,7 +4,8 @@
 This script invokes `bazel run //demo:demo -- ...` once per combination of the
 parameter grid specified via CLI flags, captures stdout/stderr, scrapes a few
 summary metrics from the LOG_INFO lines emitted at the end of main.cpp, and
-prints a final summary table.
+prints a final summary table using pandas for data processing and tabulate for
+pretty printing.
 
 Run with:
     bazel run //demo:run_sweep -- -p router=astar,stat -p agents=5,10,20
@@ -18,6 +19,15 @@ Examples:
 
     # Filter to specific combos
     bazel run //demo:run_sweep -- -p router=astar,stat -p agents=5,10 --filter agents=10
+
+    # Sort results by multiple columns
+    bazel run //demo:run_sweep -- -p router=astar,stat -p agents=5,10,20 --sort-by router,agents:desc,avg_wait
+
+    # Display only specific columns
+    bazel run //demo:run_sweep -- -p router=astar,stat -p agents=5,10,20 --columns router,agents,avg_wait,time_s
+
+    # Combine sorting and column filtering
+    bazel run //demo:run_sweep -- -p router=astar,stat -p agents=5,10,20 --sort-by avg_wait:desc --columns router,agents,avg_wait
 
     # Dry run to see what would be executed
     bazel run //demo:run_sweep -- -p router=astar,stat -p agents=5,10 --dry-run
@@ -33,6 +43,9 @@ import subprocess
 import sys
 import time
 from typing import Any
+
+import pandas as pd
+from tabulate import tabulate
 
 
 # ---------------------------------------------------------------------------
@@ -57,6 +70,35 @@ def _scrape_metrics(text: str) -> dict[str, str]:
             found[name] = m.group(1)
     return found
 
+
+def _parse_sort_spec(sort_by: str) -> list[tuple[str, bool]]:
+    """Parse sort specification string into list of (column, ascending) tuples.
+
+    Args:
+        sort_by: Comma-separated list of column names with optional :desc suffix
+
+    Returns:
+        List of (column_name, ascending) tuples
+
+    Examples:
+        "router,agents" -> [("router", True), ("agents", True)]
+        "avg_wait:desc,time_s" -> [("avg_wait", False), ("time_s", True)]
+    """
+    if not sort_by:
+        return []
+
+    spec = []
+    for col in sort_by.split(","):
+        col = col.strip()
+        if not col:
+            continue
+        if col.endswith(":desc"):
+            spec.append((col[:-5].strip(), False))
+        elif col.endswith(":asc"):
+            spec.append((col[:-4].strip(), True))
+        else:
+            spec.append((col, True))
+    return spec
 
 # ---------------------------------------------------------------------------
 # Combo generation.
@@ -182,39 +224,113 @@ def _print_run_result(idx: int, total: int, result: dict[str, Any]) -> None:
         print(result["stderr"].rstrip())
 
 
-def _print_summary(results: list[dict[str, Any]]) -> None:
-    if not results:
-        return
-    metric_keys = list(_METRIC_PATTERNS.keys())
-    # Collect param keys (stripped) from the first result's combo.
-    param_keys = [k.lstrip("-") for k in results[0]["combo"].keys()]
+def _results_to_dataframe(results: list[dict[str, Any]]) -> pd.DataFrame:
+    """Convert results list to pandas DataFrame for easy manipulation.
 
-    headers = param_keys + ["rc", "time_s"] + metric_keys
-    rows: list[list[str]] = []
+    Args:
+        results: List of result dictionaries from _run_one
+
+    Returns:
+        DataFrame with columns for parameters, rc, time_s, and metrics
+    """
+    if not results:
+        return pd.DataFrame()
+
+    # Get parameter keys from first result
+    param_keys = [k.lstrip("-") for k in results[0]["combo"].keys()]
+    metric_keys = list(_METRIC_PATTERNS.keys())
+
+    # Build data for DataFrame
+    data = []
     for r in results:
         metrics = _scrape_metrics((r["stdout"] or "") + "\n" + (r["stderr"] or ""))
         rc_str = "TIMEOUT" if r["timed_out"] else (
             "-" if r["returncode"] is None else str(r["returncode"]))
-        row = [str(r["combo"][f"--{k}"]) for k in param_keys]
-        row += [rc_str, f"{r['elapsed']:.2f}"]
-        row += [metrics.get(k, "-") for k in metric_keys]
-        rows.append(row)
 
-    widths = [len(h) for h in headers]
-    for row in rows:
-        for i, cell in enumerate(row):
-            widths[i] = max(widths[i], len(cell))
+        row = {}
+        # Add parameters
+        for k in param_keys:
+            row[k] = r["combo"][f"--{k}"]
 
-    def _fmt(row: list[str]) -> str:
-        return "  ".join(cell.ljust(widths[i]) for i, cell in enumerate(row))
+        # Add metadata
+        row["rc"] = rc_str
+        row["time_s"] = r["elapsed"]
+
+        # Add metrics
+        for mk in metric_keys:
+            row[mk] = metrics.get(mk, "-")
+
+        data.append(row)
+
+    df = pd.DataFrame(data)
+    print(df.info())
+
+    return df
+
+
+def _print_summary(
+    results: list[dict[str, Any]],
+    sort_by: str | None = None,
+    columns: str | None = None
+) -> None:
+    """Print summary table using pandas for sorting/filtering and tabulate for formatting.
+
+    Args:
+        results: List of result dictionaries from _run_one
+        sort_by: Comma-separated list of columns to sort by (with optional :desc suffix)
+        columns: Comma-separated list of columns to display
+    """
+    if not results:
+        return
+
+    # Convert to DataFrame
+    df = _results_to_dataframe(results)
+
+    # Apply sorting if specified
+    if sort_by:
+        sort_spec = _parse_sort_spec(sort_by)
+        if sort_spec:
+            sort_columns = []
+            ascending = []
+            for col, asc in sort_spec:
+                if col in df.columns:
+                    sort_columns.append(col)
+                    ascending.append(asc)
+                else:
+                    print(f"Warning: Sort column '{col}' not found in data", file=sys.stderr)
+
+            if sort_columns:
+                df = df.sort_values(by=sort_columns, ascending=ascending)
+
+    # Apply column filtering if specified
+    if columns:
+        col_list = [col.strip() for col in columns.split(",") if col.strip()]
+        # Validate columns exist
+        valid_cols = [col for col in col_list if col in df.columns]
+        missing_cols = [col for col in col_list if col not in df.columns]
+
+        if missing_cols:
+            print(f"Warning: Columns not found: {', '.join(missing_cols)}", file=sys.stderr)
+
+        if valid_cols:
+            df = df[valid_cols]
+
+    # Convert DataFrame to list of lists for tabulate
+    # Replace NaN with "-" for display
+    df_display = df.fillna("-")
 
     print("\n" + "#" * 78)
     print("# Summary")
     print("#" * 78)
-    print(_fmt(headers))
-    print(_fmt(["-" * w for w in widths]))
-    for row in rows:
-        print(_fmt(row))
+
+    # Use tabulate for pretty printing
+    table = tabulate(
+        df_display.values.tolist(),
+        headers=df_display.columns.tolist(),
+        tablefmt="simple",
+        disable_numparse=True,
+    )
+    print(table)
 
 
 # ---------------------------------------------------------------------------
@@ -244,6 +360,20 @@ def main() -> int:
                         help="Per-run timeout in seconds (default: none).")
     parser.add_argument("--stop-on-error", action="store_true",
                         help="Abort the sweep on the first non-zero return code.")
+    parser.add_argument("--sort-by", default=None,
+                        metavar="COL[,COL:desc,...]",
+                        help="Sort summary by specified columns. Columns are sorted in "
+                             "the order specified. Append ':desc' for descending order. "
+                             "Available columns: parameter names, rc, time_s, and "
+                             "metrics (orders, conflicts, avg_wait, avg_reverse, avg_speed, sim_speed). "
+                             "Example: --sort-by router,agents:desc,avg_wait")
+    parser.add_argument("--columns", default=None,
+                        metavar="COL[,COL,...]",
+                        help="Display only specified columns in the given order. "
+                             "If not specified, all columns are shown. "
+                             "Available columns: parameter names, rc, time_s, and "
+                             "metrics (orders, conflicts, avg_wait, avg_reverse, avg_speed, sim_speed). "
+                             "Example: --columns router,agents,avg_wait,time_s")
     args = parser.parse_args()
 
     # Parse --param KEY=VAL[,VAL,...] into a grid dict.
@@ -321,7 +451,7 @@ def main() -> int:
                 print("Stopping early due to --stop-on-error.")
                 break
 
-    _print_summary(results)
+    _print_summary(results, sort_by=args.sort_by, columns=args.columns)
     print(f"\nDone: {len(results)} runs, {failures} failure(s).")
     return 0 if failures == 0 else 1
 

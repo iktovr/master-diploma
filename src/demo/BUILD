@@ -1,5 +1,6 @@
 load("@rules_cc//cc:defs.bzl", "cc_binary")
 load("@rules_python//python:defs.bzl", "py_binary")
+load("@pypi//:requirements.bzl", "requirement")
 
 cc_binary(
     name = "demo",
@@ -22,4 +23,8 @@ cc_binary(
 py_binary(
     name = "run_sweep",
     srcs = ["run_sweep.py"],
+    deps = [
+        requirement("pandas"),
+        requirement("tabulate"),
+    ],
 )
