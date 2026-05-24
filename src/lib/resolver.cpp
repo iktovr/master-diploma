@@ -72,6 +72,7 @@ void Resolver::ReleaseConflict(std::size_t idx, double t, Agents& agents) {
             auto it = c.wait_start.find(a);
             if (it != c.wait_start.end() && it->second < t) {
                 Statistics::Get().waiting_time.Add(t - it->second);
+                c.wait_start.erase(a);
             }
         }
     }
@@ -81,21 +82,19 @@ void Resolver::ReleaseConflict(std::size_t idx, double t, Agents& agents) {
     for (int a : c.reversing) {
         if (a >= 0 && a < static_cast<int>(agents.size())) {
             agents[a].state = Agent::move;
+            auto it = c.reverse_start.find(a);
+            if (it != c.reverse_start.end() && it->second < t) {
+                Statistics::Get().reverse_time.Add(t - it->second);
+                c.reverse_start.erase(a);
+            }
         }
     }
     EraseConflict(idx);
 }
 
 void Resolver::Step(double t, double dt, Agents& agents) {
-    // ----- 1. Accumulate reverse_time statistics for current reversing agents.
     auto& stats = Statistics::Get();
-    for (const auto& a : agents) {
-        if (a.state == Agent::reverse) {
-            stats.reverse_time.Add(dt);
-        }
-    }
-
-    // ----- 2. Update existing conflicts: pusher exits, loser transitions,
+    // ----- 1. Update existing conflicts: pusher exits, loser transitions,
     //         cascade onto trailers, release when complete.
     for (std::size_t i = 0; i < conflicts.size(); /* ++i below */) {
         auto& c = conflicts[i];
@@ -191,6 +190,12 @@ void Resolver::Step(double t, double dt, Agents& agents) {
                 ag.state = Agent::wait;
                 c.waiting_losers.insert(aid);
                 c.wait_start[aid] = t;
+                // Record reverse_time for this agent
+                auto rev_it = c.reverse_start.find(aid);
+                if (rev_it != c.reverse_start.end() && rev_it->second < t) {
+                    stats.reverse_time.Add(t - rev_it->second);
+                    c.reverse_start.erase(rev_it);
+                }
                 it = c.reversing.erase(it);
             } else {
                 ++it;
@@ -239,6 +244,7 @@ void Resolver::Step(double t, double dt, Agents& agents) {
                     && (min_loser_x_route - x_c) < kAgentFollowGap) {
                     ag.state = Agent::reverse;
                     c.reversing.insert(static_cast<int>(j));
+                    c.reverse_start[static_cast<int>(j)] = t;
                     agent_to_conflict[static_cast<int>(j)] = static_cast<int>(i);
                     stats.conflicts_count += 1;
                 }
@@ -338,6 +344,7 @@ void Resolver::Step(double t, double dt, Agents& agents) {
             c.pushers.push_back(pusher->agent_id);
             c.waiting_for.insert(pusher->agent_id);
             c.reversing.insert(loser->agent_id);
+            c.reverse_start[loser->agent_id] = t;
 
             agents[loser->agent_id].state = Agent::reverse;
             stats.conflicts_count += 1;

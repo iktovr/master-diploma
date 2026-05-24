@@ -47,7 +47,7 @@ MetricsReporter BuildDefaultMetricsReporter(const Statistics& stats) {
           AverageFormatter("Average speed", stats.speed));
 
     // --- Resolver-specific metrics ------------------------------------------
-    r.AddIf([](const ReportContext& ctx) { return ctx.UsesSemaphore(); },
+    r.AddIf([](const ReportContext& ctx) { return ctx.UsesSemaphore() || ctx.UsesReverse(); },
             "Average waiting time",
             AverageFormatter("Average waiting time", stats.waiting_time));
     r.AddIf([](const ReportContext& ctx) { return ctx.UsesReverse(); },

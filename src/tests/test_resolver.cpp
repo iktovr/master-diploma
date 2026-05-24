@@ -378,25 +378,35 @@ TEST(ResolverLifecycle, FreshConflictAfterReleaseCreatesNewDependencyList) {
 // Statistics: conflicts_count and reverse_time accumulation
 // ---------------------------------------------------------------------------
 
-TEST(ResolverStats, ReverseTimeAccumulatedPerTickPerAgent) {
+TEST(ResolverStats, ReverseTimeAccumulatedWhenAgentFinishesReversing) {
     auto g = MakeNarrowEdgeGraph(10.0);
     Resolver r(g);
     Agents agents(2);
     ResetStats();
     const std::size_t before_size = Statistics::Get().reverse_time.Values().size();
 
-    PlaceOnEdge(agents[0], 0.0, 10.0, {0, 1}, 4.5);
-    PlaceOnEdge(agents[1], 10.0, 0.0, {1, 0}, 4.7);
+    // Place agents very close to each other on a narrow edge
+    PlaceOnEdge(agents[0], 0.0, 10.0, {0, 1}, 4.9);
+    PlaceOnEdge(agents[1], 10.0, 0.0, {1, 0}, 5.1);
 
-    // Step 1: detect conflict (no reverse_time added on the conflict tick
-    // — at the start of the tick agent 0 is still move).
+    // Step 1: detect conflict
     r.Step(0.0, 0.1, agents);
     ASSERT_EQ(agents[0].state, Agent::reverse);
 
-    // Step 2: agent 0 is in reverse → +0.1 reverse_time.
+    // Step 2: agent 0 is still in reverse, no reverse_time accumulated yet
     r.Step(0.1, 0.1, agents);
     const std::size_t after_size = Statistics::Get().reverse_time.Values().size();
-    EXPECT_GT(after_size, before_size);
-    // The newly added value should be 0.1 (one agent in reverse).
-    EXPECT_NEAR(Statistics::Get().reverse_time.Values().back(), 0.1, 1e-9);
+    EXPECT_EQ(after_size, before_size); // No accumulation yet
+
+    // Move the loser backward off the edge manually (simulating ticks)
+    while (agents[0].route_follower.x > 0.0) {
+        agents[0].Move(0.1, 5.0);  // reverse at 0.75*5 = 3.75 per step
+    }
+    
+    // Next resolver step should detect loser left edge and accumulate reverse_time
+    r.Step(0.2, 0.1, agents);
+    
+    // Now agent 0 should have finished reversing and reverse_time should be accumulated
+    const std::size_t final_size = Statistics::Get().reverse_time.Values().size();
+    EXPECT_GT(final_size, before_size);
 }

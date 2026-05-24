@@ -138,7 +138,7 @@ TEST(BuildDefaultMetricsReporter, ResolverGating) {
     EXPECT_FALSE(Contains(sem, "Average reverse time"));
 
     auto rev = Emitted(r, ReportContext{.resolver_kind = "reverse"});
-    EXPECT_FALSE(Contains(rev, "Average waiting time"));
+    EXPECT_TRUE(Contains(rev, "Average waiting time"));
     EXPECT_TRUE(Contains(rev, "Average reverse time"));
 
     auto none = Emitted(r, ReportContext{.resolver_kind = "none"});

@@ -58,6 +58,9 @@ struct Resolver {
         // Time at which an agent entered the wait state (for waiting-time
         // statistics).
         std::unordered_map<int, double> wait_start;
+        // Time at which an agent entered the reverse state (for reverse-time
+        // statistics).
+        std::unordered_map<int, double> reverse_start;
     };
 
     std::shared_ptr<const Graph> graph;
