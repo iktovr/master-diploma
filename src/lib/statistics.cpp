@@ -45,6 +45,8 @@ MetricsReporter BuildDefaultMetricsReporter(const Statistics& stats) {
           ScalarFormatter("Number of orders", stats.orders_count));
     r.Add("Average speed",
           AverageFormatter("Average speed", stats.speed));
+    r.Add("Average order time",
+          AverageFormatter("Average order time", stats.order_time));
 
     // --- Resolver-specific metrics ------------------------------------------
     r.AddIf([](const ReportContext& ctx) { return ctx.UsesSemaphore() || ctx.UsesReverse(); },

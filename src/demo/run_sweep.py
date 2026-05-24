@@ -61,12 +61,13 @@ from tabulate import tabulate
 # ---------------------------------------------------------------------------
 
 _METRIC_PATTERNS: dict[str, re.Pattern[str]] = {
-    "orders":       re.compile(r"Number of orders:\s*([-\d.eE+]+)"),
-    "conflicts":    re.compile(r"Number of conflicts:\s*([-\d.eE+]+)"),
-    "avg_wait":     re.compile(r"Average waiting time:\s*([-\d.eE+]+)"),
-    "avg_reverse":  re.compile(r"Average reverse time:\s*([-\d.eE+]+)"),
-    "avg_speed":    re.compile(r"Average speed:\s*([-\d.eE+]+)"),
-    "sim_speed":    re.compile(r"Simulation speed:\s*([-\d.eE+]+)"),
+    "orders":         re.compile(r"Number of orders:\s*([-\d.eE+]+)"),
+    "conflicts":      re.compile(r"Number of conflicts:\s*([-\d.eE+]+)"),
+    "avg_wait":       re.compile(r"Average waiting time:\s*([-\d.eE+]+)"),
+    "avg_reverse":    re.compile(r"Average reverse time:\s*([-\d.eE+]+)"),
+    "avg_speed":      re.compile(r"Average speed:\s*([-\d.eE+]+)"),
+    "avg_order_time": re.compile(r"Average order time:\s*([-\d.eE+]+)"),
+    "sim_speed":      re.compile(r"Simulation speed:\s*([-\d.eE+]+)"),
 }
 
 
@@ -342,17 +343,17 @@ def _sanitize_combo_filename(combo: dict[str, Any]) -> str:
 
 
 def _write_combo_csv(
-    output_dir: str,
+    output_dir: Path,
     combo: dict[str, Any],
     rows: list[dict[str, Any]],
 ) -> str:
     """Write per-combo CSV with string values preserved (no numeric coercion)."""
     if not rows:
         return ""
-    path = os.path.join(output_dir, _sanitize_combo_filename(combo) + ".csv")
+    path = output_dir / (_sanitize_combo_filename(combo) + ".csv")
     df = pd.DataFrame(rows).astype(str)
     df.to_csv(path, index=False)
-    return path
+    return str(path)
 
 
 # ---------------------------------------------------------------------------
@@ -526,17 +527,11 @@ def main() -> int:
     parser.add_argument("--sort-by", default=None,
                         metavar="COL[,COL:desc,...]",
                         help="Sort summary by specified columns. Columns are sorted in "
-                             "the order specified. Append ':desc' for descending order. "
-                             "Available columns: parameter names, rc, runs, time_s, and "
-                             "metrics (orders, conflicts, avg_wait, avg_reverse, avg_speed, sim_speed). "
-                             "Example: --sort-by router,agents:desc,avg_wait")
+                             "the order specified. Append ':desc' for descending order.")
     parser.add_argument("--columns", default=None,
                         metavar="COL[,COL,...]",
                         help="Display only specified columns in the given order. "
-                             "If not specified, all columns are shown. "
-                             "Available columns: parameter names, rc, runs, time_s, and "
-                             "metrics (orders, conflicts, avg_wait, avg_reverse, avg_speed, sim_speed). "
-                             "Example: --columns router,agents,avg_wait,time_s")
+                             "If not specified, all columns are shown.")
     args = parser.parse_args()
 
     work_dir = Path(os.getenv("BUILD_WORKING_DIRECTORY", "./"))
@@ -624,8 +619,9 @@ def main() -> int:
     print(f"Pre-build done in {build_elapsed:.2f}s")
 
     # Prepare output directory upfront if requested.
-    output_dir = _resolve(args.output_dir)
-    if output_dir:
+    output_dir = None
+    if args.output_dir:
+        output_dir =_resolve(args.output_dir)
         os.makedirs(output_dir, exist_ok=True)
         print(f"CSV output dir: {output_dir}")
 

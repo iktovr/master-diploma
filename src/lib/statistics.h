@@ -221,12 +221,16 @@ private:
     Statistics() {}
 
 public:
-    int orders_count = 0;
-    int conflicts_count = 0;
-    CumulativeStatistic<double> speed;
-    CumulativeStatistic<double> waiting_time;
-    CumulativeStatistic<double> reverse_time;
     GraphEdgeStatistics edges;
+
+    int orders_count = 0;
+    CumulativeStatistic<double> speed;
+    CumulativeStatistic<double> order_time;
+
+    CumulativeStatistic<double> waiting_time;
+
+    int conflicts_count = 0;
+    CumulativeStatistic<double> reverse_time;
 
     // ----- CCBS router instrumentation -----
     // Counters and distributions populated by CcbsRouter to validate the

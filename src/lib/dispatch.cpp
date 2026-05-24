@@ -30,6 +30,7 @@ void Dispatch::Step(double t, Agents& agents) {
             const double elapsed = t - order_start_time[i];
             if (elapsed > 0.0) {
                 Statistics::Get().speed.Add(traveled_length[i] / elapsed);
+                Statistics::Get().order_time.Add(elapsed);
             }
             order_start_time[i] = -1;
             traveled_length[i] = 0.0;
