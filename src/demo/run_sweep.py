@@ -267,6 +267,7 @@ def _run_combo_budgeted(
     workspace_root: str,
     timeout: float | None,
     budget: float | None,
+    max_runs: int | None,
     combo_idx: int,
     combo_total: int,
     stop_on_error: bool,
@@ -318,6 +319,8 @@ def _run_combo_budgeted(
             # Without a budget, the legacy behavior is exactly one run per combo.
             break
 
+        if n >= max_runs:
+            break
         # Stop if we are already over budget, or if the predicted next run would
         # exceed the budget by more than 0.5 * running_avg (i.e. budget + 0.5*avg).
         if total_elapsed >= budget:
@@ -518,6 +521,8 @@ def main() -> int:
                              "the elapsed wall-time meets/exceeds the budget. The "
                              "running average is updated after every run. Without "
                              "this flag, each combo is executed exactly once.")
+    parser.add_argument("--max-runs", type=int, default=None,
+                        help="Per-combo count budget")
     parser.add_argument("--output-dir", default=None, metavar="DIR",
                         help="Directory where per-combo CSV reports are written, "
                              "one CSV per combo with every individual run kept as "
@@ -641,6 +646,7 @@ def main() -> int:
             workspace_root=workspace_root,
             timeout=args.timeout,
             budget=args.budget,
+            max_runs=args.max_runs,
             combo_idx=i,
             combo_total=len(runnable),
             stop_on_error=args.stop_on_error,
