@@ -319,7 +319,7 @@ def _run_combo_budgeted(
             # Without a budget, the legacy behavior is exactly one run per combo.
             break
 
-        if n >= max_runs:
+        if max_runs is not None and n >= max_runs:
             break
         # Stop if we are already over budget, or if the predicted next run would
         # exceed the budget by more than 0.5 * running_avg (i.e. budget + 0.5*avg).
@@ -349,13 +349,21 @@ def _write_combo_csv(
     output_dir: Path,
     combo: dict[str, Any],
     rows: list[dict[str, Any]],
+    append: bool = False,
 ) -> str:
-    """Write per-combo CSV with string values preserved (no numeric coercion)."""
+    """Write per-combo CSV with string values preserved (no numeric coercion).
+
+    When `append` is True and the target CSV already exists, new rows are
+    appended without rewriting the header; otherwise the file is overwritten.
+    """
     if not rows:
         return ""
     path = output_dir / (_sanitize_combo_filename(combo) + ".csv")
     df = pd.DataFrame(rows).astype(str)
-    df.to_csv(path, index=False)
+    if append and path.exists():
+        df.to_csv(path, index=False, mode="a", header=False)
+    else:
+        df.to_csv(path, index=False)
     return str(path)
 
 
@@ -527,6 +535,10 @@ def main() -> int:
                         help="Directory where per-combo CSV reports are written, "
                              "one CSV per combo with every individual run kept as "
                              "string values (no numeric coercion). Created if missing.")
+    parser.add_argument("--append", action="store_true",
+                        help="When set together with --output-dir, append new runs "
+                             "to any existing per-combo CSV instead of overwriting "
+                             "it. The header is only written for newly created files.")
     parser.add_argument("--stop-on-error", action="store_true",
                         help="Abort the sweep on the first non-zero return code.")
     parser.add_argument("--sort-by", default=None,
@@ -658,7 +670,7 @@ def main() -> int:
         total_failures += failures
 
         if output_dir and rows:
-            path = _write_combo_csv(output_dir, combo, rows)
+            path = _write_combo_csv(output_dir, combo, rows, append=args.append)
             if path:
                 print(f"  wrote {path} ({len(rows)} run(s))")
 
