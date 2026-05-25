@@ -1,0 +1,2 @@
+duration,router,agents,graph,resolver,rc,time_s,orders,conflicts,avg_wait,avg_reverse,avg_speed,avg_order_time,sim_speed
+43200,stat,5000,maps/medium_map.geojson,reverse,0,1064.317,226264,953411,5.978121321132583,2.2710901190847577,1.9622660087235604,476.35049880293997,40.605

@@ -1,0 +1,2 @@
+duration,router,agents,graph,resolver,rc,time_s,orders,conflicts,avg_wait,avg_reverse,avg_speed,avg_order_time,sim_speed
+43200,stat,5000,maps/large_map.geojson,semaphore,0,660.382,142219,-,147.49521853318345,-,2.0690035411715217,755.9034444671208,65.458
