@@ -28,7 +28,8 @@ int main(int argc, char **argv) {
                 return "Path is empty";
             }
             if (!path.is_absolute()) {
-                path = fs::path(std::getenv("BUILD_WORKING_DIRECTORY")) / path;
+                auto working_dir = std::getenv("BUILD_WORKING_DIRECTORY");
+                path = fs::path(working_dir ? working_dir : ".") / path;
             }
             input = path.string();
             return "";
