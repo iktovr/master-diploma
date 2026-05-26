@@ -1,0 +1,78 @@
+digraph mygraph {
+  graph [bgcolor="white", pad=0.4, ranksep=1.1, nodesep=0.25];
+  node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=22, fillcolor="#EEF4FF", color="#4472C4", penwidth=1.3];
+  edge [color="#666666", arrowsize=0.8, penwidth=1.5];
+  "//demo:demo"
+  "//demo:demo" -> "//lib:agent" [style=dashed, color="#999999"]
+  "//demo:demo" -> "//lib:graph"
+  "//demo:demo" -> "//lib:logging" [style=dashed, color="#999999"]
+  "//demo:demo" -> "//lib:ccbs_router" [style=dashed, color="#999999"]
+  "//demo:demo" -> "//lib:simulation"
+  "//demo:demo" -> "//lib:visualizer"
+  "//demo:demo" -> "@cli11"
+  "//demo:demo" -> "//lib:router" [style=dashed, color="#999999"]
+  "//demo:demo" -> "//lib:statistics"
+  "//lib:simulation"
+  "//lib:simulation" -> "//lib:statistics" [style=dashed, color="#999999"]
+  "//lib:simulation" -> "//lib:visualizer"
+  "//lib:simulation" -> "//lib:agent"
+  "//lib:simulation" -> "//lib:dispatch"
+  "//lib:simulation" -> "//lib:graph"
+  "//lib:simulation" -> "//lib:logging" [style=dashed, color="#999999"]
+  "//lib:simulation" -> "//lib:resolver"
+  "//lib:simulation" -> "//lib:router"
+  "//lib:simulation" -> "//lib:semaphore"
+  "//lib:semaphore"
+  "//lib:semaphore" -> "//lib:statistics"
+  "//lib:semaphore" -> "//lib:agent"
+  "//lib:semaphore" -> "//lib:geometry" [style=dashed, color="#999999"]
+  "//lib:semaphore" -> "//lib:graph"
+  "//lib:semaphore" -> "//lib:logging" [style=dashed, color="#999999"]
+  "//lib:resolver"
+  "//lib:resolver" -> "//lib:agent"
+  "//lib:resolver" -> "//lib:graph"
+  "//lib:resolver" -> "//lib:statistics"
+  "//lib:visualizer"
+  "//lib:visualizer" -> "//lib:agent"
+  "//lib:visualizer" -> "//lib:geometry" [style=dashed, color="#999999"]
+  "//lib:visualizer" -> "//lib:graph"
+  "//lib:visualizer" -> "//lib:statistics" [style=dashed, color="#999999"]
+  "//lib:visualizer" -> "@opencv"
+  "@opencv"
+  "@cli11"
+  "//lib:ccbs_router"
+  "//lib:ccbs_router" -> "//lib:router"
+  "//lib:ccbs_router" -> "//lib:statistics"
+  "//lib:ccbs_router" -> "//lib:agent"
+  "//lib:ccbs_router" -> "//lib:geometry" [style=dashed, color="#999999"]
+  "//lib:ccbs_router" -> "//lib:graph"
+  "//lib:ccbs_router" -> "//lib:logging" [style=dashed, color="#999999"]
+  "//lib:ccbs_router" -> "//third_party/ccbs"
+  "//third_party/ccbs"
+  "//lib:dispatch"
+  "//lib:dispatch" -> "//lib:agent"
+  "//lib:dispatch" -> "//lib:graph"
+  "//lib:dispatch" -> "//lib:router"
+  "//lib:dispatch" -> "//lib:statistics"
+  "//lib:router"
+  "//lib:router" -> "//lib:geometry" [style=dashed, color="#999999"]
+  "//lib:router" -> "//lib:graph"
+  "//lib:router" -> "//lib:statistics"
+  "//lib:graph"
+  "//lib:graph" -> "//lib:geometry" [style=dashed, color="#999999"]
+  "//lib:graph" -> "@nlohmann_json"
+  "//lib:graph" -> "@proj"
+  "@proj"
+  "@nlohmann_json"
+  "//lib:agent"
+  "//lib:agent" -> "//lib:geometry" [style=dashed, color="#999999"]
+  "//lib:agent" -> "//lib:logging" [style=dashed, color="#999999"]
+  "//lib:agent" -> "//lib:statistics"
+  "//lib:statistics"
+  "//lib:logging"
+  "//lib:logging" -> "@quill"
+  "@quill"
+  "//lib:geometry"
+  "//lib:geometry" -> "@boost.geometry"
+  "@boost.geometry"
+}
