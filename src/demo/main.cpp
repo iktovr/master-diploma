@@ -54,8 +54,8 @@ int main(int argc, char **argv) {
     int basepoints_limit = -1;
     std::string router_kind = "astar";
     std::string resolver_kind = "none";
-    double max_age = 300; //std::numeric_limits<double>::infinity();
-    double ewma_tau = 60; //std::numeric_limits<double>::infinity();
+    double max_age = 300;
+    double ewma_tau = 60;
     double prior_weight = 1.0;
     bool draw_graph = true;
     bool draw_agents = true;
@@ -76,18 +76,15 @@ int main(int argc, char **argv) {
                    "Hard memory cutoff (seconds) for graph edge statistics; Default: infinity.")
         ->check(CLI::PositiveNumber);
     app.add_option("--ewma-tau", ewma_tau,
-                   "EWMA decay time-constant (seconds) for graph edge speed "
-                   "estimate; Default: infinity (equal weights).")
+                   "EWMA decay time-constant (seconds) for graph edge speed estimate")
         ->check(CLI::PositiveNumber);
     app.add_option("--prior-weight", prior_weight,
-                   "Weight of the free-flow Bayesian prior in the edge speed "
-                   "estimate, in units of virtual passages at the maximum "
-                   "speed. 0 disables the prior. Default: 0.")
+                   "Weight of the free-flow Bayesian prior in the edge speed estimate.")
         ->check(CLI::NonNegativeNumber);
 
     app.add_option("-o, --output", output_dir, "Directory for visualizations")
         ->transform(correct_path)->check(CLI::ExistingDirectory);
-    app.add_option("-f, --frame", frame_size, "Maximum frame size in pixels (0 = auto, scaled to graph density)")
+    app.add_option("-f, --frame", frame_size, "Maximum frame size in pixels")
         ->check(CLI::NonNegativeNumber);
     app.add_option("--scale", scale, "Additional objects scale")
         ->check(CLI::PositiveNumber);
@@ -96,12 +93,9 @@ int main(int argc, char **argv) {
     app.add_option("-b, --basepoints", basepoints_limit, "Number of base points to keep from the GeoJSON map (-1 = all)")
         ->check(CLI::Range(-1, std::numeric_limits<int>::max()));
     app.add_option("-r, --router", router_kind,
-                   "Router kind: astar (length), stat (travel time from edge "
-                   "statistics), or ccbs (continuous-time Conflict-Based "
-                   "Search; resolves narrow-edge conflicts itself, so use "
-                   "--resolver=none).")
+                   "Router kind")
         ->check(CLI::IsMember({"astar", "stat", "ccbs"}));
-    app.add_option("--resolver", resolver_kind, "Narrow-edge conflict resolver: none, semaphore, reverse")
+    app.add_option("--resolver", resolver_kind, "Narrow-edge conflict resolver")
         ->check(CLI::IsMember({"none", "semaphore", "reverse"}));
     app.add_flag("--draw-graph,!--no-draw-graph", draw_graph, "Draw graph structure (default: true)");
     app.add_flag("--draw-agents,!--no-draw-agents", draw_agents, "Draw agents (default: true)");
