@@ -363,6 +363,8 @@ bool Map::cell_is_obstacle(int i, int j) const
 
 std::vector<Node> Map::get_valid_moves(int id) const
 {
+    if (id < 0 || id >= static_cast<int>(valid_moves.size()))
+        return {};
     return valid_moves[id];
 }
 

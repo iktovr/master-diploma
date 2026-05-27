@@ -5,6 +5,8 @@
 
 #include "lib/statistics.h"
 
+using namespace lib;
+
 namespace {
 
 GraphEdgeStatistics MakeFresh() {
@@ -14,8 +16,6 @@ GraphEdgeStatistics MakeFresh() {
 }
 
 }  // namespace
-
-using namespace lib;
 
 // ---------------------------------------------------------------------------
 // GraphEdgeStatistics::Record / AverageSpeed -- basics

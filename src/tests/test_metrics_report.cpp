@@ -6,6 +6,8 @@
 
 #include <gtest/gtest.h>
 
+using namespace lib;
+
 namespace {
 
 // Returns the list of labels selected by the reporter for the given context,
@@ -33,8 +35,6 @@ bool Contains(const std::vector<std::string>& v, const std::string& needle) {
 }
 
 }  // namespace
-
-using namespace lib;
 
 // ---------------------------------------------------------------------------
 // Gating: a metric registered with AddIf must appear iff the predicate holds.

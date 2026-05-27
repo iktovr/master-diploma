@@ -499,8 +499,23 @@ Path SIPP::find_path(Agent agent, const Map &map, std::list<Constraint> cons, He
     }
     else
     {
-        starts = {get_endpoints(agent.start_id, agent.start_i, agent.start_j, 0, CN_INFINITY).at(0)};
-        goals = {get_endpoints(agent.goal_id, agent.goal_i, agent.goal_j, 0, CN_INFINITY).back()};
+        auto start_nodes = get_endpoints(agent.start_id, agent.start_i, agent.start_j, 0, CN_INFINITY);
+        auto goal_nodes = get_endpoints(agent.goal_id, agent.goal_i, agent.goal_j, 0, CN_INFINITY);
+        
+        if(start_nodes.empty())
+        {
+            std::cerr << "Error: No valid start intervals for agent " << agent.id << " at node " << agent.start_id << std::endl;
+            return Path();
+        }
+        
+        if(goal_nodes.empty())
+        {
+            std::cerr << "Error: No valid goal intervals for agent " << agent.id << " at node " << agent.goal_id << std::endl;
+            return Path();
+        }
+        
+        starts = {start_nodes.at(0)};
+        goals = {goal_nodes.back()};
         parts = find_partial_path(starts, goals, map, h_values);
         expanded = int(close.size());
         if(parts[0].cost < 0)
