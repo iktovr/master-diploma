@@ -1,9 +1,11 @@
 \documentclass[master]{diploma}
 
 \usepackage{amssymb}
-\usepackage{tikz}
-\usetikzlibrary{arrows.meta, positioning, fit, backgrounds, calc, shapes.geometric}
 \usepackage{makecell}
+\usepackage{qrcode}
+\usepackage{tikz}
+
+\usetikzlibrary{arrows.meta, positioning, fit, backgrounds, calc, shapes.geometric}
 
 \student{Бирюков Виктор Владимирович}
 \group{М8О-208СВ-24}
@@ -30,6 +32,8 @@
 
 \graphicspath{ {./img/} }
 
+\def\CC{{C\nolinebreak[4]\hspace{-.05em}\raisebox{.4ex}{\tiny\bf ++}}}
+
 \begin{document}
     \maketitle
 
@@ -45,18 +49,17 @@
 
     \include{contents/2-task}
 
-    \input{contents/3-theory}
+    \include{contents/3-theory}
 
-    \input{contents/4-program}
+    \include{contents/4-program}
 
-    \input{contents/5-results}
+    \include{contents/5-results}
     
     \include{contents/6-conclusion}
 
-    \nocite{*}
     \printbibliography
 
     \appendix
-    \include{contents/7-appendix-src}
-    \include{contents/8-appendix-graphs}
+    \include{contents/7-appendix-graphs}
+    \include{contents/8-appendix-src}
 \end{document}
