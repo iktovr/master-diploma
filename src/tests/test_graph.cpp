@@ -5,6 +5,8 @@
 
 using ::testing::UnorderedElementsAre;
 
+using namespace lib;
+
 // ---------------------------------------------------------------------------
 // Graph construction
 // ---------------------------------------------------------------------------
@@ -148,4 +150,3 @@ TEST(GraphInput, LoadFromGeoJsonFile) {
     ASSERT_TRUE(g.edges[deliv_id].contains(none_id));
     EXPECT_TRUE(g.edges[deliv_id].at(none_id).narrow);
 }
-

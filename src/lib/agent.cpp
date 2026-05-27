@@ -7,6 +7,8 @@
 #include "geometry.h"
 #include "statistics.h"
 
+namespace lib {
+
 void RouteFollower::SetRoute(const Linestring& new_route) {
     assert(!new_route.empty());
     route = new_route;
@@ -315,4 +317,6 @@ void Agent::Move(const double t, const double dt, const double speed,
             pos = route_follower.MoveBackward(dx, dt, t, max_dx);
         }
     }
+}
+
 }

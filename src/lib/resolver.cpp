@@ -6,6 +6,8 @@
 
 #include "statistics.h"
 
+namespace lib {
+
 Resolver::Resolver(std::shared_ptr<const Graph> graph_)
     : graph(std::move(graph_)) {}
 
@@ -356,4 +358,6 @@ void Resolver::Step(double t, double dt, Agents& agents) {
 
         i = j;
     }
+}
+
 }

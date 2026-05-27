@@ -13,6 +13,8 @@
 #include "logging.h"
 #include "statistics.h"
 
+namespace lib {
+
 namespace {
 
 constexpr double kTimeEps = 1e-9;
@@ -282,4 +284,6 @@ void Simulation::Simulate(const double duration, const double step, const double
     LOG_INFO("Simulation virtual duration: {:.5f}", duration);
     LOG_INFO("Simulation real duration: {:.5f}", real_duration);
     LOG_INFO("Simulation speed: {:.3f} s(v)/s", duration / real_duration);
+}
+
 }

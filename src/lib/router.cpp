@@ -8,6 +8,8 @@
 #include <unordered_map>
 #include <vector>
 
+namespace lib {
+
 std::vector<int> AStarRouter::Search(const int start, const int finish, const double t) const {
     std::unordered_map<int, VertexData> ctx;
     std::priority_queue<SearchState, std::vector<SearchState>, std::greater<SearchState>> heap;
@@ -72,4 +74,6 @@ AStarRouter::GetRouteWithVertices(const int u, const int v, const double t,
         route.push_back(graph_->vertices[i].pos);
     }
     return {std::move(route), std::move(path)};
+}
+
 }

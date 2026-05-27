@@ -8,6 +8,8 @@
 #include "graph.h"
 #include "statistics.h"
 
+namespace lib {
+
 int SemaphoreManager::Semaphore::Intersection(const Linestring& incoming_route) const {
     if (bg::equals(segment[0], incoming_route[1])) {
         if (bg::equals(segment[1], incoming_route[2])) {
@@ -130,4 +132,6 @@ void SemaphoreManager::Step(const double t, Agents& agents) {
             }
         }
     }
+}
+
 }

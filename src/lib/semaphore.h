@@ -11,6 +11,8 @@
 #include "agent.h"
 #include "geometry.h"
 
+namespace lib {
+
 struct SemaphoreManager {
     struct Semaphore {
         using QueuedAgent = std::pair<double, int>;
@@ -53,3 +55,5 @@ struct SemaphoreManager {
 
     void Step(const double t, Agents& agents);
 };
+
+}

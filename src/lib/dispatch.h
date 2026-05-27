@@ -7,6 +7,8 @@
 #include "graph.h"
 #include "router.h"
 
+namespace lib {
+
 struct Dispatch {
     std::shared_ptr<const Graph> graph;
     std::shared_ptr<const IRouter> router;
@@ -45,3 +47,5 @@ struct Dispatch {
 
     int NewOrder() const;
 };
+
+}

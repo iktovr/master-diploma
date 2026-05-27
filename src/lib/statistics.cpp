@@ -4,6 +4,8 @@
 #include <optional>
 #include <string>
 
+namespace lib {
+
 namespace {
 
 template <class T>
@@ -78,4 +80,6 @@ MetricsReporter BuildDefaultMetricsReporter(const Statistics& stats) {
                              stats.ccbs_solve_time_s));
 
     return r;
+}
+
 }

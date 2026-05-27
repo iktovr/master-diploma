@@ -11,6 +11,8 @@
 #include "graph.h"
 #include "router.h"
 
+namespace lib {
+
 // Forward declarations so we don't pull <third_party/ccbs/*> headers
 // into every translation unit that includes ccbs_router.h. The CCBS
 // internals are reached through the ccbs_adapter::Solver bridge
@@ -149,3 +151,5 @@ private:
     // length, ignoring narrow conflicts entirely.
     AStarRouter fallback_router_;
 };
+
+}

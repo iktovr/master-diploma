@@ -15,6 +15,9 @@
 #include "logging.h"
 #include "statistics.h"
 
+
+namespace lib {
+
 CcbsRouter::CcbsRouter(std::shared_ptr<const Graph> graph,
                        Agents* agents,
                        double max_speed)
@@ -599,4 +602,6 @@ std::pair<Linestring, std::vector<int>> CcbsRouter::GetRouteWithVertices(
     }
 
     return {caller_route, caller_vids};
+}
+
 }

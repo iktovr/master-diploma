@@ -11,6 +11,8 @@
 #include "geometry.h"
 #include "statistics.h"
 
+namespace lib {
+
 class IRouter {
 public:
     IRouter(std::shared_ptr<const Graph> graph) : graph_(std::move(graph)) {}
@@ -172,3 +174,5 @@ private:
     mutable std::uint64_t cached_version_ = 0;
     mutable bool cache_valid_ = false;
 };
+
+}

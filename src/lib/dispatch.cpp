@@ -8,6 +8,8 @@
 #include "statistics.h"
 #include "geometry.h"
 
+namespace lib {
+
 void Dispatch::Step(double t, Agents& agents) {
     for (size_t i = 0; i < agents.size(); ++i) {
         auto& agent = agents[i];
@@ -81,4 +83,6 @@ void Dispatch::AssignBasePoints(Agents& agents) const {
         agents[i].base = base_points[base];
         agents[i].pos = graph->vertices[base_points[base]].pos;
     }
+}
+
 }

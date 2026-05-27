@@ -8,6 +8,8 @@
 
 #include "geometry.h"
 
+namespace lib {
+
 class Graph {
 public:
     struct Vertex {
@@ -60,3 +62,5 @@ public:
     std::vector<Vertex> vertices;
     std::vector<std::unordered_map<int, Edge>> edges;
 };
+
+}

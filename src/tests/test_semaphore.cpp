@@ -7,6 +7,8 @@
 #include "lib/agent.h"
 #include "lib/geometry.h"
 
+using namespace lib;
+
 static std::shared_ptr<const Graph> AsShared(const Graph& g) {
     return std::make_shared<const Graph>(g);
 }

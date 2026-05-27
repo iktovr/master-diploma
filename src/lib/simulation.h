@@ -13,6 +13,8 @@
 #include "semaphore.h"
 #include "visualizer.h"
 
+namespace lib {
+
 enum class ResolverKind {
     none,
     semaphore,
@@ -69,3 +71,5 @@ private:
     mutable std::vector<FollowEntry> follow_scratch_;
     mutable std::vector<double> follow_caps_scratch_;
 };
+
+}

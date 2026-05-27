@@ -17,6 +17,8 @@
 #include <nlohmann/json.hpp>
 #include <proj.h>
 
+namespace lib {
+
 namespace fs = std::filesystem;
 
 void Graph::AddVertex(const double x, const double y, const Vertex::Type type) {
@@ -369,4 +371,6 @@ Graph Graph::LoadFromGeoJsonFile(const fs::path path, int basepoints_limit) {
     }
 
     return g;
+}
+
 }

@@ -15,6 +15,9 @@
 #include <utility>
 #include <vector>
 
+
+namespace lib {
+
 namespace ccbs_adapter {
 
 struct Solver::Impl {
@@ -227,3 +230,5 @@ bool Solver::SolveSingleAgent(int start_id, int goal_id,
 }
 
 }  // namespace ccbs_adapter
+
+}

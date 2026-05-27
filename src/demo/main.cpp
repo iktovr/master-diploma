@@ -16,6 +16,7 @@
 #include "lib/simulation.h"
 #include "lib/visualizer.h"
 
+using namespace lib;
 namespace fs = std::filesystem;
 
 int main(int argc, char **argv) {

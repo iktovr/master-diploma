@@ -8,6 +8,8 @@
 
 #include "geometry.h"
 
+namespace lib {
+
 inline constexpr double kAgentFollowGap = 0.8;
 
 inline constexpr int kNarrowEdgeCapacity = 1;
@@ -127,3 +129,5 @@ struct Agent {
 };
 
 using Agents = std::vector<Agent>;
+
+}

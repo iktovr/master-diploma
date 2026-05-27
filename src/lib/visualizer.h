@@ -13,6 +13,8 @@
 #include "geometry.h"
 #include "graph.h"
 
+namespace lib {
+
 namespace fs = std::filesystem;
 
 class GraphEdgeStatistics;
@@ -75,3 +77,5 @@ protected:
         return ToPixels(point.x(), point.y());
     }
 };
+
+}

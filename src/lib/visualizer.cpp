@@ -7,6 +7,8 @@
 
 #include "statistics.h"
 
+namespace lib {
+
 namespace {
 
 constexpr unsigned char HexToByte(char c) {
@@ -286,4 +288,6 @@ void Visualizer::DrawGraphStatistics(const Graph& graph, GraphEdgeStatistics& st
                      SpeedColor(avg_speed, max_speed), edge_thickness_px);
         }
     }
+}
+
 }

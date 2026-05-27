@@ -14,6 +14,8 @@
 #include <utility>
 #include <vector>
 
+namespace lib {
+
 template<class T>
 class CumulativeStatistic {
 public:
@@ -351,3 +353,5 @@ private:
 // in Statistics are registered here; the registration is the single source of
 // truth for which component owns which metric.
 MetricsReporter BuildDefaultMetricsReporter(const Statistics& stats);
+
+}

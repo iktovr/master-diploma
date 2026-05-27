@@ -10,6 +10,8 @@
 #include "agent.h"
 #include "graph.h"
 
+namespace lib {
+
 // Resolver — alternative narrow-edge conflict resolution mechanism.
 //
 // When two agents traveling in opposite directions meet on a narrow edge,
@@ -91,3 +93,5 @@ private:
     void ReleaseConflict(std::size_t idx, double t, Agents& agents);
     void EraseConflict(std::size_t idx);
 };
+
+}

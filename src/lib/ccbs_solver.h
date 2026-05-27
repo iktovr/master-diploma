@@ -13,6 +13,9 @@
 #include <utility>
 #include <vector>
 
+
+namespace lib {
+
 namespace ccbs_adapter {
 
 struct Stamp {
@@ -86,3 +89,5 @@ private:
 };
 
 }  // namespace ccbs_adapter
+
+}

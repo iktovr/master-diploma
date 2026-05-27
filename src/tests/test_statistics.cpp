@@ -15,6 +15,8 @@ GraphEdgeStatistics MakeFresh() {
 
 }  // namespace
 
+using namespace lib;
+
 // ---------------------------------------------------------------------------
 // GraphEdgeStatistics::Record / AverageSpeed -- basics
 // ---------------------------------------------------------------------------
