@@ -2,7 +2,6 @@ duration,router,agents,graph,resolver,rc,time_s,orders,conflicts,avg_wait,avg_re
 43200,ccbs,10,maps/medium_map.geojson,none,0,0.757,589,-,-,-,2.1163899321851996,366.3025531885466,95669.715
 43200,ccbs,10,maps/medium_map.geojson,none,0,0.768,623,-,-,-,2.117989869615012,345.6804995943289,95682.125
 43200,ccbs,10,maps/medium_map.geojson,none,0,0.765,609,-,-,-,2.1141406368977926,354.63556105325944,94948.349
-43200,ccbs,10,maps/medium_map.geojson,none,-6,0.522,-,-,-,-,-,-,-
 43200,ccbs,10,maps/medium_map.geojson,none,0,0.761,593,-,-,-,2.1177119360411587,364.4601694885987,95223.176
 43200,ccbs,10,maps/medium_map.geojson,none,0,0.767,614,-,-,-,2.119728410059817,351.13499590887614,95235.310
 43200,ccbs,10,maps/medium_map.geojson,none,0,0.753,600,-,-,-,2.1165790331828025,360.30745393345427,96674.397

@@ -55,21 +55,6 @@ void Solver::BuildMap(const std::vector<std::pair<double, double>>& node_pos,
 
 namespace {
 
-// Apply the CCBS-tuned configuration. These flags are individually
-// optional in the upstream paper; turning them all on is the
-// "fast" configuration recommended by the authors for road-map
-// inputs (Andreychuk et al., AAAI'21). On our small-graph dispatch
-// workload they collectively reduce typical solve time by an order
-// of magnitude — see Statistics::ccbs_solve_time_s for measurements.
-//
-// - use_cardinal=true: prioritize splitting on conflicts that
-//   provably increase cost. Drastically reduces the high-level tree.
-// - use_disjoint_splitting=true: eliminates symmetric subtrees by
-//   pinning a positive constraint on one branch.
-// - hlh_type=1: admissible high-level heuristic via LP (simplex)
-//   over the disjoint-conflict set; best-first ordering of CT nodes.
-// - focal_weight=1.0: bounded-suboptimal focal search disabled
-//   (we want optimal solutions; focal is an escape hatch).
 inline void ApplyFastConfig(::Config* cfg) {
     cfg->use_cardinal = true;
     cfg->use_disjoint_splitting = true;
@@ -168,31 +153,16 @@ bool Solver::SolveSingleAgent(int start_id, int goal_id,
             const double dur = t2 - t1;
 
             if (u != v) {
-                // Move. Forbid only if narrow (wide moves cannot
-                // collide under our gating).
                 if (!is_narrow(u, v)) continue;
-                // Forbid the reverse edge during the overlap. We
-                // intentionally do *not* forbid same-direction
-                // co-traversal: agents physically following each
-                // other on a narrow edge are fine (the same-edge
-                // capacity is enforced by speed equality, not by
-                // mutex). The only narrow-edge conflict we need to
-                // prevent is the head-on case.
                 cons.emplace_back(caller_id,
                                   t1 - dur,
                                   t2,
                                   v, u);
             } else {
-                // Wait. Only emit if the wait is at a narrow-incident
-                // vertex; otherwise CCBS's gate would never fire and
-                // we'd be over-constraining.
                 if (!has_narrow_at(u)) continue;
                 cons.emplace_back(caller_id, t1, t2, u, u);
             }
         }
-        // Terminal dwell: after the last stamp the peer remains at
-        // its goal forever (in CCBS path-vs-path checking) on a
-        // narrow-incident goal.
         const int term_id = p.back().id;
         if (has_narrow_at(term_id)) {
             cons.emplace_back(caller_id, p.back().g, CN_INFINITY,
@@ -200,9 +170,6 @@ bool Solver::SolveSingleAgent(int start_id, int goal_id,
         }
     }
 
-    // SIPP needs a precomputed Heuristic. We build a one-agent
-    // h_values table just for this caller (cost ~ O(V) per goal,
-    // negligible compared to the savings vs. a joint CBS run).
     ::Heuristic h;
     h.init(n, 1);
     ::Agent agent(start_id, goal_id, caller_id);

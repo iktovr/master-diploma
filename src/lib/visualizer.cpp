@@ -137,7 +137,6 @@ void Visualizer::DrawAgent(const Agent& agent) {
 
     cv::Point center_px = ToPixels(agent.pos);
 
-    // apply lane offset for moving or waiting agents
     double dir_x = 0.0, dir_y = 0.0;
     bool has_direction = false;
     
@@ -165,7 +164,6 @@ void Visualizer::DrawAgent(const Agent& agent) {
                 center_px.x += static_cast<int>(nx * offset_px);
                 center_px.y += static_cast<int>(ny * offset_px);
                 
-                // Store direction for the directional line
                 dir_x = dx / length;
                 dir_y = dy / length;
                 has_direction = true;
@@ -176,7 +174,6 @@ void Visualizer::DrawAgent(const Agent& agent) {
     cv::circle(img, center_px, agent_radius_px, fill_color, cv::FILLED);
     cv::circle(img, center_px, agent_radius_px, edge_color);
 
-    // Draw directional line from center to edge, codirectional with route
     if (has_direction) {
         cv::Point end_px;
         end_px.x = center_px.x + static_cast<int>(dir_x * agent_radius_px);
@@ -237,7 +234,6 @@ void Visualizer::DrawGraph(const Graph& graph) {
                     const float t = i * step_dist;
                     const float side = (i % 2 == 0) ? amplitude : -amplitude;
 
-                    // Snap cleanly to endpoint on last step
                     cv::Point next = (i == steps)
                         ? p2
                         : p1 + cv::Point(along * t) + cv::Point(perp * side);
@@ -246,7 +242,6 @@ void Visualizer::DrawGraph(const Graph& graph) {
                     prev = next;
                 }
 
-                // cv::line(img, ToPixels(graph.vertices[u].pos), ToPixels(graph.vertices[v].pos), narrow_edge_color, narrow_edge_thickness_px);
             }
         }
     }

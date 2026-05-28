@@ -1,2 +1,1 @@
 duration,router,agents,graph,resolver,rc,time_s,orders,conflicts,avg_wait,avg_reverse,avg_speed,avg_order_time,sim_speed
-43200,ccbs,1000,maps/medium_map.geojson,none,-11,821.357,-,-,-,-,-,-,-

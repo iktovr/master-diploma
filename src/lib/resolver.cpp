@@ -27,11 +27,6 @@ std::optional<std::pair<int, int>> Resolver::AgentCurrentEdge(const Agent& a) co
 }
 
 bool Resolver::AgentOnEdge(const Agent& a, EdgeKey edge_key) const {
-    // An agent that has finished its route is no longer on any edge, even if
-    // its route_follower hasn't bumped segment_idx (this happens when the
-    // route is advanced via the no-stats Move(dx) overload). Treat such an
-    // agent — and any idle agent — as off the edge so pushers correctly
-    // release the conflict once they've fully traversed it.
     if (a.state == Agent::idle || a.route_follower.IsFinished()) {
         return false;
     }
@@ -43,8 +38,6 @@ bool Resolver::AgentOnEdge(const Agent& a, EdgeKey edge_key) const {
 }
 
 void Resolver::EraseConflict(std::size_t idx) {
-    // Remove agent_to_conflict entries that point to this conflict before
-    // erasing it, then fix-up indices for the last-swapped conflict.
     auto& c = conflicts[idx];
     for (int a : c.reversing) {
         agent_to_conflict.erase(a);
@@ -78,9 +71,6 @@ void Resolver::ReleaseConflict(std::size_t idx, double t, Agents& agents) {
             }
         }
     }
-    // Any agents still in reverse at this point will also be released —
-    // they continue forward immediately (rare edge case if pushers leave
-    // before losers manage to back off entirely, e.g. very short edges).
     for (int a : c.reversing) {
         if (a >= 0 && a < static_cast<int>(agents.size())) {
             agents[a].state = Agent::move;
@@ -101,7 +91,6 @@ void Resolver::Step(double t, double dt, Agents& agents) {
     for (std::size_t i = 0; i < conflicts.size(); /* ++i below */) {
         auto& c = conflicts[i];
 
-        // (a) Pushers that have left the edge.
         for (auto it = c.waiting_for.begin(); it != c.waiting_for.end(); /**/) {
             const int pid = *it;
             if (pid < 0 || pid >= static_cast<int>(agents.size())
@@ -112,14 +101,7 @@ void Resolver::Step(double t, double dt, Agents& agents) {
             }
         }
 
-        // (a2) Winner-side newcomers: agents in move state that have entered
-        // the conflict edge in the pushers' direction and are within
-        // kAgentFollowGap of any pusher still on the edge (or any reverser
-        // still on the edge). They are absorbed into the conflict's pushers
-        // set so the waiting losers must wait for them too.
         if (!c.waiting_for.empty()) {
-            // Collect "obstacle" positions in the pusher's directed frame
-            // (DistanceAlongEdge measured from pusher_from).
             std::vector<double> obstacle_x;
             obstacle_x.reserve(c.waiting_for.size() + c.reversing.size());
             for (int pid : c.waiting_for) {
@@ -132,8 +114,6 @@ void Resolver::Step(double t, double dt, Agents& agents) {
                 if (rid < 0 || rid >= static_cast<int>(agents.size())) continue;
                 const auto& ra = agents[rid];
                 if (!AgentOnEdge(ra, c.edge_key)) continue;
-                // Reverser is on the loser-direction edge; its position in
-                // the pusher frame is edge_length - x_loser.
                 obstacle_x.push_back(
                     c.edge_length - ra.route_follower.DistanceAlongEdge());
             }
@@ -171,11 +151,6 @@ void Resolver::Step(double t, double dt, Agents& agents) {
             }
         }
 
-        // (b) Reversing agents that have backed off the edge -> wait.
-        // An agent counts as having "left the edge" either when its
-        // current edge changed (segment index decremented onto a previous
-        // route segment) or when it has reversed all the way to the start
-        // of its current segment (no prior segment to retreat onto).
         constexpr double kEdgeExitEps = 1e-6;
         for (auto it = c.reversing.begin(); it != c.reversing.end(); /**/) {
             const int aid = *it;
@@ -188,11 +163,9 @@ void Resolver::Step(double t, double dt, Agents& agents) {
                 !AgentOnEdge(ag, c.edge_key)
                 || ag.route_follower.DistanceAlongEdge() <= kEdgeExitEps;
             if (off_edge) {
-                // Back-tracked off the edge — start waiting.
                 ag.state = Agent::wait;
                 c.waiting_losers.insert(aid);
                 c.wait_start[aid] = t;
-                // Record reverse_time for this agent
                 auto rev_it = c.reverse_start.find(aid);
                 if (rev_it != c.reverse_start.end() && rev_it->second < t) {
                     stats.reverse_time.Add(t - rev_it->second);
@@ -204,17 +177,11 @@ void Resolver::Step(double t, double dt, Agents& agents) {
             }
         }
 
-        // (c) Release if no more pushers blocking.
         if (c.waiting_for.empty()) {
             ReleaseConflict(i, t, agents);
-            // Don't increment i — element at i is now the swapped one.
             continue;
         }
 
-        // (d) Cascade: same-direction (pusher_to → pusher_from) move-state
-        //     trailers that have caught up to any reversing loser become
-        //     reverse themselves. They join the conflict but are NOT added
-        //     to the pushers/waiting_for set.
         double min_loser_x_route = std::numeric_limits<double>::infinity();
         for (int aid : c.reversing) {
             const auto& ag = agents[aid];
@@ -237,7 +204,6 @@ void Resolver::Step(double t, double dt, Agents& agents) {
                 auto e = AgentCurrentEdge(ag);
                 if (!e) continue;
                 if (PackEdgeKey(e->first, e->second) != c.edge_key) continue;
-                // Only trailers traveling in the loser's original direction.
                 if (e->first != c.pusher_to || e->second != c.pusher_from) {
                     continue;
                 }
@@ -299,14 +265,12 @@ void Resolver::Step(double t, double dt, Agents& agents) {
         std::size_t j = i + 1;
         while (j < per_edge.size() && per_edge[j].key == per_edge[i].key) ++j;
 
-        // Within [i, j) find an opposing pair.
         int idx_a = -1;
         int idx_b = -1;
         for (std::size_t p = i; p < j && idx_a < 0; ++p) {
             for (std::size_t q = p + 1; q < j; ++q) {
                 if (per_edge[p].u_dir == per_edge[q].v_dir
                     && per_edge[p].v_dir == per_edge[q].u_dir) {
-                    // Same edge, opposite directions. Check physical gap.
                     const double L = per_edge[p].edge_length;
                     const double phys_gap = L - per_edge[p].x - per_edge[q].x;
                     if (phys_gap < kAgentFollowGap) {
@@ -319,11 +283,6 @@ void Resolver::Step(double t, double dt, Agents& agents) {
         }
 
         if (idx_a >= 0) {
-            // Loser: the agent farther from its own edge end (i.e. with the
-            // smaller DistanceAlongEdge along its directed edge). The
-            // intuition: the agent closer to its edge end is also closer
-            // to clearing the conflict so we let it through. Ties are
-            // broken deterministically by smaller agent_id losing.
             const AgentOnNarrow* A = &per_edge[idx_a];
             const AgentOnNarrow* B = &per_edge[idx_b];
             const AgentOnNarrow* loser;
@@ -338,7 +297,7 @@ void Resolver::Step(double t, double dt, Agents& agents) {
 
             Conflict c;
             c.edge_key = loser->key;
-            c.u = loser->u_dir;            // loser->v_dir = pusher->u_dir
+            c.u = loser->u_dir;
             c.v = loser->v_dir;
             c.edge_length = loser->edge_length;
             c.pusher_from = pusher->u_dir;

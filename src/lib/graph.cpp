@@ -107,7 +107,6 @@ Graph Graph::LoadFromFile(const fs::path path) {
 
 namespace {
 
-// Coordinate key rounded to 1e-7 degrees (~1 cm precision at equator).
 struct LonLat {
     long long lon7;
     long long lat7;
@@ -254,13 +253,11 @@ Graph Graph::LoadFromGeoJsonFile(const fs::path path, int basepoints_limit) {
     const double ref_x = sum_x / n;
     const double ref_y = sum_y / n;
 
-    // Build local-frame Point positions for every vertex.
     std::vector<Point> local_pos(n);
     for (int i = 0; i < n; ++i) {
         local_pos[i] = Point{utm_coords[i].first - ref_x, utm_coords[i].second - ref_y};
     }
 
-    // Collect base-point indices.
     std::vector<int> base_indices;
     for (int i = 0; i < n; ++i) {
         auto pit = point_type_by_pos.find(id_to_coord[i]);
@@ -269,7 +266,6 @@ Graph Graph::LoadFromGeoJsonFile(const fs::path path, int basepoints_limit) {
         }
     }
 
-    // Determine which base points to keep based on basepoints_limit.
     std::unordered_set<int> kept_base_indices;
     const int total_base = static_cast<int>(base_indices.size());
     if (basepoints_limit < 0 || basepoints_limit >= total_base) {
@@ -277,9 +273,7 @@ Graph Graph::LoadFromGeoJsonFile(const fs::path path, int basepoints_limit) {
             kept_base_indices.insert(idx);
         }
     } else if (basepoints_limit == 0 || total_base == 0) {
-        // keep none
     } else if (basepoints_limit == 1) {
-        // Pick base point most centered (closest to centroid of base points).
         Point centroid{0.0, 0.0};
         for (int idx : base_indices) {
             centroid += local_pos[idx];
@@ -296,9 +290,8 @@ Graph Graph::LoadFromGeoJsonFile(const fs::path path, int basepoints_limit) {
         }
         kept_base_indices.insert(best);
     } else {
-        // Greedy farthest-point sampling: start with the most distant pair,
-        // then iteratively add the candidate that maximizes the minimum
-        // distance to the current selection.
+        // Greedy farthest-point sampling: start with most distant pair,
+        // iteratively add candidate maximizing minimum distance to current selection
         int a0 = base_indices[0];
         int b0 = base_indices[1];
         double best_pair = -1.0;
@@ -355,7 +348,6 @@ Graph Graph::LoadFromGeoJsonFile(const fs::path path, int basepoints_limit) {
         if (pit != point_type_by_pos.end()) {
             vtype = pit->second;
         }
-        // Downgrade non-kept base points to none.
         if (vtype == Vertex::base && !kept_base_indices.count(i)) {
             vtype = Vertex::none;
         }

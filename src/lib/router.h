@@ -17,12 +17,8 @@ class IRouter {
 public:
     IRouter(std::shared_ptr<const Graph> graph) : graph_(std::move(graph)) {}
     virtual ~IRouter() = default;
-    // agent_id is the index of the agent for whom the route is being
-    // requested. It is ignored by single-agent routers (A*, Stat) and
-    // used by batch multi-agent routers (CCBS) to identify the caller
-    // and re-plan its peers concurrently. Default -1 == "unknown".
     virtual Linestring GetRoute(const int u, const int v, const double t = 0.0,
-                                const int agent_id = -1) const = 0;
+                                const int agent_id = -1) const = 0;  // agent_id: -1=unknown, used by CCBS for peer replanning
     virtual std::pair<Linestring, std::vector<int>> GetRouteWithVertices(
         const int u, const int v, const double t = 0.0, const int agent_id = -1) const = 0;
 
@@ -64,29 +60,6 @@ protected:
     }
 };
 
-// StatAStarRouter
-// ---------------
-// Same A* as AStarRouter but with edge-traversal cost driven by recent
-// passage observations (GraphEdgeStatistics). Calling AverageSpeed on every
-// edge expansion is expensive (it performs a hashmap lookup, evicts stale
-// samples, and reduces a window with one std::exp per sample plus the
-// Bayesian prior), and within a single simulation tick:
-//
-//   * t is constant across all router calls issued by Dispatch::Step
-//     (multiple agents replan at the same simulated time);
-//   * GraphEdgeStatistics is not mutated between those calls (Record only
-//     fires from agent Move(), after dispatch has finished).
-//
-// Therefore AverageSpeed(u, v, t) is a pure function of (u, v) for the
-// duration of one tick. We memoize it in edge_speed_cache_, keyed by the
-// undirected edge key. The cache is invalidated whenever the caller-supplied
-// t changes or the underlying GraphEdgeStatistics is mutated, detected via
-// GraphEdgeStatistics::Version().
-//
-// The cache stores the effective traversal speed (>= 0). A stored value of
-// 0.0 means "no estimate available, fall back to max_speed_" and folds the
-// Has() check into the same lookup so the Cost hot path is a single
-// hashmap probe.
 class StatAStarRouter : public AStarRouter {
 public:
     StatAStarRouter(std::shared_ptr<const Graph> graph,
@@ -130,9 +103,6 @@ private:
              |  static_cast<std::int64_t>(static_cast<std::uint32_t>(b));
     }
 
-    // Invalidate the per-tick edge-speed cache if either the time argument
-    // or the statistics version has changed since the last router call.
-    // Called at every public entry point.
     void EnsureCacheFresh(double t) const {
         const std::uint64_t v = stats_ ? stats_->Version() : 0;
         if (!cache_valid_ || cached_t_ != t || cached_version_ != v) {
@@ -143,9 +113,6 @@ private:
         }
     }
 
-    // Per-tick memoized AverageSpeed. Returns the effective speed for edge
-    // (u,v); a return value of 0.0 means "no estimate, caller should use
-    // max_speed_".
     double LookupEdgeSpeed(int u, int v, double t) const {
         if (stats_ == nullptr) {
             return 0.0;

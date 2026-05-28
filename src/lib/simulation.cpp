@@ -85,30 +85,6 @@ Simulation::Simulation(
               [](const auto& a, const auto& b) { return a.first < b.first; });
 }
 
-// Follow-cap interop with CCBS-scheduled agents
-// ---------------------------------------------
-// The per-edge capacity caps (kNarrowEdgeCapacity / kWideEdgeCapacity)
-// and the kAgentFollowGap minimum spacing exist to keep agents from
-// piling up on top of each other in *unscheduled* simulations (plain
-// A*, semaphore, reverse resolver). They are unnecessary — and can
-// be actively harmful — for agents whose motion is dictated by a
-// CCBS schedule:
-//
-//   * Narrow edges: CCBS guarantees at most one agent per (directed)
-//     narrow edge at a time, so caps never fire there anyway.
-//   * Wide edges with up to kWideEdgeCapacity (3) co-located agents:
-//     |bucket_size > cap| is false; caps already don't fire.
-//   * Wide edges with >3 agents: CCBS legitimately plans them this
-//     way and times them so the ScheduledPosition clamp inside
-//     RouteFollower::Move() prevents any overrun of a leader. Caps
-//     applied here would only desynchronize the trailing agents
-//     from their CCBS schedule and propagate delay downstream.
-//
-// We therefore keep a CCBS-scheduled agent in the bucket as a
-// leader/obstacle (so unscheduled followers still respect the gap
-// behind it), but never write a cap *into* a CCBS-scheduled
-// follower's slot. The forward-position bound for those agents
-// remains RouteFollower::ScheduledPosition().
 void Simulation::ComputeFollowCaps(std::vector<double>& out) const {
     const double kInf = std::numeric_limits<double>::infinity();
     out.assign(agents.size(), kInf);
@@ -188,9 +164,6 @@ void Simulation::ComputeFollowCaps(std::vector<double>& out) const {
                         continue;  // obstacle never receives a cap
                     }
                     // CCBS-managed followers ignore the capacity cap:
-                    // their position is already bounded by the
-                    // ScheduledPosition() clamp in RouteFollower::Move().
-                    // See the file-level comment above ComputeFollowCaps.
                     if (!agents[follower.agent_id]
                              .route_follower.segment_schedule_t.empty()) {
                         continue;

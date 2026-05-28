@@ -66,8 +66,6 @@ double RouteFollower::ScheduledPosition(double t_now) const {
     if (t_now >= segment_schedule_t.back()) {
         return cumulative_len.back();
     }
-    // Find first i s.t. segment_schedule_t[i] > t_now.
-    // Linear search is fine — schedules are short (O(route length)).
     std::size_t i = 1;
     while (i < segment_schedule_t.size() && segment_schedule_t[i] <= t_now) {
         ++i;
@@ -108,14 +106,10 @@ double RouteFollower::CurrentEdgeLength() const {
 void RouteFollower::RebuildIncomingRoute() {
     incoming_route.clear();
     incoming_route.push_back(pos);
-    // Append the remaining route waypoints starting from the next vertex
-    // after the current segment.
     for (std::size_t i = segment_idx + 1; i < route.size(); ++i) {
         incoming_route.push_back(route[i]);
     }
     if (incoming_route.size() < 2) {
-        // Ensure incoming_route always has at least two points so existing
-        // consumers (semaphore, visualizer) keep working.
         incoming_route.push_back(route.back());
     }
 }
@@ -151,20 +145,16 @@ Point RouteFollower::Move(const double dx, const double dt, const double t_now) 
     const double x_before = x;
     const double t_before = t_now - dt;
 
-    // Standard advance.
     x += dx;
     if (x > length) {
         x = length;
     }
-    // Schedule cap: never overrun the scheduled position at t_now.
     if (!segment_schedule_t.empty()) {
         const double x_sched = ScheduledPosition(t_now);
         if (x > x_sched) {
             x = x_sched;
         }
         if (x < x_before) {
-            // Schedule wants us further back than where we already are
-            // (can happen on the first tick after a re-plan); clamp.
             x = x_before;
         }
     }
@@ -190,9 +180,7 @@ Point RouteFollower::Move(const double dx, const double dt, const double t_now) 
         const int v = vertex_ids[segment_idx + 1];
         const double seg_len = boundary - cumulative_len[segment_idx];
 
-        // Only record the passage the first time we cross this boundary
-        // going forward. If we've already crossed it before (and possibly
-        // reversed back), the original entry/exit was recorded already.
+        // Only record passage first time crossing boundary forward (original entry/exit already recorded if reversed back)
         const std::size_t next_idx = segment_idx + 1;
         if (next_idx > max_segment_reached) {
             const double t_enter = segment_idx < segment_entry_time.size()
@@ -200,7 +188,6 @@ Point RouteFollower::Move(const double dx, const double dt, const double t_now) 
                 : segment_t_enter;
             stats.Record(u, v, t_enter, t_exit, seg_len, t_now);
             max_segment_reached = next_idx;
-            // Initialize the entry time of the new segment (if it exists).
             if (next_idx < segment_entry_time.size()) {
                 segment_entry_time[next_idx] = t_exit;
             }
@@ -225,9 +212,7 @@ Point RouteFollower::MoveBackward(const double dx) {
     if (!cumulative_len.empty()) {
         while (segment_idx > 0 && x < cumulative_len[segment_idx]) {
             --segment_idx;
-            // Restore segment_t_enter for the segment we backed into. Its
-            // first-forward-entry time is preserved in segment_entry_time so
-            // future forward re-crossings reuse it.
+            // Restore segment_t_enter for segment we backed into (first-forward-entry time preserved for future re-crossings)
             if (segment_idx < segment_entry_time.size()) {
                 segment_t_enter = segment_entry_time[segment_idx];
             }

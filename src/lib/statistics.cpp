@@ -42,7 +42,7 @@ MetricsReporter::Formatter SumFormatter(std::string label,
 MetricsReporter BuildDefaultMetricsReporter(const Statistics& stats) {
     MetricsReporter r;
 
-    // --- Always-on simulation-wide metrics -----------------------------------
+    // Always-on simulation-wide metrics
     r.Add("Number of orders",
           ScalarFormatter("Number of orders", stats.orders_count));
     r.Add("Average speed",
@@ -50,7 +50,7 @@ MetricsReporter BuildDefaultMetricsReporter(const Statistics& stats) {
     r.Add("Average order time",
           AverageFormatter("Average order time", stats.order_time));
 
-    // --- Resolver-specific metrics ------------------------------------------
+    // Resolver-specific metrics
     r.AddIf([](const ReportContext& ctx) { return ctx.UsesSemaphore() || ctx.UsesReverse(); },
             "Average waiting time",
             AverageFormatter("Average waiting time", stats.waiting_time));
@@ -61,7 +61,7 @@ MetricsReporter BuildDefaultMetricsReporter(const Statistics& stats) {
             "Number of conflicts",
             ScalarFormatter("Number of conflicts", stats.conflicts_count));
 
-    // --- CCBS router instrumentation ----------------------------------------
+    // CCBS router instrumentation
     auto uses_ccbs = [](const ReportContext& ctx) { return ctx.UsesCcbsRouter(); };
     r.AddIf(uses_ccbs, "CCBS single-agent successes",
             ScalarFormatter("CCBS single-agent successes",

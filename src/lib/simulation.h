@@ -66,7 +66,7 @@ private:
     struct FollowEntry {
         std::uint64_t edge_key;
         double x_on_edge;
-        int agent_id;     // -1 for obstacle-only (reverse agent re-entry).
+        int agent_id;
     };
     mutable std::vector<FollowEntry> follow_scratch_;
     mutable std::vector<double> follow_caps_scratch_;

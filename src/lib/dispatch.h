@@ -17,11 +17,6 @@ struct Dispatch {
     std::vector<int> base_points;
     std::vector<int> current_order;
 
-    // Distance actually traveled since the current order's start, accumulated
-    // from per-tick |agent.pos| deltas. Resilient to mid-trip route changes
-    // (e.g. CCBS peer replans) and to reverse excursions: the resulting
-    // distance/time ratio reported to Statistics::Get().speed reflects the
-    // agent's true average ground speed rather than the planned route length.
     std::vector<double> traveled_length;
     std::vector<Point>  last_pos;
     std::vector<double> order_start_time;
