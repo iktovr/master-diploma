@@ -339,7 +339,7 @@ _SAFE_CHARS = re.compile(r"[^A-Za-z0-9._=+-]+")
 
 
 def _sanitize_combo_filename(combo: dict[str, Any]) -> str:
-    parts = [f"{k.lstrip('-')}={v}" for k, v in combo.items()]
+    parts = sorted([f"{k.lstrip('-')}={v}" for k, v in combo.items()])
     stem = "_".join(parts)
     stem = _SAFE_CHARS.sub("_", stem)
     return stem or "combo"

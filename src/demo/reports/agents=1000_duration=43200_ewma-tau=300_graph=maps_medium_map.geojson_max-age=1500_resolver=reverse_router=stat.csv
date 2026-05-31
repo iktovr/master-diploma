@@ -1,0 +1,3 @@
+duration,router,agents,graph,resolver,ewma-tau,max-age,rc,time_s,orders,conflicts,avg_wait,avg_reverse,avg_speed,avg_order_time,sim_speed
+43200,stat,1000,maps/medium_map.geojson,reverse,300,1500,0,159.276,54787,250015,3.918399591035626,3.270614121429423,2.073444499420295,393.88677108139564,271.779
+43200,stat,1000,maps/medium_map.geojson,reverse,300,1500,0,160.342,54789,253494,3.906211151537022,3.2626118120584224,2.071609067784725,393.7490408466477,269.969

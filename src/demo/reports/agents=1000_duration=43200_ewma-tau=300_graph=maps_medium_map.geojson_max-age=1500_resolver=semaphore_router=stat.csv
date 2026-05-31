@@ -1,0 +1,4 @@
+duration,router,agents,graph,resolver,ewma-tau,max-age,rc,time_s,orders,conflicts,avg_wait,avg_reverse,avg_speed,avg_order_time,sim_speed
+43200,stat,1000,maps/medium_map.geojson,semaphore,300,1500,0,91.355,54962,-,47.74422782463502,-,2.048112791405597,392.8136356542677,474.619
+43200,stat,1000,maps/medium_map.geojson,semaphore,300,1500,0,90.295,54596,-,49.79453811445256,-,2.0457204049597344,395.2262942860329,481.061
+43200,stat,1000,maps/medium_map.geojson,semaphore,300,1500,0,90.239,54806,-,49.523635791655835,-,2.049678422886788,393.65950964896314,481.380

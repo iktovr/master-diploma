@@ -1,0 +1,4 @@
+duration,router,agents,graph,resolver,rc,time_s,orders,conflicts,avg_wait,avg_reverse,avg_speed,avg_order_time,sim_speed
+43200,ccbs,1000,maps/medium_map.geojson,none,0,3241.050,50741,-,-,-,2.066747443739744,425.14770334823066,13.332
+43200,ccbs,1000,maps/medium_map.geojson,none,0,3246.856,50640,-,-,-,2.065503254468623,426.156940264717,13.307
+43200,ccbs,1000,maps/medium_map.geojson,none,0,3304.918,50687,-,-,-,2.0670011583484293,425.7161001541824,13.075
