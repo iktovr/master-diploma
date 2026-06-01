@@ -6,6 +6,9 @@
 \usepackage{tikz}
 \usepackage{xifthen}
 \usepackage[export]{adjustbox}
+\usepackage{csquotes}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
 
 \usetikzlibrary{arrows.meta, positioning, fit, backgrounds, calc, shapes.geometric}
 
@@ -42,9 +45,68 @@
 \begin{frame}
 \frametitle{Актуальность темы}
 
+\begin{columns}[T]
+\begin{column}{0.6\textwidth}
+\vspace{-0.5cm}
 \begin{figure}
-\textit{график с ростом объема автономного транспорта}
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+    ybar,
+    width=\textwidth,
+    height=0.7\textheight,
+    bar width=10pt,
+    ylabel={\small billion U.S. dollars},
+    symbolic x coords={2021,2022,2023,2024,2025,2026,2027,2028,2029,2030},
+    xtick=data,
+    x tick label style={rotate=45, anchor=east, font=\scriptsize},
+    y tick label style={font=\scriptsize},
+    ymin=0,
+    grid=major,
+    major grid style={draw=gray!30},
+    nodes near coords,
+    nodes near coords style={
+        font=\scriptsize,
+        rotate=90,
+        anchor=west
+    },
+    every axis plot/.append style={
+        fill=blue!60,
+        draw=blue!80
+    },
+    enlarge x limits=0.08
+]
+
+\addplot coordinates {
+    (2021,105.90)
+    (2022,147.54)
+    (2023,205.88)
+    (2024,287.75)
+    (2025,402.82)
+    (2026,564.80)
+    (2027,793.17)
+    (2028,1115.64)
+    (2029,1571.68)
+    (2030,2217.65)
+};
+
+\end{axis}
+\end{tikzpicture}
+
+\caption{\footnotesize Объем глобального рынка автономного транспорта
+{\scriptsize (Источник: Statista)}}
 \end{figure}
+\vfill
+\end{column}
+\begin{column}{0.4\textwidth}
+\begin{itemize}
+    \item бурное развитие автономного транспорта;
+    \item рост автономной доставки на \enquote{последней миле};
+    \item парки роботов доставки в городской среде;
+    \item десятки и сотни агентов одновременно.
+\end{itemize}
+\end{column}
+\end{columns}
 
 \note{
 Актуальность работы связана с увеличением использования автономного транспорта разных видов...
@@ -56,9 +118,99 @@
 \begin{frame}
 \frametitle{Актуальность работы}
 
+\begin{columns}[T]
+\begin{column}{0.6\textwidth}
 \begin{figure}
-\textit{график с бенчмарками локального планирования ???}
+\begin{tikzpicture}
+\begin{axis}[
+    width=\textwidth,
+    height=0.75\textheight,
+    xmin=2019.5,
+    xmax=2026.5,
+    ymin=0,
+    ymax=10.5,
+    ylabel={миллионы},
+    xtick={2020,2021,2022,2023,2024,2025,2026},
+    ytick={0,5,10},
+    xticklabel style={/pgf/number format/1000 sep={}},
+    yticklabel style={/pgf/number format/.cd, fixed, use comma=false},
+    grid=major,
+    major grid style={draw=gray!25},
+    legend style={
+        at={(0.02,0.98)},
+        anchor=north west,
+        draw=none,
+        fill=white,
+        font=\small
+    },
+    tick label style={font=\small},
+    label style={font=\small},
+    title style={font=\bfseries\small},
+]
+
+% Starship Technologies
+\addplot[
+    color=blue!70!black,
+    mark=*,
+    mark size=2.5pt,
+    line width=1.2pt
+] coordinates {
+    (2020,0.957)
+    (2021,2.4)
+    (2022,4.2)
+    (2023,5.8)
+    (2024,7.1)
+    (2025,9.6)
+};
+
+% Yandex Rovers
+\addplot[
+    color=red!75!black,
+    mark=square*,
+    mark size=2.5pt,
+    line width=1.2pt
+] coordinates {
+    (2021,0.08)
+    (2022,0.19)
+    (2023,0.30)
+    (2024,0.48)
+    (2025,0.73)
+    (2026,1.00)
+};
+
+\legend{Starship, Яндекс}
+
+% Labels for Starship
+\node[font=\scriptsize, blue!70!black, anchor=south] at (axis cs:2020,0.957) {0.96};
+\node[font=\scriptsize, blue!70!black, anchor=south] at (axis cs:2021,2.4) {2.4};
+\node[font=\scriptsize, blue!70!black, anchor=south] at (axis cs:2022,4.2) {4.2};
+\node[font=\scriptsize, blue!70!black, anchor=south] at (axis cs:2023,5.8) {5.8};
+\node[font=\scriptsize, blue!70!black, anchor=south] at (axis cs:2024,7.1) {7.1};
+\node[font=\scriptsize, blue!70!black, anchor=south] at (axis cs:2025,9.6) {9.6};
+
+% Labels for Yandex
+\node[font=\scriptsize, red!75!black, anchor=south] at (axis cs:2021,0.08) {0.08};
+\node[font=\scriptsize, red!75!black, anchor=south] at (axis cs:2022,0.19) {0.19};
+\node[font=\scriptsize, red!75!black, anchor=south] at (axis cs:2023,0.30) {0.30};
+\node[font=\scriptsize, red!75!black, anchor=south] at (axis cs:2024,0.48) {0.48};
+\node[font=\scriptsize, red!75!black, anchor=south] at (axis cs:2025,0.73) {0.73};
+\node[font=\scriptsize, red!75!black, anchor=south] at (axis cs:2026,1.00) {1.0};
+
+\end{axis}
+\end{tikzpicture}
+
+\caption{Совершенные доставки}
 \end{figure}
+\end{column}
+\begin{column}{0.4\textwidth}
+\begin{itemize}
+    \item локальное и глобальное планирование;
+    \item узкие места $\Rightarrow$ взаимоблокировки;
+    \item локальное планирование не всегда справляется;
+    \item ручное удалённое управление плохо масштабируется;
+\end{itemize}
+\end{column}
+\end{columns}
 
 \note{
 при управлении автономными роботами возникает две задачи планирования
@@ -67,7 +219,7 @@
 и необходимо внешнее вмешательство
 на практике оно часто осуществляется ручным удаленным управлением
 но можно использовать автоматизированные системы глобального управления
-}	
+}
 \end{frame}
 
 
@@ -92,38 +244,66 @@
 
 
 \begin{frame}
-\frametitle{Постановка задачи}
+\frametitle{Формальное описание}
 
-\textbf{Дано:}
+\textbf{Среда} --- взвешенный неориентированный планарный граф
+\[
+    G = (V, E, W), \qquad E = E_{w} \sqcup E_{n}, \qquad V = V_{r} \sqcup V_{b} \sqcup V_{d}. 
+\]\\[0.5cm]
+
+\textbf{Агенты} $A = \{1, \ldots, k\}$
+
+\textbf{Полный маршрут агенты}: $v_b \to v_d \to v_b$, \quad $v_b \in V_{b}$, $v_d \in V_{d}$\\[0.7cm]
+
+\textbf{Метрики качества} за время $[0, T]$ ($\mathcal{R}(T)$ --- завершённые маршруты):
 \begin{itemize}
-	\item Исходные данные
-	\item Требования и условия
-	\item Ограничения и допущения
-	\item Требования к железу, ОС и сетевому окружению
-	\item …
+    \item число выполненных заказов $N(T) = |\mathcal{R}(T)|$;
+    \item среднее время маршрута $\bar\tau(T) = \frac{1}{|\mathcal{R}(T)|}\sum\limits_{\ell \in \mathcal{R}(T)} \tau_\ell$;
+    \item средняя скорость на маршруте $\bar v(T) = \frac{1}{|\mathcal{R}(T)|}\sum\limits_{\ell \in \mathcal{R}(T)} \bar v_\ell$.
 \end{itemize}
-\end{frame}
-
-
-\begin{frame}
-\frametitle{Многоагентное планирование}
 
 \end{frame}
+
+
+% \begin{frame}
+% \frametitle{Многоагентное планирование}
+
+% \end{frame}
 
 
 \begin{frame}
 \frametitle{Методы разрешения конфликтов}
 
 \begin{figure}
-\includegraphics[height=0.75\textheight]{reverse/frame_0007}
-\includegraphics[height=0.75\textheight]{reverse/frame_0055}
-\includegraphics[height=0.75\textheight]{reverse/frame_0100}
-\includegraphics[height=0.75\textheight]{reverse/frame_0180}
-\hfill
-\includegraphics[height=0.75\textheight]{semaphore/frame_0007}
-\includegraphics[height=0.75\textheight]{semaphore/frame_0055}
-\includegraphics[height=0.75\textheight]{semaphore/frame_0100}
-\includegraphics[height=0.75\textheight]{semaphore/frame_0140}
+\newcommand{\groupreverse}{%
+\includegraphics[height=0.7\textheight]{reverse/frame_0007}%
+\hspace{0.4cm}%
+\includegraphics[height=0.7\textheight]{reverse/frame_0055}%
+\hspace{0.4cm}%
+\includegraphics[height=0.7\textheight]{reverse/frame_0100}%
+\hspace{0.4cm}%
+\includegraphics[height=0.7\textheight]{reverse/frame_0180}%
+}%
+\newcommand{\groupsemaphore}{%
+\includegraphics[height=0.7\textheight]{semaphore/frame_0007}%
+\hspace{0.4cm}%
+\includegraphics[height=0.7\textheight]{semaphore/frame_0055}%
+\hspace{0.4cm}%
+\includegraphics[height=0.7\textheight]{semaphore/frame_0100}%
+\hspace{0.4cm}%
+\includegraphics[height=0.7\textheight]{semaphore/frame_0140}%
+}%
+\newlength{\wreverse}\newlength{\wsemaphore}%
+\settowidth{\wreverse}{\groupreverse}%
+\settowidth{\wsemaphore}{\groupsemaphore}%
+\makebox[\wreverse]{Метод разворота}\hspace{2cm}\makebox[\wsemaphore]{Семафорный метод}\\[0.2em]
+\mbox{\groupreverse}\hspace{2cm}\mbox{\groupsemaphore}\\[0.2em]
+\begin{tikzpicture}
+\draw[thick, -{Latex[length=2mm]}] (0, 0) -- (\wreverse, 0) node[right] {$t$};
+\end{tikzpicture}\hspace*{1.8cm}
+\begin{tikzpicture}
+\draw[thick, -{Latex[length=2mm]}] (0, 0) -- (\wsemaphore, 0) node[right] {$t$};
+\end{tikzpicture}
 \end{figure}
 
 \end{frame}
@@ -133,21 +313,22 @@
 \frametitle{Адаптивное планирование}
 
 \begin{figure}
-\includegraphics[height=0.7\textheight]{adaptive/frame_0000}
-\includegraphics[height=0.7\textheight]{adaptive/frame_0055}
-\includegraphics[height=0.7\textheight]{adaptive/frame_0100}
-\includegraphics[height=0.7\textheight]{adaptive/frame_0235}
-\includegraphics[height=0.7\textheight]{adaptive/frame_0280}
-\hspace{0.5cm}
-\mycolorbar{5}{0.4}{red, yellow, green}{0.0}{2.2}{1.1}
-\end{figure}
-
-\vfill
-
-\begin{figure}
+\sbox0{%
+\includegraphics[height=0.6\textheight]{adaptive/frame_0000}%
+\hspace{0.3cm}
+\includegraphics[height=0.6\textheight]{adaptive/frame_0055}%
+\hspace{0.3cm}
+\includegraphics[height=0.6\textheight]{adaptive/frame_0100}%
+\hspace{0.3cm}
+\includegraphics[height=0.6\textheight]{adaptive/frame_0235}%
+\hspace{0.3cm}
+\includegraphics[height=0.6\textheight]{adaptive/frame_0280}%
+}%
+\sbox1{\resizebox{!}{\ht0}{\mycolorbar{5.5}{0.4}{red, yellow, green}{0.0}{2.2}{1.1}}}%
+\usebox0\hspace{1.5cm}\usebox1\\[0.2em]
 \begin{tikzpicture}
-\draw[thick] (0, 0) -- (10, 0);
-\end{tikzpicture}
+\draw[thick, -{Latex[length=2mm]}] (0, 0) -- (\wd0, 0) node[right] {$t$};
+\end{tikzpicture}\hspace*{1.5cm}\hspace*{\wd1}%
 \end{figure}
 
 \end{frame}
