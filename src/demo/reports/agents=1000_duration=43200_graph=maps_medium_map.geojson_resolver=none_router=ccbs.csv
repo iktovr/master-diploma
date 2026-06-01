@@ -4,3 +4,4 @@ duration,router,agents,graph,resolver,rc,time_s,orders,conflicts,avg_wait,avg_re
 43200,ccbs,1000,maps/medium_map.geojson,none,0,3304.918,50687,-,-,-,2.0670011583484293,425.7161001541824,13.075
 43200,ccbs,1000,maps/medium_map.geojson,none,0,3225.110,50800,-,-,-,2.0671576259097577,424.6092159484917,13.397
 43200,ccbs,1000,maps/medium_map.geojson,none,0,3274.168,50592,-,-,-,2.0658620705317965,426.5411873363807,13.197
+43200,ccbs,1000,maps/medium_map.geojson,none,0,3011.946,50650,-,-,-,2.066894661519272,425.9837170039219,14.346
