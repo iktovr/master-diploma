@@ -71,9 +71,9 @@ inline cv::Scalar AgentStateColor(Agent::State state) {
         case Agent::idle:
             return Color("#c1c1c1");
         case Agent::wait:
-            return Color("#1a7ed5");
+            return Color("#6B95FF");
         case Agent::reverse:
-            return Color("#a10c0c");
+            return Color("#FE6171");
         default:
             return Color("#ffffff");
     }
