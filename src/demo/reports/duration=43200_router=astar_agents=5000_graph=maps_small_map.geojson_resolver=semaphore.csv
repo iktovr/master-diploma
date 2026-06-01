@@ -1,4 +1,0 @@
-duration,router,agents,graph,resolver,rc,time_s,orders,conflicts,avg_wait,avg_reverse,avg_speed,avg_order_time,sim_speed
-43200,astar,5000,maps/small_map.geojson,semaphore,0,102.003,77836,-,1277.402570343887,-,0.9720906370428869,1374.1092665946708,429.870
-43200,astar,5000,maps/small_map.geojson,semaphore,0,101.314,77988,-,1253.0389731524174,-,0.9658021454627762,1378.9110023750097,427.722
-43200,astar,5000,maps/small_map.geojson,semaphore,0,102.140,78679,-,1247.3076152259591,-,0.9678313575982734,1367.1772609599918,424.237
