@@ -1,0 +1,67 @@
+\documentclass[master]{diploma}
+
+\usepackage{amssymb}
+\usepackage{makecell}
+\usepackage{qrcode}
+\usepackage{tikz}
+
+\usetikzlibrary{arrows.meta, positioning, fit, backgrounds, calc, shapes.geometric}
+
+\student{Бирюков Виктор Владимирович}
+\group{М8О-208СВ-24}
+\theme{Предотвращение взаимных блокировок автономных агентов методами централизованного планирования}
+
+\supervisor{Судаков Владимир Анатольевич}
+\firstConsultant{}
+\secondConsultant{}
+\reviewer{}
+
+\faculty{№ 8 <<Компьютерные науки и прикладная математика>>}
+\department{Института № 8}
+\speciality{01.04.02 Прикладная математика и информатика}
+\profile{Продуктовая разработка и разработка программных систем}
+
+\departmentFullName{}
+\headOfDepartmentTitle{И. о. директора Образовательного центра}
+\headOfDepartment{Крылов Сергей Сергеевич}
+\date{\uline{\hspace{24pt}} мая \the\year\ года}
+
+\input{contents/glossary}
+\input{contents/terms}
+
+\addbibresource{main.bib}
+
+\graphicspath{ {./img/} }
+
+\def\CC{{C\nolinebreak[4]\hspace{-.05em}\raisebox{.4ex}{\tiny\bf ++}}}
+
+\begin{document}
+    \maketitle
+
+    % \includepdf[pages=-]{extra/task}
+    \setcounter{page}{2} % Устанавливает счётчик страниц
+
+    \include{contents/0-abstract}
+
+    \tableofcontents
+    \termsanddefenitions % Термины и определения
+    \listofabbreviations % Перечень сокращений и обозначений
+
+    \include{contents/1-introduction}
+
+    \include{contents/2-task}
+
+    \include{contents/3-theory}
+
+    \include{contents/4-program}
+
+    \include{contents/5-results}
+    
+    \include{contents/6-conclusion}
+
+    \printbibliography
+
+    \appendix
+    \include{contents/7-appendix-graphs}
+    \include{contents/8-appendix-src}
+\end{document}

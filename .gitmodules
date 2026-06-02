@@ -1,0 +1,6 @@
+[submodule "report/styles/template"]
+	path = report/styles/template
+	url = https://github.com/iktovr/diploma-latex-template
+[submodule "slides/styles/template"]
+	path = slides/styles/template
+	url = https://github.com/iktovr/diploma-slides-latex-template

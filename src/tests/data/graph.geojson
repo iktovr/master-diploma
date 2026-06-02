@@ -1,0 +1,75 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [37.5800000, 55.7340000]
+      },
+      "properties": {
+        "osm_id": 1,
+        "osm_type": "node",
+        "type": "base_point"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [37.5810000, 55.7350000]
+      },
+      "properties": {
+        "osm_id": 2,
+        "osm_type": "node",
+        "type": "delivery_point"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [37.5800000, 55.7340000],
+          [37.5805000, 55.7345000]
+        ]
+      },
+      "properties": {
+        "osm_id": 101,
+        "osm_type": "way",
+        "highway": "footway"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [37.5805000, 55.7345000],
+          [37.5810000, 55.7350000]
+        ]
+      },
+      "properties": {
+        "osm_id": 102,
+        "osm_type": "way",
+        "highway": "footway",
+        "narrow": "yes"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [37.5800000, 55.7340000],
+          [37.5810000, 55.7350000]
+        ]
+      },
+      "properties": {
+        "osm_id": 103,
+        "osm_type": "way",
+        "highway": "footway"
+      }
+    }
+  ]
+}

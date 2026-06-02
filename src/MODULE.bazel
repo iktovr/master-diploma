@@ -1,0 +1,38 @@
+bazel_dep(name = "rules_cc", version = "0.2.17")
+bazel_dep(name = "opencv", version = "4.13.0.bcr.5")
+bazel_dep(name = "googletest", version = "1.17.0.bcr.2")
+bazel_dep(name = "boost.geometry", version = "1.90.0.bcr.1")
+bazel_dep(name = "boost.multi_index", version = "1.90.0.bcr.1")
+bazel_dep(name = "cli11", version = "2.6.2")
+bazel_dep(name = "rules_shell", version = "0.6.1")
+bazel_dep(name = "nlohmann_json", version = "3.12.0.bcr.1")
+bazel_dep(name = "proj", version = "9.8.0")
+bazel_dep(name = "quill", version = "11.1.0")
+bazel_dep(name = "rules_python", version = "1.8.0")
+
+python = use_extension("@rules_python//python/extensions:python.bzl", "python")
+python.toolchain(
+    python_version = "3.11",
+    is_default = True,
+)
+
+pip = use_extension("@rules_python//python/extensions:pip.bzl", "pip")
+pip.parse(
+    hub_name = "pypi",
+    python_version = "3.11",
+    requirements_lock = "//:requirements.txt",
+)
+use_repo(pip, "pypi")
+
+single_version_override(
+    module_name = "quill",
+    patch_strip = 1,
+    patches = ["//patches:quill-bazel9.patch"],
+)
+
+bazel_dep(name = "hedron_compile_commands", dev_dependency = True)
+git_override(
+    module_name = "hedron_compile_commands",
+    commit = "7fe1eab26d2b8eeb5e1c6a2f38bddb001e3f9696",
+    remote = "https://github.com/hedronvision/bazel-compile-commands-extractor.git",
+)

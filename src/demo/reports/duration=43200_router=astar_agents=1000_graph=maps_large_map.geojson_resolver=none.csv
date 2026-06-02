@@ -1,0 +1,6 @@
+duration,router,agents,graph,resolver,rc,time_s,orders,conflicts,avg_wait,avg_reverse,avg_speed,avg_order_time,sim_speed
+43200,astar,1000,maps/large_map.geojson,none,0,55.095,31573,-,-,-,2.1206004834900423,682.5843410748712,789.318
+43200,astar,1000,maps/large_map.geojson,none,0,55.429,31530,-,-,-,2.1202668491998944,683.770727374798,784.225
+43200,astar,1000,maps/large_map.geojson,none,0,55.178,31648,-,-,-,2.1206799077064997,681.0867149627222,787.780
+43200,astar,1000,maps/large_map.geojson,none,0,55.446,31597,-,-,-,2.120442501920633,682.4158144005702,783.903
+43200,astar,1000,maps/large_map.geojson,none,0,55.280,31457,-,-,-,2.1204715971574033,684.6908706528548,786.458

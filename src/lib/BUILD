@@ -1,0 +1,204 @@
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
+package(default_visibility = ["//visibility:public"])
+
+cc_library(
+    name = "agent",
+    srcs = [
+        "agent.cpp",
+    ],
+    hdrs = [
+        "agent.h",
+    ],
+    deps = [
+        ":geometry",
+        ":logging",
+        ":statistics",
+    ],
+)
+
+cc_library(
+    name = "graph",
+    srcs = [
+        "graph.cpp",
+    ],
+    hdrs = [
+        "graph.h",
+    ],
+    deps = [
+        ":geometry",
+        "@nlohmann_json//:singleheader-json",
+        "@proj",
+    ],
+)
+
+cc_library(
+    name = "logging",
+    srcs = [
+        "logging.cpp",
+    ],
+    hdrs = [
+        "logging.h",
+    ],
+    deps = [
+        "@quill",
+    ],
+)
+
+cc_library(
+    name = "simulation",
+    srcs = [
+        "simulation.cpp",
+    ],
+    hdrs = [
+        "simulation.h",
+    ],
+    deps = [
+        ":agent",
+        ":dispatch",
+        ":graph",
+        ":logging",
+        ":resolver",
+        ":router",
+        ":semaphore",
+        ":statistics",
+        ":visualizer",
+    ],
+)
+
+cc_library(
+    name = "resolver",
+    srcs = [
+        "resolver.cpp",
+    ],
+    hdrs = [
+        "resolver.h",
+    ],
+    deps = [
+        ":agent",
+        ":graph",
+        ":statistics",
+    ],
+)
+
+cc_library(
+    name = "visualizer",
+    srcs = [
+        "visualizer.cpp",
+    ],
+    hdrs = [
+        "visualizer.h",
+    ],
+    deps = [
+        ":agent",
+        ":geometry",
+        ":graph",
+        ":statistics",
+        "@opencv//:core",
+        "@opencv//:imgcodecs",
+        "@opencv//:imgproc",
+    ],
+)
+
+cc_library(
+    name = "geometry",
+    srcs = [
+        "geometry.cpp",
+    ],
+    hdrs = [
+        "geometry.h",
+    ],
+    deps = [
+        "@boost.geometry",
+    ],
+)
+
+cc_library(
+    name = "dispatch",
+    srcs = [
+        "dispatch.cpp",
+    ],
+    hdrs = [
+        "dispatch.h",
+    ],
+    deps = [
+        ":agent",
+        ":graph",
+        ":router",
+        ":statistics",
+    ],
+)
+
+cc_library(
+    name = "semaphore",
+    srcs = [
+        "semaphore.cpp",
+    ],
+    hdrs = [
+        "semaphore.h",
+    ],
+    deps = [
+        ":agent",
+        ":geometry",
+        ":graph",
+        ":logging",
+        ":statistics",
+    ],
+)
+
+cc_library(
+    name = "router",
+    srcs = [
+        "router.cpp",
+    ],
+    hdrs = [
+        "router.h",
+    ],
+    deps = [
+        ":geometry",
+        ":graph",
+        ":statistics",
+    ],
+)
+
+cc_library(
+    name = "ccbs_solver",
+    srcs = [
+        "ccbs_solver.cpp",
+    ],
+    hdrs = [
+        "ccbs_solver.h",
+    ],
+    deps = [
+        "//third_party/ccbs",
+    ],
+)
+
+cc_library(
+    name = "ccbs_router",
+    srcs = [
+        "ccbs_router.cpp",
+    ],
+    hdrs = [
+        "ccbs_router.h",
+    ],
+    deps = [
+        ":agent",
+        ":ccbs_solver",
+        ":geometry",
+        ":graph",
+        ":logging",
+        ":router",
+        ":statistics",
+    ],
+)
+
+cc_library(
+    name = "statistics",
+    srcs = [
+        "statistics.cpp",
+    ],
+    hdrs = [
+        "statistics.h",
+    ],
+)
