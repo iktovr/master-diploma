@@ -1,56 +1,10 @@
-% Сокращения
-\newglossaryentry{mapf}{name={MAPF}, description={multi-agent path finding, многоагентное планирование путей}}
-\newglossaryentry{cbs}{name={CBS}, description={conflict-based search, поиск на основе конфликтов}}
-\newglossaryentry{ccbs}{name={CCBS}, description={continuous-time conflict-based search, поиск на основе конфликтов в непрерывном времени}}
-% \newglossaryentry{lacam}{name={LaCAM}, description={lazy constraints addition search for MAPF, поиск с ленивым добавлением ограничений}}
-% \newglossaryentry{whca}{name={WHCA*}, description={windowed hierarchical cooperative A*, оконный иерархический кооперативный A*}}
-% \newglossaryentry{rhcr}{name={RHCR}, description={rolling-horizon collision resolution, разрешение коллизий со скользящим горизонтом}}
-\newglossaryentry{sipp}{name={SIPP}, description={safe interval path planning, планирование путей по безопасным интервалам}}
-% \newglossaryentry{pibt}{name={PIBT}, description={priority inheritance with backtracking, приоритетное наследование с возвратом}}
-% \newglossaryentry{cat}{name={CAT}, description={conflict avoidance table, таблица предотвращения конфликтов}}
-\newglossaryentry{sic}{name={SIC}, description={sum of individual costs, эвристика суммы индивидуальных стоимостей}}
-\newglossaryentry{soc}{name={SOC}, description={sum of costs, суммарная стоимость решения}}
-\newglossaryentry{sof}{name={SOF}, description={sum of fuel, суммарные перемещения без учёта ожиданий}}
-% \newglossaryentry{rl}{name={RL}, description={reinforcement learning, обучение с подкреплением}}
-
-% Обозначения и определения --- объекты задачи
-\newglossaryentry{агент}{
-    name={Агент},
-    description={автономный исполнитель, перемещающийся по графу дорожной сети}
-}
-\newglossaryentry{маршрут}{
-    name={Маршрут (индивидуальный план)},
-    description={последовательность вершин и действий агента, ведущая от его исходной к целевой вершине}
-}
-\newglossaryentry{расписание}{
-    name={Расписание},
-    description={неубывающая последовательность плановых времён прохождения вершин маршрута}
-}
-\newglossaryentry{конфликт}{
-    name={Конфликт},
-    description={ситуация, в которой согласно индивидуальным планам два или более агентов оказываются одновременно в недопустимой конфигурации}
-}
-\newglossaryentry{ограничение}{
-    name={Ограничение},
-    description={запрет агенту находиться в заданной вершине или выполнять заданное действие в указанный момент или интервал времени}
-}
-\newglossaryentry{небезоп}{
-    name={Небезопасный интервал},
-    description={максимальный интервал времени, в течение которого начало действия агента приводит к столкновению с действием другого агента}
-}
-\newglossaryentry{эвристика}{
-    name={Эвристика},
-    description={функция, оценивающая снизу стоимость оставшегося пути в алгоритмах информированного поиска}
-}
-\newglossaryentry{makespan}{
-    name={Makespan},
-    description={момент времени, к которому все агенты достигают своих целей}
-}
-\newglossaryentry{flowtime}{
-    name={Flowtime},
-    description={суммарное время, затраченное всеми агентами на достижение целей}
-}
-\newglossaryentry{srate}{
-    name={Success rate},
-    description={доля экземпляров задачи, решённых алгоритмом в пределах заданного бюджета времени}
-}
+\newglossaryentry{flowtime}{name={Flowtime}, description={суммарное время, затраченное всеми агентами на достижение целей}}
+\newglossaryentry{makespan}{name={Makespan}, description={момент времени, к которому все агенты достигают своих целей}}
+\newglossaryentry{srate}{name={Success rate}, description={доля экземпляров задачи, решённых алгоритмом в пределах заданного бюджета времени}}
+\newglossaryentry{агент}{name={Агент}, description={автономный исполнитель, перемещающийся по графу дорожной сети}}
+\newglossaryentry{конфликт}{name={Конфликт}, description={ситуация, в которой согласно индивидуальным планам два или более агентов оказываются одновременно в недопустимой конфигурации}}
+\newglossaryentry{маршрут}{name={Маршрут (индивидуальный план)}, description={последовательность вершин и действий агента, ведущая от его исходной к целевой вершине}}
+\newglossaryentry{небезоп}{name={Небезопасный интервал}, description={максимальный интервал времени, в течение которого начало действия агента приводит к столкновению с действием другого агента}}
+\newglossaryentry{ограничение}{name={Ограничение}, description={запрет агенту находиться в заданной вершине или выполнять заданное действие в указанный момент или интервал времени}}
+\newglossaryentry{расписание}{name={Расписание}, description={неубывающая последовательность плановых времён прохождения вершин маршрута}}
+\newglossaryentry{эвристика}{name={Эвристика}, description={функция, оценивающая снизу стоимость оставшегося пути в алгоритмах информированного поиска}}

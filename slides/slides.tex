@@ -36,7 +36,7 @@
     \end{tikzpicture}
 }
 
-\graphicspath{{./img}, {../report/img/}}
+\graphicspath{{./img}, {../report/img/}, {../src/demo/report_files}}
 
 \begin{document}
 
@@ -204,10 +204,10 @@
 \end{column}
 \begin{column}{0.4\textwidth}
 \begin{itemize}
-    \item локальное и глобальное планирование;
-    \item узкие места $\Rightarrow$ взаимоблокировки;
+    \item решается две задачи планирования -- локальное и глобальное;
     \item локальное планирование не всегда справляется;
     \item ручное удалённое управление плохо масштабируется;
+    \item узкие места $\Rightarrow$ взаимоблокировки;
 \end{itemize}
 \end{column}
 \end{columns}
@@ -412,15 +412,63 @@
 
 \begin{frame}
 \frametitle{Результаты}
+\framesubtitle{Сравнение методов построения маршрутов}
 
-Скрины/Формат вывода данных
+\begin{figure}
+\includegraphics[width=0.85\textwidth]{report_30_1.pdf}
+\vfill
+\includegraphics[width=0.85\textwidth]{report_30_2.pdf}
+\end{figure}
+
 \end{frame}
 
 
 \begin{frame}
-\frametitle{Оценка результата}
+\frametitle{Результаты}
+\framesubtitle{Сравнение методов разрешения конфликтов}
 
-Перечень ключевых характеристик функционирования разработки
+\begin{figure}
+\includegraphics[width=0.85\textwidth]{report_33_0.pdf}
+\vfill
+\includegraphics[width=0.85\textwidth]{report_33_1.pdf}
+\end{figure}
+
+\end{frame}
+
+
+\begin{frame}
+\frametitle{Результаты}
+\framesubtitle{Сравнение методов разрешения конфликтов}
+
+\begin{figure}
+\includegraphics[height=0.6\textheight]{report_15_0.pdf}
+\end{figure}
+
+\end{frame}
+
+
+\begin{frame}
+\frametitle{Результаты}
+\framesubtitle{Сравнение методов разрешения конфликтов}
+
+\begin{figure}
+\includegraphics[width=0.49\textwidth]{report_21_1.pdf}\hfill
+\includegraphics[width=0.49\textwidth]{report_21_3.pdf}
+\end{figure}
+
+\end{frame}
+
+
+\begin{frame}
+\frametitle{Выводы}
+
+\begin{itemize}
+    \item \enquote{семафор} лучше в большинстве сценариев, \enquote{разъезд} --- при высокой плотности агентов на малых графах;
+    \item методы локального разрешения конфликтов не уступают CCBS, а на малых и средних задачах превосходят его по всем метрикам;
+    \item большую роль в этом играет адаптивный метод планирования;
+    \item для задач последней мили локальное разрешение конфликтов --- обоснованная альтернатива многоагентному планированию.
+\end{itemize}
+
 \end{frame}
 
 
