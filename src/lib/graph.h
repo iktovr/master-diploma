@@ -22,6 +22,7 @@ public:
         int id;
         Point pos;
         Type type = none;
+        std::vector<int> owning_bases;
 
         bool operator==(const Vertex& other) const = default;
     };

@@ -99,6 +99,7 @@ TEST(GraphInput, LoadFromFile) {
     EXPECT_EQ(g.vertices[0].type, Graph::Vertex::base);
     EXPECT_EQ(g.vertices[1].type, Graph::Vertex::none);
     EXPECT_EQ(g.vertices[2].type, Graph::Vertex::delivery);
+    EXPECT_TRUE(g.vertices[2].owning_bases.empty());
 
     // Edge 0-1: narrow
     ASSERT_TRUE(g.edges[0].contains(1));
@@ -149,4 +150,21 @@ TEST(GraphInput, LoadFromGeoJsonFile) {
     EXPECT_TRUE(g.edges[none_id].at(deliv_id).narrow);
     ASSERT_TRUE(g.edges[deliv_id].contains(none_id));
     EXPECT_TRUE(g.edges[deliv_id].at(none_id).narrow);
+}
+
+TEST(GraphInput, LoadFromFileWithOwningBases) {
+    Graph g = Graph::LoadFromFile("tests/data/graph_owners.txt");
+
+    ASSERT_EQ(g.vertices.size(), 6u);
+    EXPECT_EQ(g.vertices[0].type, Graph::Vertex::base);
+    EXPECT_EQ(g.vertices[1].type, Graph::Vertex::base);
+    EXPECT_EQ(g.vertices[2].type, Graph::Vertex::delivery);
+    EXPECT_EQ(g.vertices[3].type, Graph::Vertex::delivery);
+    EXPECT_EQ(g.vertices[4].type, Graph::Vertex::delivery);
+    EXPECT_EQ(g.vertices[5].type, Graph::Vertex::delivery);
+
+    EXPECT_THAT(g.vertices[2].owning_bases, UnorderedElementsAre(0));
+    EXPECT_THAT(g.vertices[3].owning_bases, UnorderedElementsAre(1));
+    EXPECT_TRUE(g.vertices[4].owning_bases.empty());
+    EXPECT_THAT(g.vertices[5].owning_bases, UnorderedElementsAre(0, 1));
 }

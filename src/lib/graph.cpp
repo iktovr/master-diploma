@@ -87,6 +87,13 @@ Graph Graph::LoadFromFile(const fs::path path) {
         }
 
         g.AddVertex(x, y, t);
+
+        if (t == Graph::Vertex::delivery) {
+            int base_id;
+            while (ss >> base_id) {
+                g.vertices.back().owning_bases.push_back(base_id);
+            }
+        }
     }
 
     assert(file);

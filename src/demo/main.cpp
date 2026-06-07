@@ -64,6 +64,7 @@ int main(int argc, char **argv) {
     bool draw_statistics = false;
     bool draw_points = true;
     bool draw_narrow_edges = true;
+    bool draw_overlay_stats = false;
 
     app.add_option("-g, --graph", graph_path, "Path to file with graph description")
         ->required()->transform(correct_path)->check(CLI::ExistingFile);
@@ -104,6 +105,7 @@ int main(int argc, char **argv) {
     app.add_flag("--draw-statistics,!--no-draw-statistics", draw_statistics, "Draw graph statistics (default: false)");
     app.add_flag("--draw-points,!--no-draw-points", draw_points, "Draw graph points (default: true)");
     app.add_flag("--draw-narrow-edges,!--no-draw-narrow-edges", draw_narrow_edges, "Draw narrow edges (default: true)");
+    app.add_flag("--draw-overlay-stats,!--no-draw-overlay-stats", draw_overlay_stats, "Draw aggregate statistics overlay in upper-left corner (default: false)");
 
     app.add_option("--animate", animation_path, "Convert visualization frames to animation using ffmpeg")
         ->transform(correct_path);
@@ -128,7 +130,7 @@ int main(int argc, char **argv) {
         }
         const int effective_frame_size = (frame_size > 0) ? frame_size : ComputeAutoFrameSize(*g);
         vis.emplace(g->Width(), g->Height(), g->Centroid(), effective_frame_size, scale, output_dir, max_speed,
-                   draw_graph, draw_agents, draw_statistics, draw_points, draw_narrow_edges);
+                   draw_graph, draw_agents, draw_statistics, draw_points, draw_narrow_edges, draw_overlay_stats);
     }
     Statistics::Get().edges.max_age = max_age;
     Statistics::Get().edges.tau = ewma_tau;

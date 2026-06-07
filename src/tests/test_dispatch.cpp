@@ -197,3 +197,82 @@ TEST(DispatchStep, MultipleAgentsOnlyIdleOnesAreDispatched) {
     EXPECT_EQ(agents[0].state, Agent::move);  // was idle → dispatched
     EXPECT_EQ(agents[1].state, Agent::move);  // was move → untouched
 }
+
+// ---------------------------------------------------------------------------
+// Delivery-to-base ownership
+// ---------------------------------------------------------------------------
+
+// Graph with two bases and two deliveries, each delivery owned by one base:
+//   vertex 0 = base A      at (0, 0)
+//   vertex 1 = base B      at (10, 0)
+//   vertex 2 = delivery    at (1, 0), owned by base 0
+//   vertex 3 = delivery    at (9, 0), owned by base 1
+static Graph MakeOwnedDeliveriesGraph() {
+    Graph g;
+    g.AddVertex(0.0, 0.0, Graph::Vertex::base);
+    g.AddVertex(10.0, 0.0, Graph::Vertex::base);
+    g.AddVertex(1.0, 0.0, Graph::Vertex::delivery);
+    g.AddVertex(9.0, 0.0, Graph::Vertex::delivery);
+    g.vertices[2].owning_bases = {0};
+    g.vertices[3].owning_bases = {1};
+    g.AddEdge(0, 2);
+    g.AddEdge(2, 3);
+    g.AddEdge(3, 1);
+    return g;
+}
+
+TEST(DispatchNewOrder, OnlyOwnedDeliveriesPerBase) {
+    auto g = AsShared(MakeOwnedDeliveriesGraph());
+    Agents agents(2);
+    Dispatch d(g, MakeRouter(g), agents);
+
+    for (int i = 0; i < 100; ++i) {
+        EXPECT_EQ(d.NewOrder(0), 2);
+        EXPECT_EQ(d.NewOrder(1), 3);
+    }
+}
+
+// Graph with two bases, one owned delivery and one unbound delivery:
+//   vertex 0 = base A      at (0, 0)
+//   vertex 1 = base B      at (10, 0)
+//   vertex 2 = delivery    at (1, 0), owned by base 0
+//   vertex 3 = delivery    at (5, 5), unbound
+static Graph MakeMixedDeliveriesGraph() {
+    Graph g;
+    g.AddVertex(0.0, 0.0, Graph::Vertex::base);
+    g.AddVertex(10.0, 0.0, Graph::Vertex::base);
+    g.AddVertex(1.0, 0.0, Graph::Vertex::delivery);
+    g.AddVertex(5.0, 5.0, Graph::Vertex::delivery);
+    g.vertices[2].owning_bases = {0};
+    g.AddEdge(0, 2);
+    g.AddEdge(2, 3);
+    g.AddEdge(3, 1);
+    return g;
+}
+
+TEST(DispatchNewOrder, UnboundDeliveriesAvailableToAllBases) {
+    auto g = AsShared(MakeMixedDeliveriesGraph());
+    Agents agents(2);
+    Dispatch d(g, MakeRouter(g), agents);
+
+    bool base1_got_unbound = false;
+    for (int i = 0; i < 200; ++i) {
+        int o0 = d.NewOrder(0);
+        EXPECT_TRUE(o0 == 2 || o0 == 3);
+        int o1 = d.NewOrder(1);
+        EXPECT_EQ(o1, 3);
+        if (o1 == 3) base1_got_unbound = true;
+    }
+    EXPECT_TRUE(base1_got_unbound);
+}
+
+TEST(DispatchNewOrder, LegacyBehaviorWhenNoOwnership) {
+    auto g = AsShared(MakeTwoBaseGraph());
+    Agents agents(2);
+    Dispatch d(g, MakeRouter(g), agents);
+
+    for (int i = 0; i < 50; ++i) {
+        EXPECT_EQ(d.NewOrder(0), 2);
+        EXPECT_EQ(d.NewOrder(1), 2);
+    }
+}

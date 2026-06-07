@@ -95,9 +95,10 @@ int ComputeAutoFrameSize(const Graph& graph) {
 
 Visualizer::Visualizer(const double width_, const double height_, const Point& center_,
                        const int max_dimension_in_pixels_, const double objects_scale_, const std::string directory_,
-                       const double max_speed_, bool draw_graph_, bool draw_agents_, bool draw_statistics_, bool draw_points_, bool draw_narrow_edges_)
+                       const double max_speed_, bool draw_graph_, bool draw_agents_, bool draw_statistics_, bool draw_points_, bool draw_narrow_edges_, bool draw_overlay_stats_)
     : center(center_), max_speed(max_speed_), directory(directory_),
-      draw_graph(draw_graph_), draw_agents(draw_agents_), draw_statistics(draw_statistics_), draw_points(draw_points_), draw_narrow_edges(draw_narrow_edges_) {
+      draw_graph(draw_graph_), draw_agents(draw_agents_), draw_statistics(draw_statistics_), draw_points(draw_points_), draw_narrow_edges(draw_narrow_edges_),
+      draw_overlay_stats(draw_overlay_stats_) {
     assert(fs::exists(directory));
     assert(fs::is_directory(directory));
 
@@ -282,6 +283,38 @@ void Visualizer::DrawGraphStatistics(const Graph& graph, GraphEdgeStatistics& st
                      ToPixels(graph.vertices[v].pos),
                      SpeedColor(avg_speed, max_speed), edge_thickness_px);
         }
+    }
+}
+
+void Visualizer::DrawOverlayStats() {
+    if (!draw_overlay_stats) {
+        return;
+    }
+    const auto& stats = Statistics::Get();
+
+    std::vector<std::string> lines;
+    lines.push_back(std::format("orders: {}", stats.orders_count));
+    if (!stats.speed.Empty()) {
+        lines.push_back(std::format("avg speed: {:.2f}", stats.speed.Average()));
+    }
+    if (!stats.order_time.Empty()) {
+        lines.push_back(std::format("avg order time: {:.2f}", stats.order_time.Average()));
+    }
+
+    const int ref_px = std::max(img_width, img_height);
+    const double font_scale = std::max(0.4, ref_px * 0.0008);
+    const int thickness = std::max(1, static_cast<int>(std::round(ref_px * 0.0008)));
+    const int font_face = cv::FONT_HERSHEY_SIMPLEX;
+    const cv::Scalar color(0, 0, 0);
+
+    const int margin_px = std::max(4, static_cast<int>(std::round(ref_px * kMarginRatio * 0.5)));
+    int y = margin_px;
+    for (const auto& line : lines) {
+        int baseline = 0;
+        const cv::Size sz = cv::getTextSize(line, font_face, font_scale, thickness, &baseline);
+        y += sz.height;
+        cv::putText(img, line, cv::Point(margin_px, y), font_face, font_scale, color, thickness, cv::LINE_AA);
+        y += baseline + static_cast<int>(std::round(sz.height * 0.4));
     }
 }
 

@@ -34,7 +34,7 @@ void Dispatch::Step(double t, Agents& agents) {
         }
 
         if (current_order[i] == -1) {
-            int order = NewOrder();
+            int order = NewOrder(agent.base);
             current_order[i] = order;
             auto [route, vids] = router->GetRouteWithVertices(
                 agent.base, order, t, static_cast<int>(i));
@@ -60,11 +60,16 @@ void Dispatch::Step(double t, Agents& agents) {
     }
 }
 
-int Dispatch::NewOrder() const {
+int Dispatch::NewOrder(int base_id) const {
     static std::random_device rd;
     static std::mt19937 gen(rd());
-    std::uniform_int_distribution<int> dist(0, delivery_points.size() - 1);
-    return delivery_points[dist(gen)];
+    auto it = delivery_points_by_base.find(base_id);
+    const std::vector<int>& pool =
+        (it != delivery_points_by_base.end() && !it->second.empty())
+            ? it->second
+            : delivery_points;
+    std::uniform_int_distribution<int> dist(0, pool.size() - 1);
+    return pool[dist(gen)];
 }
 
 void Dispatch::AssignBasePoints(Agents& agents) const {

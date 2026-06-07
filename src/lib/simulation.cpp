@@ -217,6 +217,7 @@ void Simulation::Visualize(const double t) {
     for (const auto& agent : agents) {
         vis->DrawAgent(agent);
     }
+    vis->DrawOverlayStats();
     vis->SaveFrame();
 }
 

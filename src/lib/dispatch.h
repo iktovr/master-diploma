@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <unordered_map>
 #include <vector>
 
 #include "agent.h"
@@ -15,6 +16,8 @@ struct Dispatch {
 
     std::vector<int> delivery_points;
     std::vector<int> base_points;
+    std::vector<int> global_delivery_points;
+    std::unordered_map<int, std::vector<int>> delivery_points_by_base;
     std::vector<int> current_order;
 
     std::vector<double> traveled_length;
@@ -34,13 +37,27 @@ struct Dispatch {
         , last_pos(agents.size(), Point{0.0, 0.0})
         , order_start_time(agents.size(), -1)
     {
+        for (int d : delivery_points) {
+            const auto& owners = this->graph->vertices[d].owning_bases;
+            if (owners.empty()) {
+                global_delivery_points.push_back(d);
+            } else {
+                for (int b : owners) {
+                    delivery_points_by_base[b].push_back(d);
+                }
+            }
+        }
+        for (int b : base_points) {
+            auto& v = delivery_points_by_base[b];
+            v.insert(v.end(), global_delivery_points.begin(), global_delivery_points.end());
+        }
     }
 
     void AssignBasePoints(Agents& agents) const;
 
     void Step(double t, Agents& agents);
 
-    int NewOrder() const;
+    int NewOrder(int base_id) const;
 };
 
 }
