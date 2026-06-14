@@ -30,6 +30,7 @@ RUN chmod -R 644 /usr/share/fonts/truetype/msttcorefonts/* \
     python3-pyproj \
     python3-pip \
     python3-venv \
+    pandoc \
   && echo ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true | debconf-set-selections \
   && fc-cache -f -v \
   && TARGETOS="$(uname -s | tr '[:upper:]' '[:lower:]')" \
