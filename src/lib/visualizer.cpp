@@ -11,20 +11,6 @@ namespace lib {
 
 namespace {
 
-constexpr unsigned char HexToByte(char c) {
-    return (c >= '0' && c <= '9') ? (c - '0') :
-           (c >= 'a' && c <= 'f') ? (c - 'a' + 10) :
-           (c >= 'A' && c <= 'F') ? (c - 'A' + 10) : 0;
-}
-
-inline cv::Scalar Color(const char* hex) {
-    return cv::Scalar(
-        HexToByte(hex[5]) * 16 + HexToByte(hex[6]),  // blue
-        HexToByte(hex[3]) * 16 + HexToByte(hex[4]),  // green
-        HexToByte(hex[1]) * 16 + HexToByte(hex[2])   // red
-    );
-}
-
 constexpr double kPixelsPerWorldUnit = 2.0;
 constexpr int    kMinFrame = 1000;
 constexpr int    kMaxFrame = 10000;

@@ -1,6 +1,6 @@
+load("@pypi//:requirements.bzl", "requirement")
 load("@rules_cc//cc:defs.bzl", "cc_binary")
 load("@rules_python//python:defs.bzl", "py_binary")
-load("@pypi//:requirements.bzl", "requirement")
 
 cc_binary(
     name = "demo",
@@ -17,6 +17,23 @@ cc_binary(
         "//lib:statistics",
         "//lib:visualizer",
         "@cli11",
+    ],
+)
+
+cc_binary(
+    name = "draw_locations",
+    srcs = [
+        "draw_locations.cpp",
+    ],
+    deps = [
+        "//lib:geometry",
+        "//lib:graph",
+        "//lib:visualizer",
+        "@cli11",
+        "@nlohmann_json//:singleheader-json",
+        "@opencv//:core",
+        "@opencv//:imgcodecs",
+        "@opencv//:imgproc",
     ],
 )
 

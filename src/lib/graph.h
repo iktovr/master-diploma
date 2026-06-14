@@ -56,12 +56,17 @@ public:
 
     static Graph LoadFromGeoJsonFile(const std::filesystem::path path, int basepoints_limit = -1);
 
+    Point ProjectLonLat(const double lon, const double lat) const;
+
 protected:
     int vertex_id = 0;
 
 public:
     std::vector<Vertex> vertices;
     std::vector<std::unordered_map<int, Edge>> edges;
+    int utm_zone = 0;
+    double ref_x = 0.0;
+    double ref_y = 0.0;
 };
 
 }

@@ -349,6 +349,9 @@ Graph Graph::LoadFromGeoJsonFile(const fs::path path, int basepoints_limit) {
     }
 
     Graph g;
+    g.utm_zone = utm_zone;
+    g.ref_x = ref_x;
+    g.ref_y = ref_y;
     for (int i = 0; i < n; ++i) {
         Vertex::Type vtype = Vertex::none;
         auto pit = point_type_by_pos.find(id_to_coord[i]);
@@ -370,6 +373,23 @@ Graph Graph::LoadFromGeoJsonFile(const fs::path path, int basepoints_limit) {
     }
 
     return g;
+}
+
+Point Graph::ProjectLonLat(const double lon, const double lat) const {
+    const std::string proj_str =
+        "+proj=utm +zone=" + std::to_string(utm_zone) + " +datum=WGS84 +units=m +no_defs";
+
+    PJ_CONTEXT* ctx = proj_context_create();
+    PJ* P = proj_create(ctx, proj_str.c_str());
+    assert(P != nullptr);
+
+    PJ_COORD c_in = proj_coord(proj_torad(lon), proj_torad(lat), 0.0, 0.0);
+    PJ_COORD c_out = proj_trans(P, PJ_FWD, c_in);
+
+    proj_destroy(P);
+    proj_context_destroy(ctx);
+
+    return Point{c_out.xy.x - ref_x, c_out.xy.y - ref_y};
 }
 
 }

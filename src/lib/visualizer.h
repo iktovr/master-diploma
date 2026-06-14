@@ -21,6 +21,20 @@ class GraphEdgeStatistics;
 
 int ComputeAutoFrameSize(const Graph& graph);
 
+constexpr unsigned char HexToByte(char c) {
+    return (c >= '0' && c <= '9') ? (c - '0') :
+           (c >= 'a' && c <= 'f') ? (c - 'a' + 10) :
+           (c >= 'A' && c <= 'F') ? (c - 'A' + 10) : 0;
+}
+
+inline cv::Scalar Color(const char* hex) {
+    return cv::Scalar(
+        HexToByte(hex[5]) * 16 + HexToByte(hex[6]),
+        HexToByte(hex[3]) * 16 + HexToByte(hex[4]),
+        HexToByte(hex[1]) * 16 + HexToByte(hex[2])
+    );
+}
+
 class Visualizer {
 public:
     Visualizer(const double width_, const double height_, const Point& center_, const int max_dimension_in_pixels_, const double scale_, const std::string directory_, const double max_speed_ = 0.0,

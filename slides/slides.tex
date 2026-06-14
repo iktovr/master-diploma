@@ -8,11 +8,26 @@
 \usepackage[export]{adjustbox}
 \usepackage{csquotes}
 \usepackage{pgfplots}
-\pgfplotsset{compat=1.18}
+\usepackage{makecell}
+\usepackage{multirow}
 
-\usetikzlibrary{arrows.meta, positioning, fit, backgrounds, calc, shapes.geometric}
+\pgfplotsset{compat=1.18}
+\usetikzlibrary{arrows.meta, positioning, fit, backgrounds, calc, shapes.geometric, decorations.pathmorphing}
 
 \input{titlepage}
+
+\definecolor{graphsmall}{HTML}{e41a1c}
+\definecolor{graphmedium}{HTML}{377eb8}
+\definecolor{graphlarge}{HTML}{4daf4a}
+
+\definecolor{edgecolor}{HTML}{9a3fe5}
+\definecolor{narrowcolor}{HTML}{ec8000}
+\definecolor{basecolor}{HTML}{e52400}
+\definecolor{deliverycolor}{HTML}{2ee26d}
+
+\newcommand{\legendline}[1]{\tikz[baseline=-0.5ex]{\draw[#1, line width=1.5pt] (0,0) -- (0.6,0);}}
+\newcommand{\legendwave}[1]{\tikz[baseline=-0.5ex]{\draw[#1, line width=1.5pt, decorate, decoration={snake, amplitude=0.6pt, segment length=4pt}] (0,0) -- (0.6,0);}}
+\newcommand{\legenddot}[1]{\tikz[baseline=-0.5ex]{\fill[#1] (0,0) circle (2.2pt);}}
 
 \newcommand{\mycolorbar}[6]% height,width,colors,label min,label max,label step
 {   \begin{tikzpicture}
@@ -411,15 +426,42 @@
 \begin{frame}
 \frametitle{Исходные данные}
 
-В качестве источника данных использовались фрагменты карты OpenStreetMap
+% bazel run //demo:draw_locations -- -g ./maps/large_map.geojson -l ./maps/large_location.geojson ./maps/medium_location.geojson ./maps/small_location.geojson -o ./demo/locations.png --scale 1.2
 
+\begin{columns}[T]
+\begin{column}{0.4\textwidth}
 \begin{figure}
-\hfill
-\includegraphics[height=0.75\textheight, valign=c]{medium_graph}
-\hfill
-\includegraphics[width=0.75\textheight, valign=c, angle=90, origin=c]{large_graph}
-\hfill
+\vspace{-0.75cm}
+\includegraphics[height=0.9\textheight]{locations}
 \end{figure}
+\end{column}
+
+\begin{column}{0.6\textwidth}
+В качестве источника данных использовались фрагменты карты Москвы из OpenStreetMap
+
+\vspace{0.15cm}
+
+\begin{table}
+\small
+\renewcommand{\arraystretch}{1.6}
+\begin{tabular}{|l|c|c|c|}
+\hline
+Характеристика & \makecell{малый\\[-4pt]\textcolor{graphsmall}{\rule{1cm}{2.5pt}}} & \makecell{средний\\[-4pt]\textcolor{graphmedium}{\rule{1cm}{2.5pt}}} & \makecell{большой\\[-4pt]\textcolor{graphlarge}{\rule{1cm}{2.5pt}}} \\
+\hline
+вершины & $68$ & $887$ & $2871$ \\
+\hline
+рёбра~~\legendline{edgecolor} & $75$ & $1054$ & $3469$ \\
+\hline
+узкие рёбра~~\legendwave{narrowcolor} & $10$ & $102$ & $250$ \\
+\hline
+базовые точки~~\legenddot{basecolor} & $1$ & $6$ & $17$ \\
+\hline
+точки доставки~~\legenddot{deliverycolor} & $8$ & $73$ & $264$ \\
+\hline
+\end{tabular}
+\end{table}
+\end{column}
+\end{columns}
 
 \end{frame}
 

@@ -5,8 +5,6 @@ RUN apk --update add msttcorefonts-installer \
 
 FROM mcr.microsoft.com/devcontainers/cpp:ubuntu
 
-ARG TARGETOS TARGETARCH
-
 COPY --from=font-builder /usr/share/fonts/truetype/msttcorefonts /usr/share/fonts/truetype/msttcorefonts
 
 RUN chmod -R 644 /usr/share/fonts/truetype/msttcorefonts/* \
@@ -34,6 +32,12 @@ RUN chmod -R 644 /usr/share/fonts/truetype/msttcorefonts/* \
     python3-venv \
   && echo ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true | debconf-set-selections \
   && fc-cache -f -v \
+  && TARGETOS="$(uname -s | tr '[:upper:]' '[:lower:]')" \
+  && case "$(uname -m)" in \
+       x86_64)  TARGETARCH="amd64" ;; \
+       aarch64|arm64) TARGETARCH="arm64" ;; \
+       *) echo "Unsupported architecture: $(uname -m)" && exit 1 ;; \
+     esac \
   && wget "https://github.com/bazelbuild/bazelisk/releases/download/v1.29.0/bazelisk-${TARGETOS}-${TARGETARCH}" \
     "https://github.com/bazelbuild/buildtools/releases/download/v8.5.1/buildifier-${TARGETOS}-${TARGETARCH}" \
     "https://github.com/bazelbuild/buildtools/releases/download/v8.5.1/buildozer-${TARGETOS}-${TARGETARCH}" \
