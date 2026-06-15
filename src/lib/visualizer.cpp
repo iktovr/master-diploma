@@ -53,7 +53,7 @@ inline cv::Scalar SpeedColor(double speed, double max_speed) {
 inline cv::Scalar AgentStateColor(Agent::State state) {
     switch (state) {
         case Agent::move:
-            return Color("#ffffff");
+            return Color("#84E966");
         case Agent::idle:
             return Color("#c1c1c1");
         case Agent::wait:

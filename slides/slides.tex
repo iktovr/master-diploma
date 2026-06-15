@@ -273,35 +273,108 @@
 \begin{frame}
 \frametitle{Формальное описание}
 
-\textbf{Среда} --- взвешенный неориентированный планарный граф
+\textbf{Среда} --- взвешенный неориентированный планарный граф:
+\vspace{-0.3cm}
 \[
-    G = (V, E, W), \qquad E = E_{w} \sqcup E_{n}, \qquad V = V_{r} \sqcup V_{b} \sqcup V_{d}. 
-\]\\[0.5cm]
+    G = (V, E, W). 
+\]
 
-\textbf{Агенты} $A = \{1, \ldots, k\}$
+\vspace{-0.3cm}
 
-\textbf{Полный маршрут агенты}: $v_b \to v_d \to v_b$, \quad $v_b \in V_{b}$, $v_d \in V_{d}$\\[0.7cm]
+В множестве ребер выделено множество узких ребер:
+$E = E_{w} \sqcup E_{n}$.
+
+В множестве вершин выделены множества базовых точек\\и точек доставки:
+$V = V_{r} \sqcup V_{b} \sqcup V_{d}$
+
+\bigskip
+
+\textbf{Агенты} $A = \{1, \ldots, k\}$, моделируют роботов-доставщиков
+
+\medskip
+
+\begin{figure}
+\includegraphics[height=0.25\textheight]{yandex}
+\hfill
+\includegraphics[height=0.25\textheight]{starship}
+\hfill
+\includegraphics[height=0.25\textheight]{serve}
+\hfill
+\includegraphics[height=0.25\textheight]{coco}
+\hspace*{1cm}
+\end{figure}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Формальное описание}
+\framesubtitle{Перемещение агента и метрики качества}
+
+\textbf{Полный маршрут агента}: $v_b \to v_d \to v_b$, \quad $v_b \in V_{b}$, $v_d \in V_{d}$
+
+Используются синтетические данные о маршрутах\\(маршрут может быть между любыми соответствующими вершинами графа)
+
+\bigskip
 
 \textbf{Метрики качества} за время $[0, T]$ ($\mathcal{R}(T)$ --- завершённые маршруты):
+\smallskip
 \begin{itemize}
     \item число выполненных заказов $N(T) = |\mathcal{R}(T)|$;
+    \bigskip
     \item среднее время маршрута $\bar\tau(T) = \frac{1}{|\mathcal{R}(T)|}\sum\limits_{\ell \in \mathcal{R}(T)} \tau_\ell$;
+    \medskip
     \item средняя скорость на маршруте $\bar v(T) = \frac{1}{|\mathcal{R}(T)|}\sum\limits_{\ell \in \mathcal{R}(T)} \bar v_\ell$.
 \end{itemize}
 
 \end{frame}
 
 
-% \begin{frame}
-% \frametitle{Многоагентное планирование}
+\begin{frame}
+\frametitle{Исходные данные}
 
-% \end{frame}
+% bazel run //demo:draw_locations -- -g ./maps/large_map.geojson -l ./maps/large_location.geojson ./maps/medium_location.geojson ./maps/small_location.geojson -o ./demo/locations.png --scale 1.2
+
+\begin{columns}[T]
+\begin{column}{0.4\textwidth}
+\begin{figure}
+\vspace{-0.75cm}
+\includegraphics[height=0.9\textheight]{locations}
+\end{figure}
+\end{column}
+
+\begin{column}{0.6\textwidth}
+В качестве источника данных использовались фрагменты карты Москвы из OpenStreetMap
+
+\vspace{0.15cm}
+
+\begin{table}
+\small
+\renewcommand{\arraystretch}{1.6}
+\begin{tabular}{|l|c|c|c|}
+\hline
+Характеристика & \makecell{малый\\[-4pt]\textcolor{graphsmall}{\rule{1cm}{2.5pt}}} & \makecell{средний\\[-4pt]\textcolor{graphmedium}{\rule{1cm}{2.5pt}}} & \makecell{большой\\[-4pt]\textcolor{graphlarge}{\rule{1cm}{2.5pt}}} \\
+\hline
+вершины & $68$ & $887$ & $2871$ \\
+\hline
+рёбра~~\legendline{edgecolor} & $75$ & $1054$ & $3469$ \\
+\hline
+узкие рёбра~~\legendwave{narrowcolor} & $10$ & $102$ & $250$ \\
+\hline
+базовые точки~~\legenddot{basecolor} & $1$ & $6$ & $17$ \\
+\hline
+точки доставки~~\legenddot{deliverycolor} & $8$ & $73$ & $264$ \\
+\hline
+\end{tabular}
+\end{table}
+\end{column}
+\end{columns}
+\end{frame}
 
 
 \begin{frame}
 \frametitle{Методы разрешения конфликтов}
 
-% bazel run demo -- -g demo/one_way.txt --resolver reverse -a 2 -d 60 -v 0.1 -o demo/out --animate demo/out.mp4 --scale 3
+% bazel run demo -- -g demo/one_way.txt --resolver reverse -a 2 -d 60 -v 0.2 -o ../slides/img/reverse --animate demo/out.mp4 --scale 3
 
 \begin{figure}
 \newcommand{\groupreverse}{%
@@ -420,49 +493,6 @@
 \end{tikzpicture}
 \caption{Структура симулятора и взаимодействие основных компонентов.}
 \end{figure}
-\end{frame}
-
-
-\begin{frame}
-\frametitle{Исходные данные}
-
-% bazel run //demo:draw_locations -- -g ./maps/large_map.geojson -l ./maps/large_location.geojson ./maps/medium_location.geojson ./maps/small_location.geojson -o ./demo/locations.png --scale 1.2
-
-\begin{columns}[T]
-\begin{column}{0.4\textwidth}
-\begin{figure}
-\vspace{-0.75cm}
-\includegraphics[height=0.9\textheight]{locations}
-\end{figure}
-\end{column}
-
-\begin{column}{0.6\textwidth}
-В качестве источника данных использовались фрагменты карты Москвы из OpenStreetMap
-
-\vspace{0.15cm}
-
-\begin{table}
-\small
-\renewcommand{\arraystretch}{1.6}
-\begin{tabular}{|l|c|c|c|}
-\hline
-Характеристика & \makecell{малый\\[-4pt]\textcolor{graphsmall}{\rule{1cm}{2.5pt}}} & \makecell{средний\\[-4pt]\textcolor{graphmedium}{\rule{1cm}{2.5pt}}} & \makecell{большой\\[-4pt]\textcolor{graphlarge}{\rule{1cm}{2.5pt}}} \\
-\hline
-вершины & $68$ & $887$ & $2871$ \\
-\hline
-рёбра~~\legendline{edgecolor} & $75$ & $1054$ & $3469$ \\
-\hline
-узкие рёбра~~\legendwave{narrowcolor} & $10$ & $102$ & $250$ \\
-\hline
-базовые точки~~\legenddot{basecolor} & $1$ & $6$ & $17$ \\
-\hline
-точки доставки~~\legenddot{deliverycolor} & $8$ & $73$ & $264$ \\
-\hline
-\end{tabular}
-\end{table}
-\end{column}
-\end{columns}
-
 \end{frame}
 
 
