@@ -272,24 +272,29 @@ void Visualizer::DrawGraphStatistics(const Graph& graph, GraphEdgeStatistics& st
     }
 }
 
-void Visualizer::DrawOverlayStats() {
+void Visualizer::DrawOverlayStats(double t_now) {
     if (!draw_overlay_stats) {
         return;
     }
     const auto& stats = Statistics::Get();
 
     std::vector<std::string> lines;
+    lines.push_back(std::format("time: {}", t_now));
     lines.push_back(std::format("orders: {}", stats.orders_count));
     if (!stats.speed.Empty()) {
         lines.push_back(std::format("avg speed: {:.2f}", stats.speed.Average()));
+    } else {
+        lines.push_back("avg speed:");
     }
     if (!stats.order_time.Empty()) {
         lines.push_back(std::format("avg order time: {:.2f}", stats.order_time.Average()));
+    } else {
+        lines.push_back("avg order time:");
     }
 
     const int ref_px = std::max(img_width, img_height);
     const double font_scale = std::max(0.4, ref_px * 0.0008);
-    const int thickness = std::max(1, static_cast<int>(std::round(ref_px * 0.0008)));
+    const int thickness = std::max(3, static_cast<int>(std::round(ref_px * 0.001)));
     const int font_face = cv::FONT_HERSHEY_SIMPLEX;
     const cv::Scalar color(0, 0, 0);
 

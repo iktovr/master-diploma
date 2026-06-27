@@ -54,7 +54,7 @@ public:
 
     void DrawGraphStatistics(const Graph& graph, GraphEdgeStatistics& stats, double t_now);
 
-    void DrawOverlayStats();
+    void DrawOverlayStats(double t_now);
 
     void SaveFrame() {
         cv::imwrite(directory / std::format("frame_{:04}.png", frame++), img);
